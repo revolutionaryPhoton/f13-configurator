@@ -17,12 +17,12 @@
 | S10 | Main wizard (`bin/f13-config`) | 193d68e | 176/176 ✅ |
 | S11 | Launch + health wait (`lib/compose.sh`) | 6654d1e | 189/189 ✅ |
 | S12 | Idempotency + re-run (`lib/state.sh`) | 24e844e | 215/215 ✅ |
+| S13 | Shellcheck clean-up | TBD | 215/215 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S13 | Shellcheck clean-up |
 | S14 | README.md |
 | S15 | Demo transcript |
 
@@ -89,6 +89,9 @@
   compose::_docker_compose and compose::_curl_health are overridable for
   hermetic tests. 13 new bats tests (1 docker integration test marked skip);
   189/189 green, shellcheck clean.
+- S13 completed: `shellcheck -S warning bin/* lib/*.sh` passes clean (exit 0,
+  zero warnings). One pre-existing disable comment in lib/secrets.sh
+  (SC2120) retains its inline justification. Full bats suite 215/215 green.
 - S09 completed: all 6 templates populated. docker-compose.yml.tmpl has
   frontend/core/chat/feedback-db services plus ollama-mock under a `mock`
   compose profile (activated via COMPOSE_PROFILES in .env); chat always has
