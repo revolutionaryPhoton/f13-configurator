@@ -19,12 +19,13 @@
 | S12 | Idempotency + re-run (`lib/state.sh`) | 24e844e | 215/215 ✅ |
 | S13 | Shellcheck clean-up | 627e6b7 | 215/215 ✅ |
 | S14 | README.md | f2f4461 | 215/215 ✅ |
+| S15 | Demo transcript | f38b47c | 215/215 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S15 | Demo transcript |
+| — | All stories complete |
 
 ## Notes
 
@@ -92,6 +93,10 @@
 - S13 completed: `shellcheck -S warning bin/* lib/*.sh` passes clean (exit 0,
   zero warnings). One pre-existing disable comment in lib/secrets.sh
   (SC2120) retains its inline justification. Full bats suite 215/215 green.
+- S15 completed: docs/demo-transcript.txt records the complete mock-backend wizard run —
+  preflight, backend pick, port defaults, secret generation, template render, summary
+  box, compose launch with spinner output, and a re-run / non-interactive cheat-sheet.
+  Plain text, no ANSI colour codes. 215/215 green, shellcheck clean.
 - S14 completed: README.md expanded from the S00 stub to the full S14 spec.
   Covers quickstart, requirements table, mock vs host-Ollama backend descriptions
   with example prompt output, host.docker.internal Linux explainer (extra_hosts),
