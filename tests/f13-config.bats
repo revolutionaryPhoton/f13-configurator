@@ -245,3 +245,39 @@ _run_mock_dry() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"localhost:8000"* ]]
 }
+
+# ---------------------------------------------------------------------------
+# Idempotency / re-run (S12)
+# ---------------------------------------------------------------------------
+
+@test "dry-run creates a .state file" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  [ -f "${TMPDIR_WORK}/gen/.state" ]
+}
+
+@test ".state file contains CHAT_BACKEND" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run grep '^CHAT_BACKEND=mock' "${TMPDIR_WORK}/gen/.state"
+  [ "$status" -eq 0 ]
+}
+
+@test "re-run with keep action succeeds" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=keep "${BIN}" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"localhost:9999"* ]]
+}
+
+@test "re-run with edit action re-renders config" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=edit "${BIN}" --dry-run
+  [ "$status" -eq 0 ]
+  [ -f "${TMPDIR_WORK}/gen/docker-compose.yml" ]
+}
+
+@test "re-run with reset action wipes and re-generates" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=reset "${BIN}" --dry-run
+  [ "$status" -eq 0 ]
+  [ -f "${TMPDIR_WORK}/gen/docker-compose.yml" ]
+}

@@ -240,6 +240,36 @@ wizard() {
   ui::banner
   printf '\n'
 
+  # Idempotency check — if a previous run exists, ask how to proceed
+  F13_STATE_ACTION=""
+  if state::check "${GEN_DIR}"; then
+    case "${F13_STATE_ACTION}" in
+      keep)
+        state::read "${GEN_DIR}/.state"
+        _wizard_compute_vars
+        _wizard_summary_box
+        printf '\n'
+        if [[ "${_dry_run}" -ne 1 ]] && prompt::yesno "Start it now?" "y"; then
+          ui::step "Starting F13..."
+          compose::up
+        else
+          ui::info "Run manually: cd ${GEN_DIR} && docker compose up -d"
+        fi
+        return 0
+        ;;
+      edit)
+        state::read "${GEN_DIR}/.state"
+        ui::info "Editing configuration. Current values used as defaults."
+        printf '\n'
+        ;;
+      reset)
+        rm -rf "${GEN_DIR}"
+        ui::ok "generated/ wiped. Starting fresh."
+        printf '\n'
+        ;;
+    esac
+  fi
+
   # Step 1 — preflight
   if [[ -z "${F13_SKIP_PREFLIGHT:-}" ]]; then
     ui::step "1. Preflight checks"
@@ -282,6 +312,7 @@ wizard() {
   # Step 6 — render
   ui::step "5. Rendering configuration"
   _wizard_render
+  state::write "${GEN_DIR}/.state"
   ui::ok "Configuration written to ${GEN_DIR}/"
   printf '\n'
 
