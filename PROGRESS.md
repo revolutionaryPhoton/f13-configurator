@@ -6,12 +6,12 @@
 |-------|-------------|--------|-------|
 | S00 | Project bootstrap | ab44c8b | 22/22 ✅ |
 | S01 | Colors, emoji, box-drawing helpers (`lib/ui.sh`) | 53c2625 | 35/35 ✅ |
+| S02 | F13 ASCII banner (`lib/banner.sh`) | caf34b6 | 38/38 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S02 | F13 ASCII banner (`lib/banner.sh`) |
 | S03 | Interactive prompts (`lib/prompt.sh`) |
 | S04 | Random secrets (`lib/secrets.sh`) |
 | S05 | Port probes (`lib/ports.sh`) |
@@ -33,3 +33,6 @@
 - S01 completed: lib/ui.sh fully implemented — color wrappers, status-line
   helpers (ok/warn/err/info/step), hr, and box. NO_COLOR respected.
   15 new bats tests; full suite 35/35 green.
+- S02 completed: lib/banner.sh — ui::banner prints 6-line block-character
+  F13 logo in cyan centered on 80-col terminal, subtitle in dim.
+  5 new bats tests; full suite 38/38 green.
