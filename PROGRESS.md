@@ -13,12 +13,12 @@
 | S06 | Preflight checks (`lib/preflight.sh`) | 54d6178 | 101/101 ✅ |
 | S07 | Host Ollama integration (`lib/ollama.sh`) | 59eed18 | 123/123 ✅ |
 | S08 | Template renderer (`lib/render.sh`) | 6ab73ec | 138/138 ✅ |
+| S09 | Compose + config templates | b19588d | 148/148 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S09 | Compose + config templates |
 | S10 | Main wizard (`bin/f13-config`) |
 | S11 | Launch + health wait (`lib/compose.sh`) |
 | S12 | Idempotency + re-run (`lib/state.sh`) |
@@ -64,3 +64,13 @@
   render::tree recursively renders all *.tmpl files from a source directory
   into a destination directory, mirroring structure and stripping .tmpl.
   15 new bats tests; 138/138 green, shellcheck clean.
+- S09 completed: all 6 templates populated. docker-compose.yml.tmpl has
+  frontend/core/chat/feedback-db services plus ollama-mock under a `mock`
+  compose profile (activated via COMPOSE_PROFILES in .env); chat always has
+  extra_hosts for host.docker.internal (harmless on mock, required on Linux
+  Ollama). env.tmpl extended with CHAT_IMAGE, CHAT_BASE_URL, CHAT_MODEL_NAME,
+  CHAT_MAX_CONTEXT_TOKENS, COMPOSE_PROFILES. core/general.yml.tmpl sets
+  guest_mode:true, single chat service_endpoint, allow_origins with
+  FRONTEND_PORT. chat/llm_models.yml.tmpl parameterised for both mock and
+  ollama backends via wizard-computed vars. 10 new render.bats tests;
+  148/148 green, shellcheck clean.
