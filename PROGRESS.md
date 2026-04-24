@@ -14,12 +14,12 @@
 | S07 | Host Ollama integration (`lib/ollama.sh`) | 59eed18 | 123/123 ✅ |
 | S08 | Template renderer (`lib/render.sh`) | 6ab73ec | 138/138 ✅ |
 | S09 | Compose + config templates | b19588d | 148/148 ✅ |
+| S10 | Main wizard (`bin/f13-config`) | 193d68e | 176/176 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S10 | Main wizard (`bin/f13-config`) |
 | S11 | Launch + health wait (`lib/compose.sh`) |
 | S12 | Idempotency + re-run (`lib/state.sh`) |
 | S13 | Shellcheck clean-up |
@@ -64,6 +64,14 @@
   render::tree recursively renders all *.tmpl files from a source directory
   into a destination directory, mirroring structure and stripping .tmpl.
   15 new bats tests; 138/138 green, shellcheck clean.
+- S10 completed: bin/f13-config fully implemented — 9-step wizard: banner,
+  preflight, preset confirm, chat backend pick (mock/ollama), Ollama model
+  selection with live model list, port probing + override, secret generation
+  (feedback-db + 5 placeholder secrets), template rendering into generated/,
+  summary box, optional docker compose launch. Flags: --non-interactive,
+  --dry-run, --reset, --help. F13_GENERATED_DIR and F13_SKIP_PREFLIGHT
+  overrides enable hermetic bats tests. 28 new tests; 176/176 green,
+  shellcheck clean.
 - S09 completed: all 6 templates populated. docker-compose.yml.tmpl has
   frontend/core/chat/feedback-db services plus ollama-mock under a `mock`
   compose profile (activated via COMPOSE_PROFILES in .env); chat always has
