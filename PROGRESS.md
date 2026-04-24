@@ -7,12 +7,12 @@
 | S00 | Project bootstrap | ab44c8b | 22/22 ✅ |
 | S01 | Colors, emoji, box-drawing helpers (`lib/ui.sh`) | 53c2625 | 35/35 ✅ |
 | S02 | F13 ASCII banner (`lib/banner.sh`) | caf34b6 | 38/38 ✅ |
+| S03 | Interactive prompts (`lib/prompt.sh`) | 800e9af | 60/60 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S03 | Interactive prompts (`lib/prompt.sh`) |
 | S04 | Random secrets (`lib/secrets.sh`) |
 | S05 | Port probes (`lib/ports.sh`) |
 | S06 | Preflight checks (`lib/preflight.sh`) |
@@ -36,3 +36,7 @@
 - S02 completed: lib/banner.sh — ui::banner prints 6-line block-character
   F13 logo in cyan centered on 80-col terminal, subtitle in dim.
   5 new bats tests; full suite 38/38 green.
+- S03 completed: lib/prompt.sh — prompt::ask, prompt::yesno, prompt::pickone,
+  prompt::secret all implemented. F13_CONFIG_NONINTERACTIVE=1 drives wizard
+  non-interactively via env vars. Bats tests use --separate-stderr (bats 1.5+)
+  to isolate stdout from prompt text on stderr. 22 new tests; 60/60 green.
