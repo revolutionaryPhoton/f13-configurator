@@ -1,63 +1,189 @@
 # F13 Shell Configurator v1
 
-Shell configurator for a minimal F13 deployment.
+A shell-based wizard that brings up a minimal F13 deployment — `core + frontend + chat` — with a single command. No YAML hand-editing, no manual secret generation, no ops experience required.
 
-Walks a first-time user from zero to a running F13 instance
-(`core + frontend + chat`) with a single command — no YAML hand-editing
-required.
+---
 
-## Quick start
+## Quickstart
 
 ```bash
 cd configurator_v1
 ./bin/f13-config
 ```
 
+The wizard walks you through every choice (chat backend, ports), generates all secrets, renders the compose stack, and optionally starts it. Total time from zero to running: under two minutes.
+
+---
+
 ## Requirements
 
-- Docker Engine 20.10+ with `docker compose` (v2)
-- Bash 4+ (`brew install bash` on macOS)
-- `curl`, `awk`, `sed`, `envsubst`
-- ~2 GB free disk space
-- Ports 8000 and 9999 available (configurable)
+| Requirement | Notes |
+|---|---|
+| Docker Engine 20.10+ | Must include `docker compose` (v2 plugin) |
+| Bash 4+ | macOS ships 3.2 — run `brew install bash` and use `/usr/local/bin/bash` |
+| `curl` | Used for Ollama probing and health checks |
+| `awk`, `sed`, `envsubst` | Usually pre-installed; `envsubst` is in `gettext` |
+| ~2 GB free disk | For images on first pull |
+| Ports 8000 and 9999 | Defaults; the wizard lets you pick alternatives if busy |
+
+---
 
 ## Chat backends
 
-| Backend | Description |
-|---------|-------------|
-| Mock    | Uses the shipped `ollama-mock` image — no GPU, deterministic responses. Ideal for testing. |
-| Host Ollama | Connects to `ollama serve` running on this machine at `localhost:11434`. |
+The wizard asks how chat inference should run:
 
-On Linux, Docker reaches the host via `host.docker.internal:host-gateway`
-(requires Docker 20.10+).
+```
+Where should chat inference run?
+  1) 🧪 Mock backend (no GPU, deterministic responses)
+  2) 🦙 Host Ollama (connects to ollama serve on this machine)
+```
+
+### Option 1 — Mock backend
+
+Spins up the shipped `ollama-mock` container alongside the stack. No GPU needed. Responses are deterministic and useful for testing the UI or integration.
+
+```
+  1) 🧪 Mock backend (no GPU, deterministic responses)
+> 1
+
+✅  Chat backend: mock
+```
+
+### Option 2 — Host Ollama
+
+Connects the chat container to your local `ollama serve` instance. The wizard calls `ollama::is_running` to check whether Ollama is listening on `localhost:11434`; if it is not, it prints instructions and waits.
+
+Once Ollama is reachable it fetches the live model list and asks you to pick one:
+
+```
+  2) 🦙 Host Ollama (connects to ollama serve on this machine)
+> 2
+
+ℹ️   Fetching models from Ollama…
+  1) gemma4:31b-cloud
+  2) llama3.2:latest
+Pick a model [1]: 1
+
+✅  Chat backend: ollama  model: gemma4:31b-cloud
+```
+
+#### How Docker reaches the host (Linux)
+
+On macOS, `host.docker.internal` resolves automatically. On Linux it does not exist by default. The generated `docker-compose.yml` injects:
+
+```yaml
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
+This is always present in the chat service definition (harmless when using the mock backend, required for host-Ollama on Linux). Requires Docker Engine 20.10+.
+
+---
+
+## Ports
+
+The wizard probes whether the preferred ports are free and falls back or asks:
+
+```
+Frontend port [9999]:
+Core API port  [8000]:
+```
+
+Both values end up in `generated/.env` and are substituted into `docker-compose.yml` at render time. You can change them on any re-run.
+
+---
+
+## Preset
+
+The only preset in v1 is **`core + frontend + chat`**:
+
+| Service | Image | Notes |
+|---|---|---|
+| `frontend` | `registry.opencode.de/f13/microservices/frontend/main:latest` | `KEYCLOAK_DISABLED=true`; no Keycloak container |
+| `core` | `registry.opencode.de/f13/microservices/core/main:latest` | Guest mode enabled (`authentication.guest_mode: true`) |
+| `chat` | `registry.opencode.de/f13/microservices/chat/main:latest` | Configured for mock or host-Ollama |
+| `feedback-db` | `postgres:16-alpine` | Password from generated secret |
+| `ollama-mock` | shipped mock image | Only when mock backend is selected (compose profile) |
+
+---
 
 ## Stop / reset / re-run
 
 ```bash
-# Stop
-cd generated && docker compose down
+# Stop the stack
+cd configurator_v1/generated
+docker compose down
 
-# Re-run wizard (keep / edit / reset existing config)
+# Re-run the wizard (keep / edit / reset existing config)
+cd configurator_v1
 ./bin/f13-config
 
-# Force reset
+# Force-reset generated/ and start the wizard from scratch
 ./bin/f13-config --reset
+
+# Render templates without launching (dry run)
+./bin/f13-config --dry-run
+
+# Fully non-interactive (CI / scripting)
+F13_CONFIG_NONINTERACTIVE=1 \
+  F13_CHAT_BACKEND=mock \
+  F13_FRONTEND_PORT=9999 \
+  F13_CORE_PORT=8000 \
+  ./bin/f13-config
 ```
+
+When you re-run without `--reset` and `generated/.state` exists, the wizard detects the previous configuration and prompts:
+
+```
+Existing configuration found:
+  Preset:    core+frontend+chat
+  Backend:   mock
+  Frontend:  http://localhost:9999
+  API:       http://localhost:8000
+
+[k]eep existing / [e]dit (re-run with current values) / [r]eset:
+```
+
+- **keep** — skip the wizard and offer to start the stack directly.
+- **edit** — re-run the wizard with saved values pre-filled as defaults.
+- **reset** — delete `generated/` and start fresh.
+
+---
 
 ## What's generated
 
+After a successful run `generated/` looks like this:
+
 ```
 generated/
-  docker-compose.yml    # minimal stack
-  .env                  # port + backend vars
-  configs/core/         # core service YAML configs
-  configs/chat/         # chat service YAML configs
-  secrets/              # generated secrets (chmod 600)
+├── docker-compose.yml       # rendered compose stack (no version: key)
+├── .env                     # port overrides and backend vars for compose
+├── .state                   # wizard state for idempotent re-runs (chmod 600)
+├── configs/
+│   ├── core/
+│   │   ├── general.yml      # guest_mode, single chat endpoint, allow_origins
+│   │   └── llm_models.yml   # (placeholder — chat drives model config)
+│   └── chat/
+│       ├── general.yml      # service-level chat config
+│       └── llm_models.yml   # one model entry (mock or ollama)
+└── secrets/
+    ├── feedback_db_password  # postgres password (chmod 600)
+    ├── llm_api_key           # placeholder for future cloud LLM
+    ├── transcription_db_password  # placeholder
+    ├── rabbitmq_password     # placeholder
+    ├── rustfs_secret_key     # placeholder
+    └── huggingface_token     # placeholder
 ```
+
+Secrets are never committed — `generated/` is in `.gitignore`.
+
+---
 
 ## Known limitations
 
-- Single preset only: `core + frontend + chat`
-- Keycloak is in guest mode — no real auth UI
-- No RAG, summary, parser, transcription, or inference services
-- Windows / WSL not supported
+- **Single preset**: `core + frontend + chat` only. No RAG, summary, parser, transcription, or inference services.
+- **No real auth**: Keycloak runs in guest mode; there is no login UI.
+- **No cloud LLM**: API-key backends (OpenAI, Anthropic, etc.) are out of scope for v1.
+- **No GPU variants**: The compose file does not wire NVIDIA/ROCm device grants.
+- **Linux only for host-Ollama port forwarding**: `host.docker.internal:host-gateway` requires Docker 20.10+. Older installations must upgrade.
+- **Windows / WSL**: Not supported. Use Linux or macOS.
