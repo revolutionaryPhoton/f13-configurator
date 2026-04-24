@@ -15,12 +15,12 @@
 | S08 | Template renderer (`lib/render.sh`) | 6ab73ec | 138/138 ✅ |
 | S09 | Compose + config templates | b19588d | 148/148 ✅ |
 | S10 | Main wizard (`bin/f13-config`) | 193d68e | 176/176 ✅ |
+| S11 | Launch + health wait (`lib/compose.sh`) | 6654d1e | 189/189 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S11 | Launch + health wait (`lib/compose.sh`) |
 | S12 | Idempotency + re-run (`lib/state.sh`) |
 | S13 | Shellcheck clean-up |
 | S14 | README.md |
@@ -72,6 +72,14 @@
   --dry-run, --reset, --help. F13_GENERATED_DIR and F13_SKIP_PREFLIGHT
   overrides enable hermetic bats tests. 28 new tests; 176/176 green,
   shellcheck clean.
+- S11 completed: lib/compose.sh — compose::up runs docker compose up -d, waits
+  healthy, and prints a success box with Frontend/API URLs and stop command.
+  compose::wait_healthy polls http://localhost:${CORE_PORT}/health for up to
+  120s (timeout overridable via _COMPOSE_WAIT_MAX) with a ⏳ spinner; returns
+  1 on timeout. compose::down tears down cleanly. Internal helpers
+  compose::_docker_compose and compose::_curl_health are overridable for
+  hermetic tests. 13 new bats tests (1 docker integration test marked skip);
+  189/189 green, shellcheck clean.
 - S09 completed: all 6 templates populated. docker-compose.yml.tmpl has
   frontend/core/chat/feedback-db services plus ollama-mock under a `mock`
   compose profile (activated via COMPOSE_PROFILES in .env); chat always has
