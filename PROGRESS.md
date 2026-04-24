@@ -4,7 +4,7 @@
 
 | Story | Description | Commit | Tests |
 |-------|-------------|--------|-------|
-| S00 | Project bootstrap | TBD | 22/22 ✅ |
+| S00 | Project bootstrap | ab44c8b | 22/22 ✅ |
 
 ## Pending Stories
 
