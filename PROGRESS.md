@@ -9,12 +9,12 @@
 | S02 | F13 ASCII banner (`lib/banner.sh`) | caf34b6 | 38/38 ✅ |
 | S03 | Interactive prompts (`lib/prompt.sh`) | 800e9af | 60/60 ✅ |
 | S04 | Random secrets (`lib/secrets.sh`) | 87aa0d6 | 72/72 ✅ |
+| S05 | Port probes (`lib/ports.sh`) | ac5a296 | 84/84 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S05 | Port probes (`lib/ports.sh`) |
 | S06 | Preflight checks (`lib/preflight.sh`) |
 | S07 | Host Ollama integration (`lib/ollama.sh`) |
 | S08 | Template renderer (`lib/render.sh`) |
@@ -43,3 +43,7 @@
 - S04 completed: lib/secrets.sh — secret::gen uses openssl rand with
   /dev/urandom fallback, outputs base64url. secret::write creates 0600 files
   idempotently; --force flag to overwrite. 13 new bats tests; 72/72 green.
+- S05 completed: lib/ports.sh — ports::is_free uses lsof (with ss fallback)
+  to probe TCP listeners; ports < 1024 always return 1 (unprivileged).
+  ports::pick_free tries preferred then fallback list in order. 14 new bats
+  tests; 84/84 green.
