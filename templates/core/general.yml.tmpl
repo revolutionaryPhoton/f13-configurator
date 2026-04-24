@@ -1,2 +1,13 @@
-# core/general.yml template — rendered by lib/render.sh (S09)
-# Variables: CHAT_MODEL_ID, FRONTEND_PORT
+service_endpoints:
+  chat: "http://chat:9000"
+
+active_llms:
+  chat:
+    - "${CHAT_MODEL_ID}"
+
+authentication:
+  guest_mode: true
+
+allow_origins:
+  - "http://localhost:${FRONTEND_PORT}"
+  - "http://127.0.0.1:${FRONTEND_PORT}"

@@ -1,2 +1,5 @@
-# chat/llm_models.yml template — rendered by lib/render.sh (S09)
-# Variables: CHAT_BACKEND, OLLAMA_MODEL, CHAT_MODEL_ID
+llm_models:
+  ${CHAT_MODEL_ID}:
+    api_base_url: "${CHAT_BASE_URL}"
+    model: "${CHAT_MODEL_NAME}"
+    max_context_tokens: ${CHAT_MAX_CONTEXT_TOKENS}

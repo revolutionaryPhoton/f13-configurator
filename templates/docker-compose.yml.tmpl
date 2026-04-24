@@ -1,2 +1,56 @@
-# docker-compose.yml template — rendered by lib/render.sh (S09)
-# Variables: FRONTEND_PORT, CORE_PORT, CHAT_BACKEND, FEEDBACK_DB_PASSWORD
+services:
+  frontend:
+    image: registry.opencode.de/f13/microservices/frontend/main:latest
+    environment:
+      KEYCLOAK_DISABLED: "true"
+    ports:
+      - "${FRONTEND_PORT}:9999"
+    depends_on:
+      - core
+    restart: unless-stopped
+
+  core:
+    image: registry.opencode.de/f13/microservices/core/main:latest
+    volumes:
+      - ./configs/core:/core/configs:ro
+      - ./secrets:/run/secrets:ro
+    ports:
+      - "${CORE_PORT}:8000"
+    depends_on:
+      feedback-db:
+        condition: service_healthy
+      chat:
+        condition: service_started
+    restart: unless-stopped
+
+  chat:
+    image: ${CHAT_IMAGE}
+    volumes:
+      - ./configs/chat:/chat/configs:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  feedback-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: feedback
+      POSTGRES_USER: feedback
+      POSTGRES_PASSWORD: ${FEEDBACK_DB_PASSWORD}
+    volumes:
+      - feedback-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "feedback"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  ollama-mock:
+    image: registry.opencode.de/f13/microservices/ollama-mock:latest
+    profiles:
+      - mock
+    restart: unless-stopped
+
+volumes:
+  feedback-db-data:

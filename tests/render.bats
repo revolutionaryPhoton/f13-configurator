@@ -243,7 +243,10 @@ teardown() {
   run bash -c "
     source '${LIB_DIR}/render.sh'
     export FRONTEND_PORT=9999 CORE_PORT=8000 CHAT_BACKEND=mock \
-           OLLAMA_MODEL='' CHAT_MODEL_ID=test_model_mock FEEDBACK_DB_PASSWORD=secret123
+           OLLAMA_MODEL='' CHAT_MODEL_ID=test_model_mock FEEDBACK_DB_PASSWORD=secret123 \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           CHAT_BASE_URL=http://ollama-mock:11434/v1 CHAT_MODEL_NAME=test_model:mock \
+           CHAT_MAX_CONTEXT_TOKENS=4096 COMPOSE_PROFILES=mock
     render::file '${tmpl}' '${out}'
   "
   [ "$status" -eq 0 ]
@@ -253,5 +256,147 @@ teardown() {
   run grep 'CORE_PORT=8000' "$out"
   [ "$status" -eq 0 ]
   run grep 'CHAT_BACKEND=mock' "$out"
+  [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# S09: template content tests
+# ---------------------------------------------------------------------------
+
+@test "templates/docker-compose.yml.tmpl exists and is non-empty" {
+  [ -s "${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl" ]
+}
+
+@test "render docker-compose.yml.tmpl substitutes FRONTEND_PORT and CORE_PORT" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=mock
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep '9999:9999' "$out"
+  [ "$status" -eq 0 ]
+  run grep '8000:8000' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "render docker-compose.yml.tmpl contains ollama-mock under mock profile" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=mock
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep 'ollama-mock' "$out"
+  [ "$status" -eq 0 ]
+  run grep -A3 'ollama-mock:' "$out"
+  [[ "$output" == *"profiles"* ]]
+}
+
+@test "render docker-compose.yml.tmpl contains feedback-db pg_isready healthcheck" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep 'pg_isready' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "render docker-compose.yml.tmpl contains extra_hosts for chat" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep 'host.docker.internal' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "render core/general.yml.tmpl has guest_mode: true and CHAT_MODEL_ID" {
+  local out="${TMPDIR_WORK}/core-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock FRONTEND_PORT=9999
+    render::file '${BATS_TEST_DIRNAME}/../templates/core/general.yml.tmpl' '${out}'
+  "
+  run grep 'guest_mode: true' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'test_model_mock' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "render chat/llm_models.yml.tmpl substitutes backend-specific vars" {
+  local out="${TMPDIR_WORK}/chat-llm.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=local_ollama \
+           CHAT_BASE_URL=http://host.docker.internal:11434/v1 \
+           CHAT_MODEL_NAME=gemma4:31b-cloud \
+           CHAT_MAX_CONTEXT_TOKENS=8192
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/llm_models.yml.tmpl' '${out}'
+  "
+  run grep 'local_ollama' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'host.docker.internal' "$out"
+  [ "$status" -eq 0 ]
+  run grep '8192' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "rendered docker-compose.yml.tmpl is valid YAML" {
+  if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import yaml' 2>/dev/null; then
+    skip "python3 with yaml not available"
+  fi
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=mock
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run python3 -c 'import yaml,sys; yaml.safe_load(sys.stdin)' < "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "rendered core/general.yml.tmpl is valid YAML" {
+  if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import yaml' 2>/dev/null; then
+    skip "python3 with yaml not available"
+  fi
+  local out="${TMPDIR_WORK}/core-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock FRONTEND_PORT=9999
+    render::file '${BATS_TEST_DIRNAME}/../templates/core/general.yml.tmpl' '${out}'
+  "
+  run python3 -c 'import yaml,sys; yaml.safe_load(sys.stdin)' < "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "rendered chat/llm_models.yml.tmpl is valid YAML" {
+  if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import yaml' 2>/dev/null; then
+    skip "python3 with yaml not available"
+  fi
+  local out="${TMPDIR_WORK}/chat-llm.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock \
+           CHAT_BASE_URL=http://ollama-mock:11434/v1 \
+           CHAT_MODEL_NAME=test_model:mock \
+           CHAT_MAX_CONTEXT_TOKENS=4096
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/llm_models.yml.tmpl' '${out}'
+  "
+  run python3 -c 'import yaml,sys; yaml.safe_load(sys.stdin)' < "$out"
   [ "$status" -eq 0 ]
 }
