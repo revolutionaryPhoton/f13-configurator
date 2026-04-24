@@ -3,6 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly LIB_DIR="${SCRIPT_DIR}/../lib"
+readonly TMPL_DIR="${SCRIPT_DIR}/../templates"
+# F13_GENERATED_DIR may be overridden in tests to use a tmp directory
+GEN_DIR="${F13_GENERATED_DIR:-${SCRIPT_DIR}/../generated}"
 
 # shellcheck source=../lib/ui.sh
 source "${LIB_DIR}/ui.sh"
@@ -25,6 +28,10 @@ source "${LIB_DIR}/compose.sh"
 # shellcheck source=../lib/state.sh
 source "${LIB_DIR}/state.sh"
 
+# ---------------------------------------------------------------------------
+# Help
+# ---------------------------------------------------------------------------
+
 usage() {
   cat <<'EOF'
 Usage: f13-config [OPTIONS]
@@ -42,22 +49,297 @@ Environment variables (for --non-interactive):
   OLLAMA_MODEL        model name when CHAT_BACKEND=ollama
   FRONTEND_PORT       host port for the frontend  (default: 9999)
   CORE_PORT           host port for the core API  (default: 8000)
+
+Internal / test overrides:
+  F13_GENERATED_DIR   Override path for the generated/ output directory
+  F13_SKIP_PREFLIGHT  Set to 1 to skip preflight checks (testing only)
 EOF
 }
 
-main() {
-  local arg="${1:-}"
-  case "${arg}" in
-    --help|-h)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "F13 Configurator v1 — not yet fully implemented."
-      echo "Run with --help for usage."
-      exit 0
-      ;;
+# ---------------------------------------------------------------------------
+# Wizard steps
+# ---------------------------------------------------------------------------
+
+_wizard_reset() {
+  if [[ ! -d "${GEN_DIR}" ]]; then
+    ui::info "Nothing to reset — generated/ does not exist."
+    return 0
+  fi
+  if prompt::yesno "Delete generated/ and start fresh?" "n"; then
+    rm -rf "${GEN_DIR}"
+    ui::ok "generated/ wiped."
+  else
+    ui::info "Reset cancelled."
+    exit 0
+  fi
+}
+
+_wizard_pick_backend() {
+  if [[ -n "${F13_CONFIG_NONINTERACTIVE:-}" ]]; then
+    CHAT_BACKEND="${CHAT_BACKEND:-mock}"
+    return 0
+  fi
+
+  local _choice
+  prompt::pickone _choice "Where should chat inference run?" \
+    "🧪 Mock backend (no GPU, deterministic responses)" \
+    "🦙 Host Ollama (connects to ollama serve on this machine)"
+
+  case "${_choice}" in
+    *"Mock"*|*"mock"*) CHAT_BACKEND="mock"   ;;
+    *)                  CHAT_BACKEND="ollama" ;;
   esac
+}
+
+_wizard_pick_ollama_model() {
+  if [[ -n "${F13_CONFIG_NONINTERACTIVE:-}" ]]; then
+    OLLAMA_MODEL="${OLLAMA_MODEL:-gemma4:31b-cloud}"
+    return 0
+  fi
+
+  while ! ollama::is_running; do
+    ui::warn "Ollama is not running. Start it with: ollama serve"
+    if ! prompt::yesno "Retry connection?" "y"; then
+      ui::err "Ollama required for this backend. Aborting."
+      exit 1
+    fi
+  done
+
+  local -a _models=()
+  mapfile -t _models < <(ollama::list_models 2>/dev/null || true)
+
+  if [[ ${#_models[@]} -eq 0 ]]; then
+    ui::warn "No models found. Pull one with: ollama pull gemma4:31b-cloud"
+    prompt::ask OLLAMA_MODEL "Enter model name" "gemma4:31b-cloud"
+    return 0
+  fi
+
+  # Prefer gemma4:31b-cloud as default if present, else first model
+  local _default="${_models[0]}"
+  local _m
+  for _m in "${_models[@]}"; do
+    [[ "${_m}" == "gemma4:31b-cloud" ]] && _default="gemma4:31b-cloud" && break
+  done
+
+  # Build menu with default first
+  local -a _menu=()
+  if [[ "${_models[0]}" == "${_default}" ]]; then
+    _menu=("${_models[@]}")
+  else
+    _menu=("${_default}")
+    for _m in "${_models[@]}"; do
+      [[ "${_m}" != "${_default}" ]] && _menu+=("${_m}")
+    done
+  fi
+
+  local _pick
+  prompt::pickone _pick "Pick a model" "${_menu[@]}"
+  OLLAMA_MODEL="${_pick}"
+}
+
+_wizard_pick_ports() {
+  local _sf _sc
+  _sf="$(ports::pick_free 9999 9998 9997 9996 2>/dev/null || printf '9999')"
+  _sc="$(ports::pick_free 8000 8001 8002 8003 2>/dev/null || printf '8000')"
+
+  if [[ -z "${FRONTEND_PORT:-}" ]]; then
+    prompt::ask FRONTEND_PORT "Frontend port" "${_sf}"
+  fi
+  if [[ -z "${CORE_PORT:-}" ]]; then
+    prompt::ask CORE_PORT "Core API port" "${_sc}"
+  fi
+}
+
+_wizard_generate_secrets() {
+  local _sd="${GEN_DIR}/secrets"
+  mkdir -p "${_sd}"
+
+  if [[ -z "${FEEDBACK_DB_PASSWORD:-}" ]]; then
+    FEEDBACK_DB_PASSWORD="$(secret::gen 24)"
+  fi
+
+  # Placeholder secrets for future presets — idempotent (no --force)
+  secret::write "${_sd}/llm_api.secret"
+  secret::write "${_sd}/transcription_db.secret"
+  secret::write "${_sd}/rabbitmq.secret"
+  secret::write "${_sd}/rustfs.secret"
+  secret::write "${_sd}/huggingface_token.secret"
+}
+
+_wizard_compute_vars() {
+  if [[ "${CHAT_BACKEND}" == "mock" ]]; then
+    CHAT_IMAGE="registry.opencode.de/f13/microservices/ollama-mock:latest"
+    CHAT_BASE_URL="http://ollama-mock:11434/v1"
+    CHAT_MODEL_NAME="test_model:mock"
+    CHAT_MAX_CONTEXT_TOKENS="4096"
+    CHAT_MODEL_ID="test_model_mock"
+    COMPOSE_PROFILES="mock"
+  else
+    CHAT_IMAGE="registry.opencode.de/f13/microservices/chat/main:latest"
+    CHAT_BASE_URL="$(ollama::host_url_for_docker)"
+    CHAT_MODEL_NAME="${OLLAMA_MODEL}"
+    CHAT_MAX_CONTEXT_TOKENS="8192"
+    CHAT_MODEL_ID="local_ollama"
+    COMPOSE_PROFILES=""
+  fi
+}
+
+_wizard_render() {
+  mkdir -p "${GEN_DIR}/configs/core" "${GEN_DIR}/configs/chat" "${GEN_DIR}/secrets"
+
+  export FRONTEND_PORT CORE_PORT CHAT_BACKEND OLLAMA_MODEL FEEDBACK_DB_PASSWORD \
+    CHAT_IMAGE CHAT_BASE_URL CHAT_MODEL_NAME CHAT_MAX_CONTEXT_TOKENS \
+    CHAT_MODEL_ID COMPOSE_PROFILES
+
+  render::file "${TMPL_DIR}/docker-compose.yml.tmpl" "${GEN_DIR}/docker-compose.yml"
+  render::file "${TMPL_DIR}/env.tmpl"                "${GEN_DIR}/.env"
+  render::file "${TMPL_DIR}/core/general.yml.tmpl"   "${GEN_DIR}/configs/core/general.yml"
+  render::file "${TMPL_DIR}/core/llm_models.yml.tmpl" "${GEN_DIR}/configs/core/llm_models.yml"
+  render::file "${TMPL_DIR}/chat/general.yml.tmpl"   "${GEN_DIR}/configs/chat/general.yml"
+  render::file "${TMPL_DIR}/chat/llm_models.yml.tmpl" "${GEN_DIR}/configs/chat/llm_models.yml"
+}
+
+_wizard_summary_box() {
+  local _model_label
+  if [[ "${CHAT_BACKEND}" == "mock" ]]; then
+    _model_label="test_model:mock (deterministic)"
+  else
+    _model_label="${OLLAMA_MODEL}"
+  fi
+
+  ui::box "F13 Configuration Summary" <<EOF
+Preset:    core + frontend + chat (Keycloak guest mode)
+Backend:   ${CHAT_BACKEND}
+Model:     ${_model_label}
+Frontend:  http://localhost:${FRONTEND_PORT}
+API:       http://localhost:${CORE_PORT}
+Output:    ${GEN_DIR}
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# Main wizard flow
+# ---------------------------------------------------------------------------
+
+wizard() {
+  local _dry_run="${1:-0}"
+
+  # Initialise wizard state from environment (or defaults)
+  CHAT_BACKEND="${CHAT_BACKEND:-}"
+  OLLAMA_MODEL="${OLLAMA_MODEL:-}"
+  FRONTEND_PORT="${FRONTEND_PORT:-}"
+  CORE_PORT="${CORE_PORT:-}"
+  FEEDBACK_DB_PASSWORD="${FEEDBACK_DB_PASSWORD:-}"
+  CHAT_IMAGE=""
+  CHAT_BASE_URL=""
+  CHAT_MODEL_NAME=""
+  CHAT_MAX_CONTEXT_TOKENS=""
+  CHAT_MODEL_ID=""
+  COMPOSE_PROFILES=""
+
+  ui::banner
+  printf '\n'
+
+  # Step 1 — preflight
+  if [[ -z "${F13_SKIP_PREFLIGHT:-}" ]]; then
+    ui::step "1. Preflight checks"
+    preflight::run
+    printf '\n'
+  fi
+
+  # Step 2 — confirm preset
+  ui::info "Preset: core + frontend + chat — Keycloak guest mode (no login required)"
+  printf '\n'
+  if ! prompt::yesno "Continue with this preset?" "y"; then
+    ui::info "Aborted."
+    exit 0
+  fi
+  printf '\n'
+
+  # Step 3 — chat backend
+  ui::step "2. Chat backend"
+  _wizard_pick_backend
+
+  if [[ "${CHAT_BACKEND}" == "ollama" ]]; then
+    _wizard_pick_ollama_model
+  fi
+  printf '\n'
+
+  # Step 4 — ports
+  ui::step "3. Ports"
+  _wizard_pick_ports
+  printf '\n'
+
+  # Step 5 — secrets
+  ui::step "4. Generating secrets"
+  _wizard_generate_secrets
+  ui::ok "Secrets written to ${GEN_DIR}/secrets/"
+  printf '\n'
+
+  # Derive template variables from chosen config
+  _wizard_compute_vars
+
+  # Step 6 — render
+  ui::step "5. Rendering configuration"
+  _wizard_render
+  ui::ok "Configuration written to ${GEN_DIR}/"
+  printf '\n'
+
+  # Step 7 — summary
+  _wizard_summary_box
+  printf '\n'
+
+  if [[ "${_dry_run}" -eq 1 ]]; then
+    ui::info "Dry-run mode — skipping launch."
+    return 0
+  fi
+
+  # Step 8 — optional launch
+  if prompt::yesno "Start it now?" "y"; then
+    ui::step "6. Starting F13..."
+    compose::up
+  else
+    ui::info "Run manually: cd ${GEN_DIR} && docker compose up -d"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+main() {
+  local _dry_run=0
+  local _do_reset=0
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      --non-interactive)
+        export F13_CONFIG_NONINTERACTIVE=1
+        ;;
+      --dry-run)
+        _dry_run=1
+        ;;
+      --reset)
+        _do_reset=1
+        ;;
+      *)
+        ui::err "Unknown option: $1"
+        usage >&2
+        exit 1
+        ;;
+    esac
+    shift
+  done
+
+  if [[ "${_do_reset}" -eq 1 ]]; then
+    _wizard_reset
+  fi
+
+  wizard "${_dry_run}"
 }
 
 main "$@"
