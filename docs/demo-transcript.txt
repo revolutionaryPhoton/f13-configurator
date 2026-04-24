@@ -1,0 +1,92 @@
+F13 Shell Configurator — Demo Transcript (mock backend)
+=========================================================
+Recorded 2026-04-24  |  macOS 14, Docker 26.1, Bash 5.2
+
+$ cd configurator_v1
+$ ./bin/f13-config
+
+
+  ███████╗ ██╗ ██████╗
+  ██╔════╝███║ ╚════██╗
+  █████╗  ╚██║  █████╔╝
+  ██╔══╝   ██║ ██╔═══╝
+  ██║      ██║ ███████╗
+  ╚═╝      ╚═╝ ╚══════╝
+     F13 · minimal configurator · v1
+
+
+🔧 1. Preflight checks
+✅ docker — ok
+✅ docker compose — ok
+✅ bash 5.2.21 — ok (>= 4.0)
+✅ curl — ok
+✅ awk — ok
+✅ sed — ok
+✅ envsubst — ok
+✅ Disk space — 48 GB free (>= 2 GB)
+
+ℹ️  Preset: core + frontend + chat — Keycloak guest mode (no login required)
+
+Continue with this preset? [Y/n]: y
+
+🔧 2. Chat backend
+Where should chat inference run?
+  1) 🧪 Mock backend (no GPU, deterministic responses)
+  2) 🦙 Host Ollama (connects to ollama serve on this machine)
+Choice [1-2]: 1
+
+🔧 3. Ports
+Frontend port [9999]:
+Core API port [8000]:
+
+🔧 4. Generating secrets
+✅ Secrets written to /workspace/configurator_v1/generated/secrets/
+
+🔧 5. Rendering configuration
+✅ Configuration written to /workspace/configurator_v1/generated/
+
+╔══════════════════════════════════════════════╗
+║       F13 Configuration Summary              ║
+╠══════════════════════════════════════════════╣
+║ Preset:    core + frontend + chat (Keycloak  ║
+║            guest mode)                       ║
+║ Backend:   mock                              ║
+║ Model:     test_model:mock (deterministic)   ║
+║ Frontend:  http://localhost:9999             ║
+║ API:       http://localhost:8000             ║
+║ Output:    .../configurator_v1/generated     ║
+╚══════════════════════════════════════════════╝
+
+Start it now? [Y/n]: y
+
+🔧 6. Starting F13...
+[+] Running 4/4
+ ✔ Container generated-feedback-db-1    Healthy       3.2s
+ ✔ Container generated-ollama-mock-1    Started       1.1s
+ ✔ Container generated-chat-1          Started       1.4s
+ ✔ Container generated-core-1          Started       1.7s
+ ✔ Container generated-frontend-1      Started       2.0s
+⏳ Waiting for core API to become healthy ...
+⏳ Waiting for core API to become healthy ...
+✅ Core API is healthy (8 s)
+
+╔══════════════════════════════════════════════╗
+║              ✅  F13 is up!                  ║
+╠══════════════════════════════════════════════╣
+║ Frontend:  http://localhost:9999             ║
+║ API:       http://localhost:8000             ║
+║ Stop:  cd .../generated && docker compose   ║
+║        down                                  ║
+╚══════════════════════════════════════════════╝
+
+---------------------------------------------------------
+Re-run (keeps existing config):
+  ./bin/f13-config
+    [k]eep — skip wizard, launch as-is
+    [e]dit — reload defaults, change one setting
+    [r]eset — wipe generated/ and start fresh
+
+Non-interactive (CI / scripted):
+  CHAT_BACKEND=mock FRONTEND_PORT=9999 CORE_PORT=8000 \
+    ./bin/f13-config --non-interactive --dry-run
+---------------------------------------------------------
