@@ -1,0 +1,46 @@
+MIT License
+
+Copyright (c) 2026 David Moch <david.moch@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Runtime dependencies
+
+This software invokes the following external tools as separate processes.
+Their licenses apply to those tools independently and do not affect the
+license of this software.
+
+| Tool         | License        | Notes                                      |
+|--------------|----------------|--------------------------------------------|
+| bash         | GPL-2.0+       | Interpreter; not incorporated as source    |
+| docker       | Apache-2.0     | Container runtime                          |
+| curl         | curl (MIT-like)| HTTP client                                |
+| awk          | GPL-3.0        | Text processing utility                    |
+| sed          | GPL-3.0        | Text processing utility                    |
+| envsubst     | GPL-3.0        | Part of gettext; template substitution     |
+| openssl      | Apache-2.0     | Secret generation fallback                 |
+| lsof / ss    | GPL / GPL-2.0  | Port availability probing                  |
+| bats-core    | MIT            | Test framework (dev dependency only)       |
+| shellcheck   | GPL-3.0        | Linter (dev dependency only)               |
+
+Invoking a GPL-licensed binary as an external process does not make this
+software a "derivative work" under the GPL. The MIT license of this software
+is therefore compatible with all tools listed above.

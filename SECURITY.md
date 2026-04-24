@@ -1,0 +1,58 @@
+# Security Notes — F13 Shell Configurator v1
+
+This configurator is designed for **local development use only**. The stack
+it generates is not hardened for production or internet-facing deployment.
+
+---
+
+## 🔐 Secrets
+
+- All generated secrets live in `generated/secrets/` with `chmod 600`.
+- `generated/` is listed in `.gitignore` — never commit it.
+- The `feedback_db.secret` file contains the postgres password in plain text.
+  On a shared machine, ensure `generated/` is only readable by your user
+  (`chmod -R go-rwx generated/`).
+- Placeholder secret files (llm_api, transcription_db, rabbitmq, rustfs,
+  huggingface_token) contain random values. If you later put real credentials
+  in them, treat the entire `generated/secrets/` folder as sensitive.
+
+## 🐳 Docker socket
+
+- Running `docker` requires access to the Docker socket (`/var/run/docker.sock`),
+  which is equivalent to root access on the host. Only run this configurator
+  as a trusted user on a machine you control.
+
+## 🌐 No TLS, no authentication
+
+- The generated stack runs entirely over plain HTTP on localhost.
+- `authentication.guest_mode: true` disables all auth checks in the core API.
+- **Never expose ports 8000 or 9999 to a network** — bind them to localhost
+  only (the default). Do not add firewall rules or reverse proxies that make
+  these ports publicly reachable.
+
+## 🗄️ Database
+
+- Postgres runs with a generated random password stored in `feedback_db.secret`.
+- The database port (5432) is not published to the host — it is only reachable
+  within the Docker network. Do not add a `ports:` mapping for `feedback-db`.
+
+## 📦 Image provenance
+
+- All F13 service images are pulled from `registry.opencode.de`. Ensure you
+  trust this registry and have not substituted image names or tags with
+  unverified alternatives.
+- Images are pinned by tag, not digest. For stronger supply-chain guarantees,
+  consider pinning by SHA-256 digest in the compose template.
+
+## 🔄 Volume hygiene
+
+- `docker compose down` (without `-v`) leaves the `feedback-db-data` volume
+  on disk. Use `./bin/f13-reset` (which runs `down -v`) to remove it when
+  done, especially on shared machines.
+
+## ✅ What this configurator does NOT do
+
+- It does not open any network listeners of its own.
+- It does not send telemetry or usage data anywhere.
+- It does not require or request elevated privileges (no `sudo`).
+- It does not modify files outside `configurator_v1/generated/`.
