@@ -11,12 +11,12 @@
 | S04 | Random secrets (`lib/secrets.sh`) | 87aa0d6 | 72/72 ✅ |
 | S05 | Port probes (`lib/ports.sh`) | ac5a296 | 84/84 ✅ |
 | S06 | Preflight checks (`lib/preflight.sh`) | 54d6178 | 101/101 ✅ |
+| S07 | Host Ollama integration (`lib/ollama.sh`) | 59eed18 | 123/123 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S07 | Host Ollama integration (`lib/ollama.sh`) |
 | S08 | Template renderer (`lib/render.sh`) |
 | S09 | Compose + config templates |
 | S10 | Main wizard (`bin/f13-config`) |
@@ -52,3 +52,9 @@
   Internal helpers (preflight::_has_cmd, _docker_info, _docker_compose_ver,
   _disk_free_kb) are overridable for testing without PATH manipulation.
   19 new bats tests; 101/101 green.
+- S07 completed: lib/ollama.sh — ollama::is_running probes localhost:11434
+  via curl with 2s timeout; ollama::list_models parses /api/tags JSON using
+  grep/sed (no jq), handles empty model list; ollama::host_url_for_docker
+  returns http://host.docker.internal:11434/v1 (Linux extra_hosts handled
+  in S09 compose template). Internal _curl_tags helper overridable for tests.
+  24 new bats tests; 123/123 green.
