@@ -16,12 +16,12 @@
 | S09 | Compose + config templates | b19588d | 148/148 ✅ |
 | S10 | Main wizard (`bin/f13-config`) | 193d68e | 176/176 ✅ |
 | S11 | Launch + health wait (`lib/compose.sh`) | 6654d1e | 189/189 ✅ |
+| S12 | Idempotency + re-run (`lib/state.sh`) | 24e844e | 215/215 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S12 | Idempotency + re-run (`lib/state.sh`) |
 | S13 | Shellcheck clean-up |
 | S14 | README.md |
 | S15 | Demo transcript |
@@ -72,6 +72,15 @@
   --dry-run, --reset, --help. F13_GENERATED_DIR and F13_SKIP_PREFLIGHT
   overrides enable hermetic bats tests. 28 new tests; 176/176 green,
   shellcheck clean.
+- S12 completed: lib/state.sh — state::write persists wizard vars (PRESET,
+  CHAT_BACKEND, OLLAMA_MODEL, FRONTEND_PORT, CORE_PORT, TIMESTAMP) to
+  generated/.state with chmod 600. state::read loads those vars back as
+  defaults. state::check displays the saved config and prompts [k]eep /
+  [e]dit / [r]eset; honours F13_CONFIG_NONINTERACTIVE + F13_STATE_ACTION for
+  scripted re-runs. bin/f13-config integrated: keep skips wizard and offers
+  launch; edit loads defaults and continues; reset wipes generated/ and starts
+  fresh. state::write called after each successful render. 26 new tests;
+  215/215 green, shellcheck clean.
 - S11 completed: lib/compose.sh — compose::up runs docker compose up -d, waits
   healthy, and prints a success box with Frontend/API URLs and stop command.
   compose::wait_healthy polls http://localhost:${CORE_PORT}/health for up to
