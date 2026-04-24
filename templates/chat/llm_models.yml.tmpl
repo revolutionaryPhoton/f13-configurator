@@ -1,5 +1,15 @@
-llm_models:
+chat:
   ${CHAT_MODEL_ID}:
-    api_base_url: "${CHAT_BASE_URL}"
-    model: "${CHAT_MODEL_NAME}"
+    label: ${CHAT_MODEL_NAME}
+    model: ${CHAT_MODEL_NAME}
+    prompt_map: base_assistant
+    is_remote: false
     max_context_tokens: ${CHAT_MAX_CONTEXT_TOKENS}
+    api:
+      url: ${CHAT_BASE_URL}
+      timeout: 10
+      health_check: /models
+    inference:
+      temperature: 0.7
+      top_p: 0.9
+      max_new_tokens: 2048

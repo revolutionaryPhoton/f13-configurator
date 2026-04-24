@@ -158,6 +158,10 @@ _wizard_generate_secrets() {
     FEEDBACK_DB_PASSWORD="$(secret::gen 24)"
   fi
 
+  # Write the password into the secret file core reads at /core/secrets/feedback_db.secret
+  printf '%s' "${FEEDBACK_DB_PASSWORD}" > "${_sd}/feedback_db.secret"
+  chmod 600 "${_sd}/feedback_db.secret"
+
   # Placeholder secrets for future presets — idempotent (no --force)
   secret::write "${_sd}/llm_api.secret"
   secret::write "${_sd}/transcription_db.secret"
@@ -168,7 +172,7 @@ _wizard_generate_secrets() {
 
 _wizard_compute_vars() {
   if [[ "${CHAT_BACKEND}" == "mock" ]]; then
-    CHAT_IMAGE="registry.opencode.de/f13/microservices/ollama-mock:latest"
+    CHAT_IMAGE="registry.opencode.de/f13/microservices/chat:v1.1.0"
     CHAT_BASE_URL="http://ollama-mock:11434/v1"
     CHAT_MODEL_NAME="test_model:mock"
     CHAT_MAX_CONTEXT_TOKENS="4096"
@@ -197,6 +201,11 @@ _wizard_render() {
   render::file "${TMPL_DIR}/core/llm_models.yml.tmpl" "${GEN_DIR}/configs/core/llm_models.yml"
   render::file "${TMPL_DIR}/chat/general.yml.tmpl"   "${GEN_DIR}/configs/chat/general.yml"
   render::file "${TMPL_DIR}/chat/llm_models.yml.tmpl" "${GEN_DIR}/configs/chat/llm_models.yml"
+
+  # prompt_maps.yml has no template vars — copy directly from the chat source
+  local _repo_root
+  _repo_root="$(cd "${SCRIPT_DIR}/../../../" && pwd)"
+  cp "${_repo_root}/chat/configs/prompt_maps.yml" "${GEN_DIR}/configs/chat/prompt_maps.yml"
 }
 
 _wizard_summary_box() {

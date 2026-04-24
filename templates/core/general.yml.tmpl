@@ -1,13 +1,33 @@
 service_endpoints:
-  chat: "http://chat:9000"
+  chat: http://chat:8000/
 
 active_llms:
-  chat:
-    - "${CHAT_MODEL_ID}"
+  chat: ["${CHAT_MODEL_ID}"]
+
+feedback_db:
+  server: "feedback-db"
+  port: 5432
+  dialect: "postgresql"
+  db_name: "feedback"
+  username: "member"
+  path_secret: "/core/secrets/feedback_db.secret"
 
 authentication:
   guest_mode: true
+  keycloak_base_url: http://keycloak:8080
+  keycloak_realm: f13
+  keycloak_client: f13-api
+  audience: f13-api
 
 allow_origins:
   - "http://localhost:${FRONTEND_PORT}"
-  - "http://127.0.0.1:${FRONTEND_PORT}"
+  - "http://localhost:${CORE_PORT}"
+
+log_level: INFO
+haystack_log_level: WARNING
+debug_haystack_pipelines: False
+
+inter_service_communication:
+  parser:
+    max_attempts: 2
+    timeout_in_s: 200
