@@ -5,12 +5,12 @@
 | Story | Description | Commit | Tests |
 |-------|-------------|--------|-------|
 | S00 | Project bootstrap | ab44c8b | 22/22 ✅ |
+| S01 | Colors, emoji, box-drawing helpers (`lib/ui.sh`) | 53c2625 | 35/35 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S01 | Colors, emoji, box-drawing helpers (`lib/ui.sh`) |
 | S02 | F13 ASCII banner (`lib/banner.sh`) |
 | S03 | Interactive prompts (`lib/prompt.sh`) |
 | S04 | Random secrets (`lib/secrets.sh`) |
@@ -30,4 +30,6 @@
 
 - S00 completed: full directory layout scaffolded with stub lib files,
   template placeholders, and smoke bats tests (22 tests, all passing).
-- Backpressure: shellcheck -S warning passes; bats 22/22 green.
+- S01 completed: lib/ui.sh fully implemented — color wrappers, status-line
+  helpers (ok/warn/err/info/step), hr, and box. NO_COLOR respected.
+  15 new bats tests; full suite 35/35 green.
