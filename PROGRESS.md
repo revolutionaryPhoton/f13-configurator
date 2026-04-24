@@ -17,7 +17,7 @@
 | S10 | Main wizard (`bin/f13-config`) | 193d68e | 176/176 ✅ |
 | S11 | Launch + health wait (`lib/compose.sh`) | 6654d1e | 189/189 ✅ |
 | S12 | Idempotency + re-run (`lib/state.sh`) | 24e844e | 215/215 ✅ |
-| S13 | Shellcheck clean-up | TBD | 215/215 ✅ |
+| S13 | Shellcheck clean-up | 627e6b7 | 215/215 ✅ |
 
 ## Pending Stories
 
