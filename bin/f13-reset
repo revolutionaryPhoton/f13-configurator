@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GEN_DIR="${SCRIPT_DIR}/../generated"
+
+if [[ ! -f "${GEN_DIR}/docker-compose.yml" ]]; then
+  echo "❌  No generated stack found at ${GEN_DIR}" >&2
+  exit 1
+fi
+
+echo "🗑️  Stopping F13 and removing all data volumes..."
+docker compose -f "${GEN_DIR}/docker-compose.yml" --env-file "${GEN_DIR}/.env" down -v
+echo "🧹  Removing generated config..."
+rm -rf "${GEN_DIR}"
+echo "✅  Full reset done. Run ./bin/f13-config to configure and start again."

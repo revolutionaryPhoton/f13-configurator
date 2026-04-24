@@ -38,8 +38,8 @@ compose::up() {
 Frontend:   http://localhost:${FRONTEND_PORT:-9999}
 API:        http://localhost:${CORE_PORT:-8000}
 
-Stop:       cd ${gen_dir} && docker compose down && cd ${configurator_dir}
-Full reset: cd ${gen_dir} && docker compose down -v && cd ${configurator_dir} && rm -rf generated
+Stop:       ${configurator_dir}/bin/f13-stop
+Full reset: ${configurator_dir}/bin/f13-reset
 EOF
 }
 
