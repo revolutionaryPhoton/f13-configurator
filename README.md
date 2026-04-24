@@ -101,21 +101,24 @@ The only preset in v1 is **`core + frontend + chat`**:
 |---|---|---|
 | `frontend` | `registry.opencode.de/f13/microservices/frontend/main:latest` | `KEYCLOAK_DISABLED=true`; no Keycloak container |
 | `core` | `registry.opencode.de/f13/microservices/core/main:latest` | Guest mode enabled (`authentication.guest_mode: true`) |
-| `chat` | `registry.opencode.de/f13/microservices/chat/main:latest` | Configured for mock or host-Ollama |
-| `feedback-db` | `postgres:16-alpine` | Password from generated secret |
-| `ollama-mock` | shipped mock image | Only when mock backend is selected (compose profile) |
+| `chat` | `registry.opencode.de/f13/microservices/chat:v1.1.0` | Configured for mock or host-Ollama |
+| `feedback-db` | `postgres:16-alpine` | Password from generated secret; user `member` |
+| `ollama-mock` | `base-images/ollama-mock-f13:1.2.0` | Only when mock backend is selected (compose profile) |
+
+All F13 images are built for `linux/amd64`. On Apple Silicon the generated compose sets `platform: linux/amd64` so Docker Desktop runs them via Rosetta 2 emulation — no rebuild needed, first boot is slightly slower.
 
 ---
 
 ## Stop / reset / re-run
 
 ```bash
-# Stop the stack
-cd configurator_v1/generated
-docker compose down
+# Stop the stack (preserves postgres data — safe for normal restarts)
+./bin/f13-stop
+
+# Stop the stack AND wipe all data volumes + generated/ (clean slate)
+./bin/f13-reset
 
 # Re-run the wizard (keep / edit / reset existing config)
-cd configurator_v1
 ./bin/f13-config
 
 # Force-reset generated/ and start the wizard from scratch
@@ -131,6 +134,8 @@ F13_CONFIG_NONINTERACTIVE=1 \
   F13_CORE_PORT=8000 \
   ./bin/f13-config
 ```
+
+> **Tip:** After `f13-reset`, always start a fresh run with `./bin/f13-config`. Do not manually delete `generated/` without running `f13-stop` first, or Docker volumes will be left behind and postgres will fail to start on the next run.
 
 When you re-run without `--reset` and `generated/.state` exists, the wizard detects the previous configuration and prompts:
 
@@ -162,17 +167,18 @@ generated/
 ├── configs/
 │   ├── core/
 │   │   ├── general.yml      # guest_mode, single chat endpoint, allow_origins
-│   │   └── llm_models.yml   # (placeholder — chat drives model config)
+│   │   └── llm_models.yml   # one model entry matching active_llms
 │   └── chat/
-│       ├── general.yml      # service-level chat config
-│       └── llm_models.yml   # one model entry (mock or ollama)
+│       ├── general.yml      # active_llms selection + log_level
+│       ├── llm_models.yml   # one model entry (mock or ollama)
+│       └── prompt_maps.yml  # copied from chat/configs/ — system prompts
 └── secrets/
-    ├── feedback_db_password  # postgres password (chmod 600)
-    ├── llm_api_key           # placeholder for future cloud LLM
-    ├── transcription_db_password  # placeholder
-    ├── rabbitmq_password     # placeholder
-    ├── rustfs_secret_key     # placeholder
-    └── huggingface_token     # placeholder
+    ├── feedback_db.secret        # postgres password for user 'member' (chmod 600)
+    ├── llm_api.secret            # placeholder for future cloud LLM
+    ├── transcription_db.secret   # placeholder
+    ├── rabbitmq.secret           # placeholder
+    ├── rustfs.secret             # placeholder
+    └── huggingface_token.secret  # placeholder
 ```
 
 Secrets are never committed — `generated/` is in `.gitignore`.
