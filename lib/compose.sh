@@ -31,10 +31,13 @@ compose::up() {
 
   compose::wait_healthy
 
+  local configurator_dir
+  configurator_dir="$(cd "${gen_dir}/../" && pwd)"
+
   ui::box "F13 is up!" <<EOF
 Frontend:  http://localhost:${FRONTEND_PORT:-9999}
 API:       http://localhost:${CORE_PORT:-8000}
-Stop:      cd ${gen_dir} && docker compose down
+Stop:      cd ${gen_dir} && docker compose down && cd ${configurator_dir}
 EOF
 }
 
