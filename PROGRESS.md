@@ -12,12 +12,12 @@
 | S05 | Port probes (`lib/ports.sh`) | ac5a296 | 84/84 ✅ |
 | S06 | Preflight checks (`lib/preflight.sh`) | 54d6178 | 101/101 ✅ |
 | S07 | Host Ollama integration (`lib/ollama.sh`) | 59eed18 | 123/123 ✅ |
+| S08 | Template renderer (`lib/render.sh`) | 6ab73ec | 138/138 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S08 | Template renderer (`lib/render.sh`) |
 | S09 | Compose + config templates |
 | S10 | Main wizard (`bin/f13-config`) |
 | S11 | Launch + health wait (`lib/compose.sh`) |
@@ -58,3 +58,9 @@
   returns http://host.docker.internal:11434/v1 (Linux extra_hosts handled
   in S09 compose template). Internal _curl_tags helper overridable for tests.
   24 new bats tests; 123/123 green.
+- S08 completed: lib/render.sh — render::file renders a single template via
+  envsubst with a per-file allow-list (only uppercase vars found in template
+  are substituted, preventing PATH/HOME/etc. from leaking into generated YAML).
+  render::tree recursively renders all *.tmpl files from a source directory
+  into a destination directory, mirroring structure and stripping .tmpl.
+  15 new bats tests; 138/138 green, shellcheck clean.
