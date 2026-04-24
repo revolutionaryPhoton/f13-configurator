@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly LIB_DIR="${SCRIPT_DIR}/../lib"
+
+# shellcheck source=../lib/ui.sh
+source "${LIB_DIR}/ui.sh"
+# shellcheck source=../lib/banner.sh
+source "${LIB_DIR}/banner.sh"
+# shellcheck source=../lib/prompt.sh
+source "${LIB_DIR}/prompt.sh"
+# shellcheck source=../lib/secrets.sh
+source "${LIB_DIR}/secrets.sh"
+# shellcheck source=../lib/ports.sh
+source "${LIB_DIR}/ports.sh"
+# shellcheck source=../lib/preflight.sh
+source "${LIB_DIR}/preflight.sh"
+# shellcheck source=../lib/render.sh
+source "${LIB_DIR}/render.sh"
+# shellcheck source=../lib/ollama.sh
+source "${LIB_DIR}/ollama.sh"
+# shellcheck source=../lib/compose.sh
+source "${LIB_DIR}/compose.sh"
+# shellcheck source=../lib/state.sh
+source "${LIB_DIR}/state.sh"
+
+usage() {
+  cat <<'EOF'
+Usage: f13-config [OPTIONS]
+
+  Stand up a minimal F13 deployment (core + frontend + chat).
+
+Options:
+  --non-interactive   Drive wizard from environment variables (no prompts)
+  --dry-run           Render templates but do not launch containers
+  --reset             Wipe generated/ and start over (asks for confirmation)
+  --help              Show this help and exit
+
+Environment variables (for --non-interactive):
+  CHAT_BACKEND        mock | ollama  (default: mock)
+  OLLAMA_MODEL        model name when CHAT_BACKEND=ollama
+  FRONTEND_PORT       host port for the frontend  (default: 9999)
+  CORE_PORT           host port for the core API  (default: 8000)
+EOF
+}
+
+main() {
+  local arg="${1:-}"
+  case "${arg}" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "F13 Configurator v1 — not yet fully implemented."
+      echo "Run with --help for usage."
+      exit 0
+      ;;
+  esac
+}
+
+main "$@"
