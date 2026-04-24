@@ -10,12 +10,12 @@
 | S03 | Interactive prompts (`lib/prompt.sh`) | 800e9af | 60/60 ✅ |
 | S04 | Random secrets (`lib/secrets.sh`) | 87aa0d6 | 72/72 ✅ |
 | S05 | Port probes (`lib/ports.sh`) | ac5a296 | 84/84 ✅ |
+| S06 | Preflight checks (`lib/preflight.sh`) | 54d6178 | 101/101 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S06 | Preflight checks (`lib/preflight.sh`) |
 | S07 | Host Ollama integration (`lib/ollama.sh`) |
 | S08 | Template renderer (`lib/render.sh`) |
 | S09 | Compose + config templates |
@@ -47,3 +47,8 @@
   to probe TCP listeners; ports < 1024 always return 1 (unprivileged).
   ports::pick_free tries preferred then fallback list in order. 14 new bats
   tests; 84/84 green.
+- S06 completed: lib/preflight.sh — preflight::run checks docker, docker
+  compose, bash >= 4.0, curl/awk/sed/envsubst on PATH, and ~2 GB free disk.
+  Internal helpers (preflight::_has_cmd, _docker_info, _docker_compose_ver,
+  _disk_free_kb) are overridable for testing without PATH manipulation.
+  19 new bats tests; 101/101 green.
