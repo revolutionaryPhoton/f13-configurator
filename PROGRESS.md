@@ -18,12 +18,12 @@
 | S11 | Launch + health wait (`lib/compose.sh`) | 6654d1e | 189/189 ✅ |
 | S12 | Idempotency + re-run (`lib/state.sh`) | 24e844e | 215/215 ✅ |
 | S13 | Shellcheck clean-up | 627e6b7 | 215/215 ✅ |
+| S14 | README.md | f2f4461 | 215/215 ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S14 | README.md |
 | S15 | Demo transcript |
 
 ## Notes
@@ -92,6 +92,12 @@
 - S13 completed: `shellcheck -S warning bin/* lib/*.sh` passes clean (exit 0,
   zero warnings). One pre-existing disable comment in lib/secrets.sh
   (SC2120) retains its inline justification. Full bats suite 215/215 green.
+- S14 completed: README.md expanded from the S00 stub to the full S14 spec.
+  Covers quickstart, requirements table, mock vs host-Ollama backend descriptions
+  with example prompt output, host.docker.internal Linux explainer (extra_hosts),
+  stop/reset/re-run commands with non-interactive usage, generated/ directory
+  tree with all files listed, and known limitations. 215/215 green, no new tests
+  (doc-only change).
 - S09 completed: all 6 templates populated. docker-compose.yml.tmpl has
   frontend/core/chat/feedback-db services plus ollama-mock under a `mock`
   compose profile (activated via COMPOSE_PROFILES in .env); chat always has
