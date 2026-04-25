@@ -29,12 +29,12 @@
 | S21 | Preflight screen | 7d32696 | 256/256 shell + 113/113 vitest ✅ |
 | S22 | Inference picker | c4e593c | 256/256 shell + 130/130 vitest ✅ |
 | S23 | Ollama model picker | fb21e4d | 256/256 shell + 154/154 vitest ✅ |
+| S24 | Ports screen | 8595181 | 256/256 shell + 179/179 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S24 | Ports screen |
 | S25 | Build / launch pipeline |
 | S26 | Status screen + actions |
 | S27 | Confirmations + edge cases |
@@ -231,3 +231,20 @@
   24 vitest tests cover all states, cloud badge, selection, navigation, refresh, null engine.
   Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 154/154 ✅ cargo check ✅.
+- S24 completed: Ports screen — gui/src/routes/wizard/ports/+page.svelte with two
+  number inputs (Frontend Port default 9999 / Core API Port default 8000). Auto-checks
+  both defaults on mount via $effect + untrack (prevents re-check on every keypress).
+  onblur re-checks when user edits a value. Inline status: spinner while checking,
+  ✓ (data-testid=frontend-status-free/core-status-free) when free, ✗ (data-testid=
+  frontend-status-taken) with PID and process name when in use. Continue disabled until
+  both ports are free. Advanced Disclosure exposes secret file paths (~/.f13/generated/
+  core_jwt.secret, chat_api.secret) and a greyed-out "Edit system prompt" button
+  (data-testid=edit-system-prompt, roadmap placeholder). lib/wizardPath.ts singleton
+  (setWizardVia/getWizardVia) lets the inference and ollama pages signal the path taken;
+  ports page reads it via the via prop (override for tests) or getWizardVia(). Step
+  breadcrumb: "Step 3 of 4" for mock path, "Step 4 of 4" for ollama. Back navigates to
+  /wizard/inference (mock) or /wizard/inference/ollama (ollama). Null engine degrades
+  gracefully (idle status, Continue stays disabled). 22 vitest tests cover all states,
+  both navigation paths, blur handlers, error messages, disclosure content, and null
+  engine. Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
+  vitest 179/179 ✅ cargo check ✅.
