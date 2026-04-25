@@ -27,12 +27,12 @@
 | S19 | Design system import (`gui/src/lib/theme/`) | ddef480 | 256/256 shell + 91/91 vitest ✅ |
 | S20 | Welcome screen + state-aware routing | 1482f69 | 256/256 shell + 97/97 vitest ✅ |
 | S21 | Preflight screen | 7d32696 | 256/256 shell + 113/113 vitest ✅ |
+| S22 | Inference picker | c4e593c | 256/256 shell + 130/130 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S22 | Inference picker |
 | S23 | Ollama model picker |
 | S24 | Ports screen |
 | S25 | Build / launch pipeline |
@@ -207,3 +207,14 @@
   null engine, and Continue button state + navigation.
   Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 113/113 ✅ cargo check ✅.
+- S22 completed: Inference picker — gui/src/routes/wizard/inference/+page.svelte presents
+  two Tile.svelte cards in a radiogroup: 🧪 Mock (pros: zero config, works offline, fast
+  to start; cons: fake responses only; "Recommended" badge) and 🦙 Ollama (pros: real
+  model output, full control; cons: requires Ollama running, GPU recommended). Continue
+  button disabled until a tile is selected. Mock routes to /wizard/ports; Ollama routes to
+  /wizard/inference/ollama. Header: "Step 2 of 4" breadcrumb + Back → /wizard/preflight.
+  Footer hint updates dynamically to reflect the current selection. 17 vitest tests cover
+  heading, breadcrumb, tile rendering, recommended badge, radiogroup ARIA, selection toggle,
+  Continue enabled/disabled state, both routing outcomes, Back navigation, and footer hints.
+  Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
+  vitest 130/130 ✅ cargo check ✅.
