@@ -22,12 +22,26 @@
 | S15 | Demo transcript | f38b47c | 215/215 ✅ |
 
 | S16 | Patched frontend image with ENABLED_FEATURES gating | 4542a73 | 239/239 ✅ |
+| S17 | Tauri scaffolding + dev workflow (macOS-validated) | TBD | 239+1 shell+vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| — | All stories complete |
+| S18 | Engine adapter (`gui/src/lib/engine.ts`) |
+| S19 | Design system import (`gui/src/lib/theme/`) |
+| S20 | Welcome screen + state-aware routing |
+| S21 | Preflight screen |
+| S22 | Inference picker |
+| S23 | Ollama model picker |
+| S24 | Ports screen |
+| S25 | Build / launch pipeline |
+| S26 | Status screen + actions |
+| S27 | Confirmations + edge cases |
+| S28 | Settings panel |
+| S29 | Packaging infrastructure (macOS only) |
+| S30 | GUI README + screenshots + CHANGELOG |
+| S31 | End-to-end smoke test (maintainer-only) |
 
 ## Notes
 
@@ -128,3 +142,11 @@
   FRONTEND_PORT. chat/llm_models.yml.tmpl parameterised for both mock and
   ollama backends via wizard-computed vars. 10 new render.bats tests;
   148/148 green, shellcheck clean.
+- S17 completed: gui/ scaffolded — Tauri 2.x + SvelteKit + Svelte 5 + Vite + Tailwind CSS 4 +
+  TypeScript strict + Vitest + Biome. Scripts: `npm run check` (svelte-check + biome),
+  `npm run test:unit` (vitest), placeholder test. Configured tauri.conf.json with
+  product name "F13 Configurator", identifier de.f13-os.configurator, bundle targets [].
+  CONTRIBUTING.md documents macOS and Linux build prerequisites. ralph.sh updated to
+  install Tauri Linux build deps (libwebkit2gtk-4.1-dev, libgtk-3-dev etc.) and Rust
+  stable in the Docker bootstrap for future loop iterations. Shell backpressure: 239/239.
+  GUI backpressure: npm run check ✅ biome ✅ vitest 1/1 ✅ cargo check ✅.
