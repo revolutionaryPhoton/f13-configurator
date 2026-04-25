@@ -152,10 +152,10 @@ frontend::_patch_uistore() {
   print "        transcription: enabled.includes('transcription'),"
   print "        feedback:      enabled.includes('feedback'),"
   print "      };"
-  print "    })())"
+  print "    })());"
   next
 }
-skip && /^[[:space:]]*\}\)[[:space:]]*$/ { skip=0; next }
+skip && /^[[:space:]]*\}\);?[[:space:]]*$/ { skip=0; next }
 skip { next }
 { print }
 AWKEOF
