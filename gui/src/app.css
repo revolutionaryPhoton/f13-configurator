@@ -82,6 +82,31 @@ html {
   color: var(--f13-text);
 }
 
+/* Animations — match the design canvas keyframes (cubic-bezier(0.4,0,1,1)
+   is the default ease for entry transitions in the prototype). */
+@keyframes f13-fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes f13-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes f13-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+@keyframes f13-scanLine {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(120%); }
+}
+@keyframes f13-flowDash {
+  to { stroke-dashoffset: -16; }
+}
+@keyframes f13-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,

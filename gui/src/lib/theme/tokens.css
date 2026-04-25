@@ -14,11 +14,24 @@
 
   /* Border */
   --f13-border:         #e4e4e7;  /* zinc-200 */
+  --f13-border-strong:  #d4d4d8;  /* zinc-300 — visible outline on light bg */
 
   /* Primary (black in light mode) */
   --f13-primary:        #09090b;  /* zinc-950 */
   --f13-primary-fg:     #fafafa;  /* zinc-50  */
   --f13-primary-hover:  #27272a;  /* zinc-800 */
+
+  /* Accent (used sparingly — focus rings, highlights) */
+  --f13-accent:         #6366f1;  /* indigo-500 */
+
+  /* Radius scale */
+  --f13-radius-sm:      8px;
+  --f13-radius:         12px;
+  --f13-radius-lg:      16px;
+
+  /* Fonts */
+  --f13-font:           'Ubuntu', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --f13-font-mono:      ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
   /* Semantic */
   --f13-success:        #166534;  /* green-800 — 9.1:1 on white  */
@@ -44,10 +57,13 @@
   --f13-text-subtle:    #71717a;  /* zinc-500 —  4.6:1 on zinc-950 */
 
   --f13-border:         #3f3f46;  /* zinc-700 */
+  --f13-border-strong:  #52525b;  /* zinc-600 */
 
   --f13-primary:        #fafafa;  /* zinc-50  */
   --f13-primary-fg:     #09090b;  /* zinc-950 */
   --f13-primary-hover:  #e4e4e7;  /* zinc-200 */
+
+  --f13-accent:         #818cf8;  /* indigo-400 — softer in dark */
 
   --f13-success:        #4ade80;  /* green-400 — 11.5:1 on zinc-950 */
   --f13-success-bg:     #052e16;  /* green-950 */
