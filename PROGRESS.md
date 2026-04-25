@@ -28,12 +28,12 @@
 | S20 | Welcome screen + state-aware routing | 1482f69 | 256/256 shell + 97/97 vitest ✅ |
 | S21 | Preflight screen | 7d32696 | 256/256 shell + 113/113 vitest ✅ |
 | S22 | Inference picker | c4e593c | 256/256 shell + 130/130 vitest ✅ |
+| S23 | Ollama model picker | fb21e4d | 256/256 shell + 154/154 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S23 | Ollama model picker |
 | S24 | Ports screen |
 | S25 | Build / launch pipeline |
 | S26 | Status screen + actions |
@@ -218,3 +218,16 @@
   Continue enabled/disabled state, both routing outcomes, Back navigation, and footer hints.
   Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 130/130 ✅ cargo check ✅.
+- S23 completed: Ollama model picker — gui/src/routes/wizard/inference/ollama/+page.svelte
+  calls engine.listOllamaModels() on mount (and on Refresh/Retry). Amber GPU warning banner
+  matches shell wizard S07/S22 warning text. Cloud model detection: tag portion (after first
+  ':') that ends with "cloud" (matches gemma4:31b-cloud and model:cloud). Cloud models show
+  ☁ cloud badge (data-testid="cloud-badge"); local models show no badge. Auto-selects
+  gemma4:31b-cloud as default if present, else first model. Not-running state renders
+  friendly message + Homebrew install / ollama serve instructions + Retry button that
+  re-fetches. Refresh link visible in running state. Null engine falls back to not-running.
+  Continue disabled while loading / not-running / no model selected; navigates to
+  /wizard/ports when enabled. Header: "Step 3 of 4" + Back → /wizard/inference.
+  24 vitest tests cover all states, cloud badge, selection, navigation, refresh, null engine.
+  Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
+  vitest 154/154 ✅ cargo check ✅.
