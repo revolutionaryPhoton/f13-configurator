@@ -1,2 +1,4 @@
 generated/
 *.secret
+ralph-logs/
+CLAUDE.md
