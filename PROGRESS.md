@@ -21,6 +21,8 @@
 | S14 | README.md | f2f4461 | 215/215 ✅ |
 | S15 | Demo transcript | f38b47c | 215/215 ✅ |
 
+| S16 | Patched frontend image with ENABLED_FEATURES gating | TBD | 239/239 ✅ |
+
 ## Pending Stories
 
 | Story | Description |
@@ -103,6 +105,19 @@
   stop/reset/re-run commands with non-interactive usage, generated/ directory
   tree with all files listed, and known limitations. 215/215 green, no new tests
   (doc-only change).
+- S16 completed: lib/frontend.sh — frontend::clone_required (uses _FRONTEND_LOCAL_PATH
+  override for tests), frontend::get_source (copies local monorepo or git clones
+  with --depth 1), frontend::image_exists (mocked via frontend::_docker_image_inspect),
+  frontend::patch_and_build (temp dir + trap ERR+EXIT, UIStore.js awk patch via
+  temp awk script file, docker-entrypoint.sh awk patch, docker build). Both patches
+  are idempotent and match by content not line number. lib/preflight.sh extended
+  with conditional git reachability check when clone_required. bin/f13-config
+  sources frontend.sh, sets ENABLED_FEATURES="chat" and FRONTEND_IMAGE for v1,
+  adds _wizard_build_frontend step (skipped on --dry-run). templates updated:
+  frontend service uses ${FRONTEND_IMAGE} and env var ENABLED_FEATURES; platform:
+  linux/amd64 removed from frontend. bin/f13-rebuild-frontend standalone rebuild
+  script. _wizard_render made resilient when prompt_maps.yml absent (warns, skips).
+  24 new bats tests; 239/239 green, shellcheck clean.
 - S09 completed: all 6 templates populated. docker-compose.yml.tmpl has
   frontend/core/chat/feedback-db services plus ollama-mock under a `mock`
   compose profile (activated via COMPOSE_PROFILES in .env); chat always has

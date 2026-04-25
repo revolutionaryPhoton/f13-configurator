@@ -21,6 +21,8 @@ preflight::_disk_free_kb() {
   fi
 }
 
+preflight::_git_ls_remote() { git ls-remote --exit-code "$@" HEAD &>/dev/null 2>&1; }
+
 # ---------------------------------------------------------------------------
 # preflight::run
 # Checks all runtime dependencies in order; prints ✅/❌ per check.
@@ -83,6 +85,22 @@ preflight::run() {
     failed=$(( failed + 1 ))
   else
     ui::ok "disk space ($(( free_kb / 1024 / 1024 )) GB free)"
+  fi
+
+  # 6. git reachability check — only when a clone will be needed for S16
+  #    frontend::clone_required is defined in lib/frontend.sh (sourced by f13-config).
+  #    If the function is not loaded yet, skip this check gracefully.
+  if declare -f frontend::clone_required &>/dev/null && frontend::clone_required; then
+    local _fe_url="https://gitlab.opencode.de/f13/microservices/frontend.git"
+    if ! preflight::_has_cmd git; then
+      ui::err "git not found — needed to clone frontend source (brew install git / apt install git)"
+      failed=$(( failed + 1 ))
+    elif preflight::_git_ls_remote "${_fe_url}"; then
+      ui::ok "git (clone required — remote reachable)"
+    else
+      ui::err "git remote unreachable: ${_fe_url}"
+      failed=$(( failed + 1 ))
+    fi
   fi
 
   if [[ "${failed}" -gt 0 ]]; then

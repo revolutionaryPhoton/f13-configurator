@@ -27,6 +27,8 @@ source "${LIB_DIR}/ollama.sh"
 source "${LIB_DIR}/compose.sh"
 # shellcheck source=../lib/state.sh
 source "${LIB_DIR}/state.sh"
+# shellcheck source=../lib/frontend.sh
+source "${LIB_DIR}/frontend.sh"
 
 # ---------------------------------------------------------------------------
 # Help
@@ -53,6 +55,7 @@ Environment variables (for --non-interactive):
 Internal / test overrides:
   F13_GENERATED_DIR   Override path for the generated/ output directory
   F13_SKIP_PREFLIGHT  Set to 1 to skip preflight checks (testing only)
+  F13_SKIP_BUILD      Set to 1 to skip docker build of patched frontend image
 EOF
 }
 
@@ -150,6 +153,33 @@ _wizard_pick_ports() {
   fi
 }
 
+_wizard_build_frontend() {
+  local _dry_run="${1:-0}"
+  if [[ "${_dry_run}" -eq 1 ]]; then
+    ui::info "Dry-run — skipping frontend image build."
+    return 0
+  fi
+
+  if [[ -n "${F13_CONFIG_NONINTERACTIVE:-}" ]]; then
+    if [[ -z "${F13_SKIP_BUILD:-}" ]]; then
+      frontend::patch_and_build "${FRONTEND_IMAGE}"
+    else
+      ui::info "F13_SKIP_BUILD set — skipping frontend image build."
+    fi
+    return 0
+  fi
+
+  if frontend::image_exists "${FRONTEND_IMAGE}"; then
+    if ! prompt::yesno "Patched frontend image found. Rebuild?" "n"; then
+      ui::info "Using cached image: ${FRONTEND_IMAGE}"
+      return 0
+    fi
+  fi
+
+  ui::step "Building patched frontend image..."
+  frontend::patch_and_build "${FRONTEND_IMAGE}"
+}
+
 _wizard_generate_secrets() {
   local _sd="${GEN_DIR}/secrets"
   mkdir -p "${_sd}"
@@ -193,7 +223,7 @@ _wizard_render() {
 
   export FRONTEND_PORT CORE_PORT CHAT_BACKEND OLLAMA_MODEL FEEDBACK_DB_PASSWORD \
     CHAT_IMAGE CHAT_BASE_URL CHAT_MODEL_NAME CHAT_MAX_CONTEXT_TOKENS \
-    CHAT_MODEL_ID COMPOSE_PROFILES
+    CHAT_MODEL_ID COMPOSE_PROFILES ENABLED_FEATURES FRONTEND_IMAGE
 
   render::file "${TMPL_DIR}/docker-compose.yml.tmpl" "${GEN_DIR}/docker-compose.yml"
   render::file "${TMPL_DIR}/env.tmpl"                "${GEN_DIR}/.env"
@@ -202,10 +232,16 @@ _wizard_render() {
   render::file "${TMPL_DIR}/chat/general.yml.tmpl"   "${GEN_DIR}/configs/chat/general.yml"
   render::file "${TMPL_DIR}/chat/llm_models.yml.tmpl" "${GEN_DIR}/configs/chat/llm_models.yml"
 
-  # prompt_maps.yml has no template vars — copy directly from the chat source
+  # prompt_maps.yml has no template vars — copy directly from the chat source.
+  # Gracefully skip when the monorepo is absent (test environments).
   local _repo_root
   _repo_root="$(cd "${SCRIPT_DIR}/../../../" && pwd)"
-  cp "${_repo_root}/chat/configs/prompt_maps.yml" "${GEN_DIR}/configs/chat/prompt_maps.yml"
+  local _prompt_maps="${_repo_root}/chat/configs/prompt_maps.yml"
+  if [[ -f "${_prompt_maps}" ]]; then
+    cp "${_prompt_maps}" "${GEN_DIR}/configs/chat/prompt_maps.yml"
+  else
+    ui::warn "prompt_maps.yml not in monorepo — skipping (not required for minimal stack)"
+  fi
 }
 
 _wizard_summary_box() {
@@ -245,6 +281,9 @@ wizard() {
   CHAT_MAX_CONTEXT_TOKENS=""
   CHAT_MODEL_ID=""
   COMPOSE_PROFILES=""
+  # v1 preset: only chat is active; image built locally by this wizard
+  ENABLED_FEATURES="chat"
+  FRONTEND_IMAGE="${FRONTEND_IMAGE_TAG}"
 
   ui::banner
   printf '\n'
@@ -309,8 +348,13 @@ wizard() {
   _wizard_pick_ports
   printf '\n'
 
+  # Step 4b — build patched frontend image
+  ui::step "4. Building patched frontend image"
+  _wizard_build_frontend "${_dry_run}"
+  printf '\n'
+
   # Step 5 — secrets
-  ui::step "4. Generating secrets"
+  ui::step "5. Generating secrets"
   _wizard_generate_secrets
   ui::ok "Secrets written to ${GEN_DIR}/secrets/"
   printf '\n'
@@ -319,7 +363,7 @@ wizard() {
   _wizard_compute_vars
 
   # Step 6 — render
-  ui::step "5. Rendering configuration"
+  ui::step "6. Rendering configuration"
   _wizard_render
   state::write "${GEN_DIR}/.state"
   ui::ok "Configuration written to ${GEN_DIR}/"
@@ -336,7 +380,7 @@ wizard() {
 
   # Step 8 — optional launch
   if prompt::yesno "Start it now?" "y"; then
-    ui::step "6. Starting F13..."
+    ui::step "7. Starting F13..."
     compose::up
   else
     ui::info "Run manually: cd ${GEN_DIR} && docker compose up -d"

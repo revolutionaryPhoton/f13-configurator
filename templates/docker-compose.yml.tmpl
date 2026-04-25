@@ -1,9 +1,9 @@
 services:
   frontend:
-    image: registry.opencode.de/f13/microservices/frontend/main:latest
-    platform: linux/amd64
+    image: ${FRONTEND_IMAGE}
     environment:
       KEYCLOAK_DISABLED: "true"
+      ENABLED_FEATURES: "${ENABLED_FEATURES}"
     ports:
       - "${FRONTEND_PORT}:9999"
     depends_on:

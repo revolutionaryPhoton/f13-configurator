@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Force-rebuild the patched frontend image (ignores existing cache).
+# Useful after pulling a new upstream frontend image or when the upstream
+# repo changes. Run ./bin/f13-config afterward to start the full stack.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly LIB_DIR="${SCRIPT_DIR}/../lib"
+
+# shellcheck source=../lib/ui.sh
+source "${LIB_DIR}/ui.sh"
+# shellcheck source=../lib/banner.sh
+source "${LIB_DIR}/banner.sh"
+# shellcheck source=../lib/frontend.sh
+source "${LIB_DIR}/frontend.sh"
+
+ui::banner
+printf '\n'
+ui::step "Rebuilding patched frontend image (force — ignoring cache)..."
+printf '\n'
+
+frontend::patch_and_build "${FRONTEND_IMAGE_TAG}"
+
+printf '\n'
+ui::info "Next step: ./bin/f13-config"
