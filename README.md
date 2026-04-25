@@ -2,6 +2,8 @@
 
 A shell-based wizard that brings up a minimal F13 deployment — `core + frontend + chat` — with a single command. No YAML hand-editing, no manual secret generation, no ops experience required.
 
+> ⚠️  **AI-generated code.** Almost all of this codebase was written by Claude Code running inside an automated [ralph loop](https://github.com/revolutionaryPhoton/f13-configurator-ralph) driven by a PRD. Human review has been spot-check level, not line-by-line. Read the diffs before using it for anything beyond local development, and treat the test suite as a smoke check rather than a guarantee. Issues and PRs are very welcome — see [SECURITY.md](SECURITY.md) for the implications.
+
 ## What is F13?
 
 F13 is an open-source AI assistant platform for German public administration, built as a set of microservices (chat, RAG, summary, transcription, …) behind a Svelte frontend.
@@ -244,7 +246,7 @@ Secrets are never committed — `generated/` is in `.gitignore`.
 
 **User experience**
 
-- 🖥️ **Web GUI** — a browser-based wizard alongside the shell one, for users who'd rather click than type. Reuses the same engine (templates, secrets, port logic, frontend build) and shells out to docker compose.
+- 🖥️ **Desktop GUI — _in development_** — a cross-platform Tauri 2 + Svelte 5 desktop app alongside the shell wizard, for users who'd rather click than type. Same engine: it shells out to `bin/f13-config` via a JSON-event protocol, no logic duplication. Ships for macOS and Linux. See `gui/` (work in progress) and Phase 7 of the PRD in the [ralph loop repo](https://github.com/revolutionaryPhoton/f13-configurator-ralph).
 
 ---
 

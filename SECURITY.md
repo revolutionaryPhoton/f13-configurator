@@ -5,6 +5,31 @@ it generates is not hardened for production or internet-facing deployment.
 
 ---
 
+## ⚠️  AI-generated code
+
+Almost the entire codebase was written by Claude Code via an automated
+[ralph loop](https://github.com/revolutionaryPhoton/f13-configurator-ralph)
+driven by a PRD. Each iteration runs `shellcheck` + `bats` (and for the
+GUI, `npm run check` + `cargo check`) as backpressure. The maintainer
+spot-checks diffs before pushing, but **there has been no formal security
+audit**.
+
+Implications for anyone reading or running this code:
+
+- Treat dependency choices, parsing logic, and shell-out commands as
+  needing extra scrutiny — these are exactly the bug classes an automated
+  test suite catches least reliably (off-by-one parsing, race conditions,
+  shell injection in dynamically-built commands, escaping mistakes in
+  YAML templates).
+- The five regressions found during S16 frontend bringup (paren
+  imbalance, semicolon-eating regex, mktemp perms, exec-but-not-read on
+  USER 999, recursive function injection) are representative — these are
+  the kinds of bugs you should expect to find more of.
+- If you spot something concerning, please open an issue on GitHub
+  rather than relying on this in production.
+
+---
+
 ## 🔐 Secrets
 
 - All generated secrets live in `generated/secrets/` with `chmod 600`.
