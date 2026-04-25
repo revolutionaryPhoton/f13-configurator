@@ -9,8 +9,14 @@ it generates is not hardened for production or internet-facing deployment.
 
 Almost the entire codebase was written by Claude Code via an automated
 [ralph loop](https://github.com/revolutionaryPhoton/f13-configurator-ralph)
-driven by a PRD. Each iteration runs `shellcheck` + `bats` (and for the
-GUI, `npm run check` + `cargo check`) as backpressure. The maintainer
+driven by a PRD. The ralph harness *itself* is also largely AI-generated
+(Claude Code in interactive sessions on macOS and Linux), so both halves
+of the project — the configurator you're looking at and the loop that
+produced it — were written by an AI with human review at the diff level,
+not line-by-line.
+
+Each loop iteration runs `shellcheck` + `bats` (and for the GUI,
+`npm run check` + `cargo check`) as backpressure. The maintainer
 spot-checks diffs before pushing, but **there has been no formal security
 audit**.
 
