@@ -3,6 +3,7 @@
   import Button from "$lib/components/Button.svelte";
   import type { Engine } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
+  import { setWizardVia } from "$lib/wizardPath.js";
 
   interface Props {
     engine?: Engine | null;
@@ -63,6 +64,7 @@
 
   function handleContinue() {
     if (selected) {
+      setWizardVia("ollama");
       goto("/wizard/ports");
     }
   }

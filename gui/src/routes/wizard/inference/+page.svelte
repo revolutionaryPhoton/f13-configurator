@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
   import Tile from "$lib/components/Tile.svelte";
+  import { setWizardVia } from "$lib/wizardPath.js";
 
   type Backend = "mock" | "ollama";
 
@@ -17,6 +18,7 @@
     if (selected === "ollama") {
       goto("/wizard/inference/ollama");
     } else {
+      setWizardVia("mock");
       goto("/wizard/ports");
     }
   }
