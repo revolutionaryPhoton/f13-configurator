@@ -35,13 +35,13 @@
 | S27 | Confirmations + edge cases | 648578a | 256/256 shell + 248/248 vitest ✅ |
 | S28 | Settings panel | 7f6ecd4 | 256/256 shell + 272/272 vitest ✅ |
 | S29 | Packaging infrastructure (macOS only) | a71e545 | 256/256 shell + 277/277 vitest ✅ |
+| S30 | GUI README + screenshots + CHANGELOG | 034691b | 256/256 shell + 277/277 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
 
-| S30 | GUI README + screenshots + CHANGELOG |
 | S31 | End-to-end smoke test (maintainer-only) |
 
 ## Notes
@@ -312,6 +312,15 @@
   target included), preceded by headless checks; does not publish artifacts.
   Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 277/277 ✅ cargo check ✅.
+- S30 completed: gui/README.md — full rewrite: stack table, wizard flow diagram, ASCII wireframes
+  of all six screens (Welcome, Preflight, Inference picker, Ports, Build/launch pipeline, Status),
+  macOS + Linux dev-setup commands, test commands, tauri build packaging notes, architecture notes
+  (engine adapter + state flow), and a troubleshooting table. CHANGELOG.md created at repo root:
+  Phase 7 GUI release notes covering all S17–S29 additions plus a [0.1.0] section for the S00–S16
+  shell wizard. README.md: "GUI vs CLI" comparison table (CLI vs desktop, platform, scripting,
+  visual feedback, best-for) inserted after Quickstart; roadmap bullet updated from "in development"
+  to "Phase 7 complete (macOS)". No new .sh or .svelte files — doc-only change.
+  Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ vitest 277/277 ✅ cargo check ✅.
 - S28 completed: Settings panel — gui/src/routes/settings/+page.svelte: three sections:
   (1) Appearance — segmented theme toggle (System / Light / Dark) using a radiogroup;
   selected option tracked via $state, persisted to localStorage via setTheme from the
