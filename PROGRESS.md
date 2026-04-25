@@ -36,13 +36,14 @@
 | S28 | Settings panel | 7f6ecd4 | 256/256 shell + 272/272 vitest ✅ |
 | S29 | Packaging infrastructure (macOS only) | a71e545 | 256/256 shell + 277/277 vitest ✅ |
 | S30 | GUI README + screenshots + CHANGELOG | 034691b | 256/256 shell + 277/277 vitest ✅ |
+| S31 | End-to-end smoke test (maintainer-only) | 41595e4 | 256/256 shell + 277/277 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
 
-| S31 | End-to-end smoke test (maintainer-only) |
+(none — all stories complete)
 
 ## Notes
 
@@ -312,6 +313,18 @@
   target included), preceded by headless checks; does not publish artifacts.
   Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 277/277 ✅ cargo check ✅.
+- S31 completed: gui/tests/e2e/smoke.spec.ts — six-step WebdriverIO E2E test covering the full wizard
+  happy path: Welcome → Preflight → Inference (Mock) → Ports (defaults) → Build/launch pipeline →
+  Status screen. Each step uses data-testid and ARIA attributes as selectors. teardown clicks
+  "Stop F13". Guarded by F13_E2E=1 (describe.skip when absent) so it never runs in the loop or CI.
+  gui/tests/e2e/wdio.conf.ts: wdio-tauri-service config; resolves the debug binary at
+  src-tauri/target/debug/F13 Configurator. Separate gui/tests/e2e/package.json (WebdriverIO v9 +
+  wdio-tauri-service v3 + ts-node) keeps heavy deps out of the main gui/ install.
+  gui/tsconfig.json: tests/e2e/** excluded so svelte-check does not attempt to type-check
+  WebdriverIO globals. gui/tests/e2e/README.md: prerequisites, build steps, run instructions,
+  troubleshooting table, architecture diagram, and a maintainer run-log table.
+  Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅ vitest 277/277 ✅
+  cargo check ✅.
 - S30 completed: gui/README.md — full rewrite: stack table, wizard flow diagram, ASCII wireframes
   of all six screens (Welcome, Preflight, Inference picker, Ports, Build/launch pipeline, Status),
   macOS + Linux dev-setup commands, test commands, tauri build packaging notes, architecture notes
