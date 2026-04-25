@@ -30,12 +30,12 @@
 | S22 | Inference picker | c4e593c | 256/256 shell + 130/130 vitest ✅ |
 | S23 | Ollama model picker | fb21e4d | 256/256 shell + 154/154 vitest ✅ |
 | S24 | Ports screen | 8595181 | 256/256 shell + 179/179 vitest ✅ |
+| S25 | Build / launch pipeline | 8fe9f41 | 256/256 shell + 205/205 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S25 | Build / launch pipeline |
 | S26 | Status screen + actions |
 | S27 | Confirmations + edge cases |
 | S28 | Settings panel |
@@ -248,3 +248,21 @@
   both navigation paths, blur handlers, error messages, disclosure content, and null
   engine. Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 179/179 ✅ cargo check ✅.
+- S25 completed: Build/launch pipeline — gui/src/routes/wizard/run/+page.svelte: vertical
+  6-step pipeline (Generating secrets → Rendering compose → Building patched frontend →
+  Pulling images → Starting containers → Waiting for health). Each step renders ◯ pending /
+  ⏳ running / ✓ done / ✕ failed with an accessible status icon. Collapsible LogViewer
+  per step for captured step messages. Build step shows indeterminate ProgressBar while
+  running (best-effort; docker build output is not separately streamed). CLI event mapping:
+  name=secrets/render/build map directly; name=start started → pull:running, start done →
+  pull:done + start:done + health:running, done ok → health:done + goto("/status"). Cancel
+  button (shown while pipelineRunning) calls engine.compose.down() for rollback then
+  navigates to /wizard/ports. Error state shows error message + "Back to ports" button.
+  Null engine degrades gracefully (no pipeline started, no Cancel button). lib/wizardState.ts
+  added as module-level store (backend, ollamaModel, frontendPort, corePort); inference,
+  ollama, and ports pages updated to call setWizardState on Continue so the run page picks
+  up the user's configuration choices. 26 vitest tests cover all 6 step transitions, build
+  progress bar show/hide, start-done multi-step transition, done-ok navigation, done-error
+  failure marking, Cancel flow, null engine, and runWizardNonInteractive options passthrough.
+  Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
+  vitest 205/205 ✅ cargo check ✅.
