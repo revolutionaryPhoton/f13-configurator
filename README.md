@@ -228,6 +228,7 @@ Planned (no fixed dates — pull requests welcome):
 - **Full / per-service F13 configuration.** Add presets beyond `core+chat` — RAG, summary, parser, transcription, inference — with toggles to mix and match.
 - **Cloud LLM inference.** Wire in OpenAI / Anthropic / Cohere etc. via the existing `is_remote: true` model schema, with API-key prompts and `llm_api.secret` integration.
 - **Local vLLM inference.** Add a third chat inference option alongside mock and Ollama for users with a vLLM server.
+- **Custom system prompts.** Let the user supply or edit the chat system prompt during the wizard, instead of always copying the upstream `prompt_maps.yml` verbatim. Probably an `--editor` flag plus a default that opens `$EDITOR` on a generated draft.
 - **Keycloak authentication.** Optional preset that spins up a real Keycloak container with a sample realm, replacing the current guest-mode default for production-like setups.
 
 ---
