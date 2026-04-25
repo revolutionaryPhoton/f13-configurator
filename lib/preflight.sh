@@ -87,7 +87,29 @@ preflight::run() {
     ui::ok "disk space ($(( free_kb / 1024 / 1024 )) GB free)"
   fi
 
-  # 6. git reachability check — only when a clone will be needed for S16
+  # 6. Ollama probe — INFORMATIONAL only (never fails preflight).
+  #    Mock-inference users don't need Ollama at all, so this is a hint,
+  #    not a gate. The hard "Ollama required" check lives in the wizard's
+  #    Ollama path (bin/f13-config :: _wizard_pick_ollama_model).
+  if declare -f ollama::is_running &>/dev/null && ollama::is_running; then
+    local -a _models=()
+    if declare -f ollama::list_models &>/dev/null; then
+      mapfile -t _models < <(ollama::list_models 2>/dev/null || true)
+    fi
+    if [[ ${#_models[@]} -gt 0 ]]; then
+      ui::info "Ollama: detected (${#_models[@]} model(s)) — only needed for the Ollama inference option"
+      local _m
+      for _m in "${_models[@]}"; do
+        printf '   • %s\n' "${_m}"
+      done
+    else
+      ui::info "Ollama: detected — no models pulled yet (run 'ollama pull <name>' if you plan to use Ollama)"
+    fi
+  else
+    ui::info "Ollama: not detected (only needed if you pick the Ollama inference option)"
+  fi
+
+  # 7. git reachability check — only when a clone will be needed for S16
   #    frontend::clone_required is defined in lib/frontend.sh (sourced by f13-config).
   #    If the function is not loaded yet, skip this check gracefully.
   if declare -f frontend::clone_required &>/dev/null && frontend::clone_required; then
