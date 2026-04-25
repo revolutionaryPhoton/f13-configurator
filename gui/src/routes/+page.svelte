@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
+  import F13Logo from "$lib/components/F13Logo.svelte";
   import type { Engine, StateEvent } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
 
@@ -75,46 +76,46 @@
 </script>
 
 <div
-  class="min-h-screen flex flex-col items-center justify-center bg-bg px-6 py-8"
+  class="min-h-screen flex flex-col items-center justify-center bg-bg px-6 py-10 relative"
 >
-  <div class="flex flex-col items-center gap-5 max-w-xs w-full">
-    <!-- F13 logo (inline for currentColor theming) -->
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 120 40"
-      fill="none"
-      class="w-24 h-8 text-text"
-      role="img"
-      aria-label="F13"
-    >
-      <!-- F -->
-      <rect x="2" y="4" width="4" height="32" fill="currentColor" />
-      <rect x="2" y="4" width="16" height="4" fill="currentColor" />
-      <rect x="2" y="18" width="12" height="4" fill="currentColor" />
-      <!-- 1 -->
-      <rect x="30" y="4" width="4" height="32" fill="currentColor" />
-      <rect x="26" y="4" width="4" height="4" fill="currentColor" />
-      <!-- 3 -->
-      <rect x="44" y="4" width="16" height="4" fill="currentColor" />
-      <rect x="56" y="4" width="4" height="16" fill="currentColor" />
-      <rect x="44" y="18" width="16" height="4" fill="currentColor" />
-      <rect x="56" y="22" width="4" height="14" fill="currentColor" />
-      <rect x="44" y="32" width="16" height="4" fill="currentColor" />
-    </svg>
+  <div
+    class="flex flex-col items-center w-full"
+    style:max-width="360px"
+    style:gap="22px"
+    style:animation="f13-fadeUp 500ms cubic-bezier(0.4,0,1,1) both"
+  >
+    <!-- Pixel-style F13 mark -->
+    <div class="text-text">
+      <F13Logo size={1.6} />
+    </div>
 
     <!-- Heading + tagline -->
-    <div class="text-center space-y-1.5">
-      <h1 class="text-xl font-semibold text-text">F13 Configurator</h1>
-      <p class="text-xs text-muted tracking-wide">
+    <div class="text-center">
+      <h1
+        class="m-0 text-xl font-semibold text-text"
+        style:letter-spacing="-0.2px"
+      >
+        F13 Configurator
+      </h1>
+      <p
+        class="mt-1.5 mb-0 text-[12px] text-subtle"
+        style:letter-spacing="0.3px"
+      >
         Minimal · Batteries included · One command
       </p>
     </div>
 
-    <!-- Preset badge -->
+    <!-- Preset badge — green status dot + monospaced descriptor -->
     <span
-      class="inline-flex items-center rounded-full bg-surface border border-border
-             px-2.5 py-0.5 text-xs text-muted font-medium"
+      class="inline-flex items-center gap-1.5 px-3 py-[5px] rounded-full border text-[11px] text-muted"
+      style:border-color="var(--f13-border-strong)"
+      style:font-family="var(--f13-font-mono)"
     >
+      <span
+        class="inline-block w-1.5 h-1.5 rounded-full"
+        style:background="#22c55e"
+        aria-hidden="true"
+      ></span>
       v1 · core + frontend + chat
     </span>
 
@@ -174,8 +175,18 @@
     {/if}
 
     <!-- Footer hint -->
-    <p class="text-xs text-subtle text-center mt-2">
+    <p
+      class="m-0 mt-1.5 text-[11px] text-subtle text-center leading-relaxed"
+    >
       Keycloak guest mode · No hand-editing required
     </p>
+  </div>
+
+  <!-- Tiny absolute-bottom credit -->
+  <div
+    class="absolute bottom-3.5 left-0 right-0 text-center text-[10px] text-subtle"
+    style:font-family="var(--f13-font-mono)"
+  >
+    MIT · © 2026 David Moch
   </div>
 </div>
