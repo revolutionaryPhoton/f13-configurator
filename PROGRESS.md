@@ -32,12 +32,12 @@
 | S24 | Ports screen | 8595181 | 256/256 shell + 179/179 vitest ✅ |
 | S25 | Build / launch pipeline | 8fe9f41 | 256/256 shell + 205/205 vitest ✅ |
 | S26 | Status screen + actions | 1a236e5 | 256/256 shell + 232/232 vitest ✅ |
+| S27 | Confirmations + edge cases | 648578a | 256/256 shell + 248/248 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S27 | Confirmations + edge cases |
 
 | S28 | Settings panel |
 | S29 | Packaging infrastructure (macOS only) |
@@ -283,3 +283,21 @@
   button rendering, calls, loading toasts, success toasts, navigation, View Logs toast,
   Reconfigure navigation, null engine, and error toast. GUI: npm run check ✅ biome ✅
   vitest 232/232 ✅ cargo check ✅.
+- S27 completed: Confirmations + edge cases — three guard flows added to the GUI:
+  (1) Reset confirmation modal on gui/src/routes/status/+page.svelte: "Full reset"
+  now opens a Modal.svelte dialog requiring the user to type the word RESET before
+  the "Confirm reset" button becomes enabled; Cancel closes without side effects.
+  (2) Port-collision modal on gui/src/routes/wizard/ports/+page.svelte: whenever
+  engine.checkPort() returns an "in use" result (from auto-check on mount or onblur
+  re-check) a Modal opens showing the process name, PID, and a suggested port+1;
+  "Pick another port" applies the suggestion and re-checks; "Keep this port" dismisses.
+  Only one collision modal is open at a time (openCollisionModal guards on
+  collisionModal.open). (3) Already-running detection on gui/src/routes/+page.svelte:
+  after detectState resolves with exists=true the page fires a one-shot health check
+  (engine.compose.health); if healthy isRunning becomes true and an "F13 is already
+  running" banner replaces the normal CTA area — "Show status" navigates to /status,
+  "Stop & reconfigure" calls compose.down then navigates to /wizard/preflight (stopping
+  state + error message if compose.down fails). 16 new vitest tests added (status +4,
+  ports +6, welcome +6); the 4 existing "Full Reset" tests updated to flow through the
+  modal. All tests pass: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅
+  biome ✅ vitest 248/248 ✅ cargo check ✅.
