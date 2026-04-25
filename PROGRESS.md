@@ -31,7 +31,7 @@
 | S23 | Ollama model picker | fb21e4d | 256/256 shell + 154/154 vitest ✅ |
 | S24 | Ports screen | 8595181 | 256/256 shell + 179/179 vitest ✅ |
 | S25 | Build / launch pipeline | 8fe9f41 | 256/256 shell + 205/205 vitest ✅ |
-| S26 | Status screen + actions | TBD | 256/256 shell + 232/232 vitest ✅ |
+| S26 | Status screen + actions | 1a236e5 | 256/256 shell + 232/232 vitest ✅ |
 
 ## Pending Stories
 
