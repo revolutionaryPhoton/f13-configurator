@@ -26,6 +26,25 @@ The wizard walks you through every choice (chat inference, ports), generates all
 
 ---
 
+## GUI vs CLI
+
+Two surfaces, one engine — choose based on your preference:
+
+| | Shell wizard (`bin/f13-config`) | Desktop GUI (`gui/`) |
+|---|---|---|
+| **Launch** | `./bin/f13-config` in any terminal | `npm run tauri dev` (dev) or open the `.app` (packaged) |
+| **Platform** | macOS, Linux, WSL2 | macOS (Phase 7); Linux in Phase 8 |
+| **Requirements** | Bash 4+, Docker | Node 20+, Rust stable, Docker |
+| **Non-interactive / CI** | `F13_CONFIG_NONINTERACTIVE=1 …` env vars | Not applicable |
+| **Scripting / automation** | Full — pipes, env overrides, `--emit-events` | Not applicable |
+| **Visual feedback** | ANSI colour in terminal | Native window, animated pipeline, health polling |
+| **Re-run / idempotency** | `./bin/f13-config` prompts keep / edit / reset | Welcome screen detects existing state automatically |
+| **Best for** | Ops, CI, headless servers, users comfortable with the terminal | Desktop users who prefer a click-through wizard |
+
+Both surfaces produce identical `generated/` output and share the same shell-script engine.
+
+---
+
 ## Requirements
 
 | Requirement | Notes |
@@ -246,7 +265,7 @@ Secrets are never committed — `generated/` is in `.gitignore`.
 
 **User experience**
 
-- 🖥️ **Desktop GUI — _in development_** — a cross-platform Tauri 2 + Svelte 5 desktop app alongside the shell wizard, for users who'd rather click than type. Same engine: it shells out to `bin/f13-config` via a JSON-event protocol, no logic duplication. Ships for macOS and Linux. See `gui/` (work in progress) and Phase 7 of the PRD in the [ralph loop repo](https://github.com/revolutionaryPhoton/f13-configurator-ralph).
+- 🖥️ **Desktop GUI — _Phase 7 complete (macOS)_** — a Tauri 2 + Svelte 5 desktop app alongside the shell wizard, for users who'd rather click than type. Same engine: shells out to `bin/f13-config` via a JSON-event protocol, no logic duplication. macOS validated; Linux runtime in Phase 8. See [`gui/README.md`](gui/README.md) and the [ralph loop repo](https://github.com/revolutionaryPhoton/f13-configurator-ralph).
 
 ---
 
