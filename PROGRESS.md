@@ -21,7 +21,7 @@
 | S14 | README.md | f2f4461 | 215/215 ✅ |
 | S15 | Demo transcript | f38b47c | 215/215 ✅ |
 
-| S16 | Patched frontend image with ENABLED_FEATURES gating | TBD | 239/239 ✅ |
+| S16 | Patched frontend image with ENABLED_FEATURES gating | 4542a73 | 239/239 ✅ |
 
 ## Pending Stories
 
