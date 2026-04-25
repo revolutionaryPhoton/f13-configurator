@@ -200,21 +200,24 @@ frontend::_patch_entrypoint() {
   tmp_out="$(mktemp)"
 
   cat > "${awk_script}" << 'AWKEOF'
-/escape_js_string/ && !added_var {
+# Match the first variable-assignment that calls escape_js_string,
+# NOT the 'escape_js_string() {' function-definition line. Inserting
+# after the def would put the new line inside the function body and
+# cause infinite recursion when generate_config_script calls escape_js_string.
+/=\$\(escape_js_string/ && !added_var {
   print
-  print "  enabled_features=$(escape_js_string \"${ENABLED_FEATURES:-chat,recherche,askTheText,summary,transcription,feedback}\")"
+  print "    enabled_features=$(escape_js_string \"${ENABLED_FEATURES:-chat,recherche,askTheText,summary,transcription,feedback}\")"
   added_var=1
   next
 }
-/window[.]APP_CONFIG[[:space:]]*=/ { in_config=1 }
-in_config && /^[[:space:]]*\};[[:space:]]*$/ {
-  if (!added_field) {
-    print "  ENABLED_FEATURES:\"${enabled_features}\","
-    added_field=1
-  }
-  in_config=0
-  print
-  next
+# The APP_CONFIG object is a one-liner inside a heredoc:
+#   <script>window.APP_CONFIG={KEY:"val",...};</script>
+# So we match that single line and inject the new field in place,
+# right before the closing '};</script>'. Multi-line state matching
+# does NOT work here (the original code tried that and never fired).
+/window[.]APP_CONFIG[[:space:]]*=/ && !added_field {
+  sub(/\};<\/script>/, ",ENABLED_FEATURES:\"${enabled_features}\"};</script>")
+  added_field=1
 }
 { print }
 AWKEOF
