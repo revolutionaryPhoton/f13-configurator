@@ -22,13 +22,13 @@
 | S15 | Demo transcript | f38b47c | 215/215 ✅ |
 
 | S16 | Patched frontend image with ENABLED_FEATURES gating | 4542a73 | 239/239 ✅ |
-| S17 | Tauri scaffolding + dev workflow (macOS-validated) | TBD | 239+1 shell+vitest ✅ |
+| S17 | Tauri scaffolding + dev workflow (macOS-validated) | 22b37be | 239+1 shell+vitest ✅ |
+| S18 | Engine adapter (`gui/src/lib/engine.ts`) | bdeb17d | 256/256 shell + 40/40 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S18 | Engine adapter (`gui/src/lib/engine.ts`) |
 | S19 | Design system import (`gui/src/lib/theme/`) |
 | S20 | Welcome screen + state-aware routing |
 | S21 | Preflight screen |
@@ -150,3 +150,17 @@
   install Tauri Linux build deps (libwebkit2gtk-4.1-dev, libgtk-3-dev etc.) and Rust
   stable in the Docker bootstrap for future loop iterations. Shell backpressure: 239/239.
   GUI backpressure: npm run check ✅ biome ✅ vitest 1/1 ✅ cargo check ✅.
+- S18 completed: lib/events.sh — events::emit TYPE [key=value ...] emits one JSON line to
+  stdout when F13_EMIT_EVENTS=1, no-op otherwise. lib/preflight.sh extended to emit
+  {"type":"preflight","name":X,"status":ok|fail|info} after every check. bin/f13-config
+  gains --emit-events plus dispatch flags --preflight-only / --detect-state /
+  --list-models / --check-port N / --compose-up / --compose-health; wizard() emits
+  step/done events for each pipeline phase. bin/f13-stop and bin/f13-reset gain
+  --emit-events with compose action events. gui/src/lib/engine.ts: createEngine(runner,
+  bins) factory returning a typed Engine with preflight(), detectState(), listOllamaModels(),
+  checkPort(), runWizardNonInteractive(), and compose.{up,down,reset,health}(). All event
+  types exported (PreflightEvent, StepEvent, PortEvent, ModelsEvent, StateEvent,
+  ComposeEvent, DoneEvent). Subprocess runner is injectable via ProcessRunner interface.
+  40 Vitest tests covering parseEvent for all event types, engine methods with fixture
+  streams, and error cases (>=75% coverage). Shell: 256/256 bats ✅, shellcheck clean.
+  GUI: npm run check ✅ biome ✅ vitest 40/40 ✅ cargo check ✅.
