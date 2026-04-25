@@ -44,7 +44,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: local("Ubuntu"), url("/fonts/ubuntu/ubuntu-400.woff2") format("woff2");
+  src: local("Ubuntu"), url("/fonts/ubuntu/ubuntu-400.ttf") format("truetype");
 }
 
 @font-face {
@@ -53,7 +53,7 @@
   font-weight: 500;
   font-display: swap;
   src: local("Ubuntu Medium"), local("Ubuntu-Medium"),
-       url("/fonts/ubuntu/ubuntu-500.woff2") format("woff2");
+       url("/fonts/ubuntu/ubuntu-500.ttf") format("truetype");
 }
 
 @font-face {
@@ -62,7 +62,7 @@
   font-weight: 700;
   font-display: swap;
   src: local("Ubuntu Bold"), local("Ubuntu-Bold"),
-       url("/fonts/ubuntu/ubuntu-700.woff2") format("woff2");
+       url("/fonts/ubuntu/ubuntu-700.ttf") format("truetype");
 }
 
 /* Global base */

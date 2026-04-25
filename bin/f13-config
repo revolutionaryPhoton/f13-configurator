@@ -250,16 +250,10 @@ _wizard_render() {
   render::file "${TMPL_DIR}/chat/general.yml.tmpl"   "${GEN_DIR}/configs/chat/general.yml"
   render::file "${TMPL_DIR}/chat/llm_models.yml.tmpl" "${GEN_DIR}/configs/chat/llm_models.yml"
 
-  # prompt_maps.yml has no template vars — copy directly from the chat source.
-  # Gracefully skip when the monorepo is absent (test environments).
-  local _repo_root
-  _repo_root="$(cd "${SCRIPT_DIR}/../../../" && pwd)"
-  local _prompt_maps="${_repo_root}/chat/configs/prompt_maps.yml"
-  if [[ -f "${_prompt_maps}" ]]; then
-    cp "${_prompt_maps}" "${GEN_DIR}/configs/chat/prompt_maps.yml"
-  else
-    ui::warn "prompt_maps.yml not in monorepo — skipping (not required for minimal stack)"
-  fi
+  # prompt_maps.yml has no template vars — copy from the bundled template.
+  # Vendored at templates/chat/prompt_maps.yml so the path resolves regardless
+  # of how the wizard was invoked (CLI, GUI, packaged sidecar).
+  cp "${TMPL_DIR}/chat/prompt_maps.yml" "${GEN_DIR}/configs/chat/prompt_maps.yml"
 }
 
 _wizard_summary_box() {

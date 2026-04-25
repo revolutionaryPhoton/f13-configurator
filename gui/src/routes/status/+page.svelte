@@ -92,8 +92,18 @@
   });
 
   function handleOpenBrowser() {
-    const fn = openUrlProp ?? ((url: string) => window.open(url, "_blank"));
-    fn(frontendUrl);
+    if (openUrlProp) {
+      openUrlProp(frontendUrl);
+      return;
+    }
+    // Production default: Tauri's opener plugin actually opens the user's
+    // default browser. window.open is a no-op inside a Tauri webview.
+    void import("@tauri-apps/plugin-opener")
+      .then(({ openUrl }) => openUrl(frontendUrl))
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error("[status] failed to open browser:", err);
+      });
   }
 
   async function handleStop() {
