@@ -6,6 +6,7 @@
   import type { Engine } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
   import { getWizardVia, type WizardVia } from "$lib/wizardPath.js";
+  import { setWizardState } from "$lib/wizardState.js";
 
   interface Props {
     via?: WizardVia | null;
@@ -74,6 +75,7 @@
   }
 
   function handleContinue() {
+    setWizardState({ frontendPort, corePort });
     goto("/wizard/run");
   }
 </script>

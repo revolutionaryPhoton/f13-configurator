@@ -4,6 +4,7 @@
   import type { Engine } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
   import { setWizardVia } from "$lib/wizardPath.js";
+  import { setWizardState } from "$lib/wizardState.js";
 
   interface Props {
     engine?: Engine | null;
@@ -64,6 +65,7 @@
 
   function handleContinue() {
     if (selected) {
+      setWizardState({ ollamaModel: selected });
       setWizardVia("ollama");
       goto("/wizard/ports");
     }

@@ -3,6 +3,7 @@
   import Button from "$lib/components/Button.svelte";
   import Tile from "$lib/components/Tile.svelte";
   import { setWizardVia } from "$lib/wizardPath.js";
+  import { setWizardState } from "$lib/wizardState.js";
 
   type Backend = "mock" | "ollama";
 
@@ -16,8 +17,10 @@
 
   function handleContinue() {
     if (selected === "ollama") {
+      setWizardState({ backend: "ollama" });
       goto("/wizard/inference/ollama");
     } else {
+      setWizardState({ backend: "mock" });
       setWizardVia("mock");
       goto("/wizard/ports");
     }
