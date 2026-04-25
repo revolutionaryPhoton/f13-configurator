@@ -1,6 +1,7 @@
-# Security Notes — F13 Shell Configurator v1
+# Security Notes — F13 Configurator
 
-This configurator is designed for **local development use only**. The stack
+This configurator (both the shell wizard and the desktop GUI) is designed
+for **local development use only**. The stack
 it generates is not hardened for production or internet-facing deployment.
 
 ---

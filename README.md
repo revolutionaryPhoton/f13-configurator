@@ -1,6 +1,6 @@
-# F13 Shell Configurator v1
+# F13 Configurator
 
-A shell-based wizard that brings up a minimal F13 deployment — `core + frontend + chat` — with a single command. No YAML hand-editing, no manual secret generation, no ops experience required.
+A setup wizard that brings up a minimal F13 deployment — `core + frontend + chat` — with a single command. Two surfaces, one engine: a shell wizard (`bin/f13-config`) and a desktop GUI (`gui/`, Tauri 2 + Svelte 5). No YAML hand-editing, no manual secret generation, no ops experience required.
 
 > ⚠️  **AI-generated code.** Almost all of this codebase was written by Claude Code running inside an automated [ralph loop](https://github.com/revolutionaryPhoton/f13-configurator-ralph) driven by a PRD. Human review has been spot-check level, not line-by-line. Read the diffs before using it for anything beyond local development, and treat the test suite as a smoke check rather than a guarantee. Issues and PRs are very welcome — see [SECURITY.md](SECURITY.md) for the implications.
 
