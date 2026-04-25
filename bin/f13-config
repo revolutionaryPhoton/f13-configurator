@@ -7,6 +7,8 @@ readonly TMPL_DIR="${SCRIPT_DIR}/../templates"
 # F13_GENERATED_DIR may be overridden in tests to use a tmp directory
 GEN_DIR="${F13_GENERATED_DIR:-${SCRIPT_DIR}/../generated}"
 
+# shellcheck source=../lib/events.sh
+source "${LIB_DIR}/events.sh"
 # shellcheck source=../lib/ui.sh
 source "${LIB_DIR}/ui.sh"
 # shellcheck source=../lib/banner.sh
@@ -44,6 +46,13 @@ Options:
   --non-interactive   Drive wizard from environment variables (no prompts)
   --dry-run           Render templates but do not launch containers
   --reset             Wipe generated/ and start over (asks for confirmation)
+  --emit-events       Print structured JSON events to stdout (GUI mode)
+  --preflight-only    Run preflight checks and exit (use with --emit-events)
+  --detect-state      Emit current state and exit (use with --emit-events)
+  --list-models       Emit available Ollama models and exit
+  --check-port PORT   Emit port availability for PORT and exit
+  --compose-up        Start containers and wait healthy (use with --emit-events)
+  --compose-health    Emit current health status and exit
   --help              Show this help and exit
 
 Environment variables (for --non-interactive):
@@ -308,10 +317,13 @@ wizard() {
         printf '\n'
         if [[ "${_dry_run}" -ne 1 ]] && prompt::yesno "Start it now?" "y"; then
           ui::step "Starting F13..."
+          events::emit step "name=start" "status=started"
           compose::up
+          events::emit step "name=start" "status=done"
         else
           ui::info "Run manually: cd ${GEN_DIR} && docker compose up -d"
         fi
+        events::emit 'done' "status=ok"
         return 0
         ;;
       edit)
@@ -329,8 +341,16 @@ wizard() {
 
   # Step 1 — preflight
   if [[ -z "${F13_SKIP_PREFLIGHT:-}" ]]; then
+    events::emit step "name=preflight" "status=started"
     ui::step "1. Preflight checks"
-    preflight::run
+    local _pf_failed=0
+    preflight::run || _pf_failed=1
+    if [[ "${_pf_failed}" -eq 1 ]]; then
+      events::emit step "name=preflight" "status=fail" "message=preflight checks failed"
+      events::emit 'done' "status=error" "message=preflight checks failed"
+      return 1
+    fi
+    events::emit step "name=preflight" "status=done"
     printf '\n'
   fi
 
@@ -358,24 +378,30 @@ wizard() {
   printf '\n'
 
   # Step 4b — build patched frontend image
+  events::emit step "name=build" "status=started"
   ui::step "4. Building patched frontend image"
   _wizard_build_frontend "${_dry_run}"
+  events::emit step "name=build" "status=done"
   printf '\n'
 
   # Step 5 — secrets
+  events::emit step "name=secrets" "status=started"
   ui::step "5. Generating secrets"
   _wizard_generate_secrets
   ui::ok "Secrets written to ${GEN_DIR}/secrets/"
+  events::emit step "name=secrets" "status=done"
   printf '\n'
 
   # Derive template variables from chosen config
   _wizard_compute_vars
 
   # Step 6 — render
+  events::emit step "name=render" "status=started"
   ui::step "6. Rendering configuration"
   _wizard_render
   state::write "${GEN_DIR}/.state"
   ui::ok "Configuration written to ${GEN_DIR}/"
+  events::emit step "name=render" "status=done"
   printf '\n'
 
   # Step 7 — summary
@@ -384,16 +410,20 @@ wizard() {
 
   if [[ "${_dry_run}" -eq 1 ]]; then
     ui::info "Dry-run mode — skipping launch."
+    events::emit 'done' "status=ok"
     return 0
   fi
 
   # Step 8 — optional launch
   if prompt::yesno "Start it now?" "y"; then
     ui::step "7. Starting F13..."
+    events::emit step "name=start" "status=started"
     compose::up
+    events::emit step "name=start" "status=done"
   else
     ui::info "Run manually: cd ${GEN_DIR} && docker compose up -d"
   fi
+  events::emit 'done' "status=ok"
 }
 
 # ---------------------------------------------------------------------------
@@ -403,6 +433,8 @@ wizard() {
 main() {
   local _dry_run=0
   local _do_reset=0
+  local _mode="wizard"
+  local _check_port_num=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -419,6 +451,29 @@ main() {
       --reset)
         _do_reset=1
         ;;
+      --emit-events)
+        export F13_EMIT_EVENTS=1
+        ;;
+      --preflight-only)
+        _mode="preflight-only"
+        ;;
+      --detect-state)
+        _mode="detect-state"
+        ;;
+      --list-models)
+        _mode="list-models"
+        ;;
+      --check-port)
+        _mode="check-port"
+        shift
+        _check_port_num="${1:?--check-port requires a port number}"
+        ;;
+      --compose-up)
+        _mode="compose-up"
+        ;;
+      --compose-health)
+        _mode="compose-health"
+        ;;
       *)
         ui::err "Unknown option: $1"
         usage >&2
@@ -428,11 +483,106 @@ main() {
     shift
   done
 
-  if [[ "${_do_reset}" -eq 1 ]]; then
-    _wizard_reset
-  fi
+  case "${_mode}" in
+    preflight-only)
+      local _pf_failed=0
+      preflight::run || _pf_failed=1
+      if [[ "${_pf_failed}" -eq 0 ]]; then
+        events::emit 'done' "status=ok"
+      else
+        events::emit 'done' "status=error" "message=preflight checks failed"
+      fi
+      exit "${_pf_failed}"
+      ;;
 
-  wizard "${_dry_run}"
+    detect-state)
+      if [[ ! -f "${GEN_DIR}/.state" ]]; then
+        events::emit state "exists=false"
+      else
+        local _preset _backend _model _fport _cport _ts
+        _preset="$(grep '^PRESET='        "${GEN_DIR}/.state" | cut -d= -f2- || true)"
+        _backend="$(grep '^CHAT_BACKEND='  "${GEN_DIR}/.state" | cut -d= -f2- || true)"
+        _model="$(grep '^OLLAMA_MODEL='   "${GEN_DIR}/.state" | cut -d= -f2- || true)"
+        _fport="$(grep '^FRONTEND_PORT='  "${GEN_DIR}/.state" | cut -d= -f2- || true)"
+        _cport="$(grep '^CORE_PORT='      "${GEN_DIR}/.state" | cut -d= -f2- || true)"
+        _ts="$(grep '^TIMESTAMP='         "${GEN_DIR}/.state" | cut -d= -f2- || true)"
+        events::emit state "exists=true" \
+          "preset=${_preset}" "backend=${_backend}" "ollama_model=${_model}" \
+          "frontend_port=${_fport}" "core_port=${_cport}" "timestamp=${_ts}"
+      fi
+      ;;
+
+    list-models)
+      if ollama::is_running; then
+        local -a _lm_models=()
+        mapfile -t _lm_models < <(ollama::list_models 2>/dev/null || true)
+        if [[ ${#_lm_models[@]} -gt 0 ]]; then
+          local _joined
+          _joined="$(printf '%s ' "${_lm_models[@]}")"
+          _joined="${_joined% }"
+          events::emit models "status=running" "models=${_joined}"
+        else
+          events::emit models "status=running" "models="
+        fi
+      else
+        events::emit models "status=not-running"
+      fi
+      ;;
+
+    check-port)
+      if ports::is_free "${_check_port_num}"; then
+        events::emit port "port=${_check_port_num}" "status=free"
+      else
+        local _pid="" _pname=""
+        if command -v lsof &>/dev/null; then
+          _pid="$(lsof -iTCP:"${_check_port_num}" -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
+          if [[ -n "${_pid}" ]]; then
+            _pname="$(ps -p "${_pid}" -o comm= 2>/dev/null || true)"
+          fi
+        fi
+        events::emit port "port=${_check_port_num}" "status=taken" \
+          "pid=${_pid}" "name=${_pname}"
+      fi
+      ;;
+
+    compose-up)
+      if [[ -f "${GEN_DIR}/.state" ]]; then
+        state::read "${GEN_DIR}/.state"
+      fi
+      CORE_PORT="${CORE_PORT:-8000}"
+      FRONTEND_PORT="${FRONTEND_PORT:-9999}"
+      events::emit compose "action=up" "status=started"
+      local _cu_failed=0
+      compose::up || _cu_failed=1
+      if [[ "${_cu_failed}" -eq 0 ]]; then
+        events::emit compose "action=up" "status=healthy"
+        events::emit 'done' "status=ok"
+      else
+        events::emit compose "action=up" "status=error"
+        events::emit 'done' "status=error" "message=compose up failed"
+        exit 1
+      fi
+      ;;
+
+    compose-health)
+      if [[ -f "${GEN_DIR}/.state" ]]; then
+        state::read "${GEN_DIR}/.state"
+      fi
+      local _hport="${CORE_PORT:-8000}"
+      if compose::_curl_health "http://localhost:${_hport}/health"; then
+        events::emit health "status=healthy"
+      else
+        events::emit health "status=unhealthy" "message=core not responding"
+      fi
+      ;;
+
+    wizard)
+      if [[ "${_do_reset}" -eq 1 ]]; then
+        _wizard_reset
+      fi
+      wizard "${_dry_run}"
+      ;;
+  esac
 }
 
 main "$@"

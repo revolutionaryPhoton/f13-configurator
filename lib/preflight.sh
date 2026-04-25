@@ -3,6 +3,9 @@
 # Requires lib/ui.sh to be sourced before use.
 set -euo pipefail
 
+# Ensure events::emit is available even when events.sh has not been sourced.
+declare -f events::emit &>/dev/null || events::emit() { :; }
+
 # ---------------------------------------------------------------------------
 # Internal helpers — may be overridden in tests
 # ---------------------------------------------------------------------------
@@ -36,23 +39,28 @@ preflight::run() {
   # 1. docker on PATH and docker info succeeds
   if ! preflight::_has_cmd docker; then
     ui::err "docker not found — install from https://docs.docker.com/get-docker/"
+    events::emit preflight "name=docker" "status=fail" "detail=not found"
     failed=$(( failed + 1 ))
     docker_ok=0
   elif ! preflight::_docker_info; then
     ui::err "docker is installed but not running — start Docker Desktop or dockerd"
+    events::emit preflight "name=docker" "status=fail" "detail=not running"
     failed=$(( failed + 1 ))
     docker_ok=0
   else
     ui::ok "docker"
+    events::emit preflight "name=docker" "status=ok"
   fi
 
   # 2. docker compose v2 plugin (skip if docker itself is missing)
   if [[ "${docker_ok}" -eq 1 ]]; then
     if ! preflight::_docker_compose_ver; then
       ui::err "docker compose not found — update Docker Desktop or install Compose v2"
+      events::emit preflight "name=docker-compose" "status=fail" "detail=not found"
       failed=$(( failed + 1 ))
     else
       ui::ok "docker compose"
+      events::emit preflight "name=docker-compose" "status=ok"
     fi
   fi
 
@@ -60,9 +68,11 @@ preflight::run() {
   local bash_major="${_PREFLIGHT_BASH_MAJOR:-${BASH_VERSINFO[0]}}"
   if [[ "${bash_major}" -lt 4 ]]; then
     ui::err "bash < 4.0 detected — on macOS: brew install bash"
+    events::emit preflight "name=bash" "status=fail" "detail=version ${bash_major} < 4.0"
     failed=$(( failed + 1 ))
   else
     ui::ok "bash (>= 4.0)"
+    events::emit preflight "name=bash" "status=ok"
   fi
 
   # 4. required tools on PATH
@@ -70,8 +80,10 @@ preflight::run() {
   for cmd in curl awk sed envsubst; do
     if preflight::_has_cmd "${cmd}"; then
       ui::ok "${cmd}"
+      events::emit preflight "name=${cmd}" "status=ok"
     else
       ui::err "${cmd} not found — install via your package manager"
+      events::emit preflight "name=${cmd}" "status=fail" "detail=not found"
       failed=$(( failed + 1 ))
     fi
   done
@@ -82,9 +94,11 @@ preflight::run() {
   free_kb=$(preflight::_disk_free_kb)
   if [[ "${free_kb}" -lt "${required_kb}" ]]; then
     ui::err "Only $(( free_kb / 1024 )) MB free on ${PWD} — need >= 2 GB"
+    events::emit preflight "name=disk" "status=fail" "detail=$(( free_kb / 1024 )) MB free"
     failed=$(( failed + 1 ))
   else
     ui::ok "disk space ($(( free_kb / 1024 / 1024 )) GB free)"
+    events::emit preflight "name=disk" "status=ok" "detail=$(( free_kb / 1024 / 1024 )) GB free"
   fi
 
   # 6. Ollama probe — INFORMATIONAL only (never fails preflight).
@@ -98,15 +112,18 @@ preflight::run() {
     fi
     if [[ ${#_models[@]} -gt 0 ]]; then
       ui::info "Ollama: detected (${#_models[@]} model(s)) — only needed for the Ollama inference option"
+      events::emit preflight "name=ollama" "status=info" "detail=detected, ${#_models[@]} model(s)"
       local _m
       for _m in "${_models[@]}"; do
         printf '   • %s\n' "${_m}"
       done
     else
       ui::info "Ollama: detected — no models pulled yet (run 'ollama pull <name>' if you plan to use Ollama)"
+      events::emit preflight "name=ollama" "status=info" "detail=detected, no models"
     fi
   else
     ui::info "Ollama: not detected (only needed if you pick the Ollama inference option)"
+    events::emit preflight "name=ollama" "status=info" "detail=not detected"
   fi
 
   # 7. git reachability check — only when a clone will be needed for S16
@@ -116,11 +133,14 @@ preflight::run() {
     local _fe_url="https://gitlab.opencode.de/f13/microservices/frontend.git"
     if ! preflight::_has_cmd git; then
       ui::err "git not found — needed to clone frontend source (brew install git / apt install git)"
+      events::emit preflight "name=git" "status=fail" "detail=not found"
       failed=$(( failed + 1 ))
     elif preflight::_git_ls_remote "${_fe_url}"; then
       ui::ok "git (clone required — remote reachable)"
+      events::emit preflight "name=git" "status=ok"
     else
       ui::err "git remote unreachable: ${_fe_url}"
+      events::emit preflight "name=git" "status=fail" "detail=remote unreachable"
       failed=$(( failed + 1 ))
     fi
   fi
