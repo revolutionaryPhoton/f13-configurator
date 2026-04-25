@@ -26,12 +26,12 @@
 | S18 | Engine adapter (`gui/src/lib/engine.ts`) | bdeb17d | 256/256 shell + 40/40 vitest ✅ |
 | S19 | Design system import (`gui/src/lib/theme/`) | ddef480 | 256/256 shell + 91/91 vitest ✅ |
 | S20 | Welcome screen + state-aware routing | 1482f69 | 256/256 shell + 97/97 vitest ✅ |
+| S21 | Preflight screen | 7d32696 | 256/256 shell + 113/113 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S21 | Preflight screen |
 | S22 | Inference picker |
 | S23 | Ollama model picker |
 | S24 | Ports screen |
@@ -193,3 +193,17 @@
   navigation routes (vi.mock('$app/navigation') + waitFor for async effects).
   Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅ vitest 97/97 ✅
   cargo check ✅.
+- S21 completed: Preflight screen — gui/src/routes/wizard/preflight/+page.svelte streams
+  engine.preflight() events into a live check list as they arrive. ok checks render a
+  green ✓ row; fail checks render a red ✕ row plus a collapsible "Fix this" <details>
+  element containing Homebrew install hints mapped by check name (docker, docker-compose,
+  bash, curl, awk, sed, envsubst, disk, git). Ollama info events render a blue ⓘ row;
+  when the detail includes "detected," the component also calls engine.listOllamaModels()
+  and shows a nested model list (or a "No models installed" hint). Continue button is
+  disabled while streaming, when any hard failure exists, or when no checks have arrived
+  yet (guards null-engine / empty-stream edge cases). Header: "Step 1 of 4" breadcrumb +
+  Back → /. Continue → /wizard/inference. 16 vitest tests cover heading, loading
+  indicator, all three status icons, Fix-this disclosure content, Ollama model list,
+  null engine, and Continue button state + navigation.
+  Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
+  vitest 113/113 ✅ cargo check ✅.
