@@ -100,6 +100,15 @@ _wizard_pick_ollama_model() {
     return 0
   fi
 
+  ui::warn "Heads-up on Ollama models:"
+  printf '   • %s\n' \
+    "Local models need enough VRAM/RAM for the chosen size — without a" \
+    "  capable GPU, responses can take many seconds per token." \
+    "Cloud-hosted models (tags ending in ':cloud') require a signed-in" \
+    "  Ollama account on this machine — run 'ollama signin' first if" \
+    "  you haven't already."
+  printf '\n'
+
   while ! ollama::is_running; do
     ui::warn "Ollama is not running. Start it with: ollama serve"
     if ! prompt::yesno "Retry connection?" "y"; then

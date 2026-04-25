@@ -77,6 +77,16 @@ Pick a model [1]: 1
 ✅  Chat inference: ollama  model: gemma4:31b-cloud
 ```
 
+> ⚠️ **Pick a model that fits your hardware.** Local Ollama models load
+> into VRAM/RAM at the size of their weights — running a 31B model on
+> a laptop without a capable GPU is technically possible but you'll wait
+> many seconds per generated token.
+>
+> ⚠️ **Cloud-hosted Ollama models** (tags ending in `:cloud`, e.g.
+> `gemma4:31b-cloud`) run on Ollama's infrastructure and require a
+> signed-in Ollama account on the host machine. If you haven't already,
+> run `ollama signin` before starting the configurator.
+
 #### How Docker reaches the host (Linux)
 
 On macOS, `host.docker.internal` resolves automatically. On Linux it does not exist by default. The generated `docker-compose.yml` injects:
