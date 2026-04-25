@@ -221,7 +221,9 @@ AWKEOF
 
   awk -f "${awk_script}" "${target}" > "${tmp_out}"
   mv "${tmp_out}" "${target}"
-  chmod +x "${target}"
+  # 0755 (not chmod +x) so non-root users (USER 999 in the image) can both
+  # read AND execute the script. mktemp gave us 0600; +x would yield 0711.
+  chmod 755 "${target}"
   rm -f "${awk_script}"
   ui::ok "docker-entrypoint.sh patched."
 }
