@@ -222,14 +222,29 @@ Secrets are never committed — `generated/` is in `.gitignore`.
 
 ## Roadmap
 
-Planned (no fixed dates — pull requests welcome):
+> No fixed dates — pull requests welcome 🙌
 
-- **Linux & WSL support.** v1 is developed and tested on macOS (Apple Silicon). Linux and WSL2 should largely work but need explicit testing and small fixes (e.g. `host.docker.internal` quirks, file-permission edge cases).
-- **Full / per-service F13 configuration.** Add presets beyond `core+chat` — RAG, summary, parser, transcription, inference — with toggles to mix and match.
-- **Cloud LLM inference.** Wire in OpenAI / Anthropic / Cohere etc. via the existing `is_remote: true` model schema, with API-key prompts and `llm_api.secret` integration.
-- **Local vLLM inference.** Add a third chat inference option alongside mock and Ollama for users with a vLLM server.
-- **Custom system prompts.** Let the user supply or edit the chat system prompt during the wizard, instead of always copying the upstream `prompt_maps.yml` verbatim. Probably an `--editor` flag plus a default that opens `$EDITOR` on a generated draft.
-- **Keycloak authentication.** Optional preset that spins up a real Keycloak container with a sample realm, replacing the current guest-mode default for production-like setups.
+**Platform**
+
+- 🐧 **Linux & WSL support** — v1 is developed and tested on macOS (Apple Silicon). Linux and WSL2 should largely work but need explicit testing and small fixes (`host.docker.internal` quirks, file-permission edge cases).
+
+**Configuration depth**
+
+- 🧩 **Full / per-service F13 configuration** — presets beyond `core+chat`: RAG, summary, parser, transcription, inference, with toggles to mix and match.
+- 📝 **Custom system prompts** — supply or edit the chat system prompt during the wizard rather than copying the upstream `prompt_maps.yml` verbatim. Probably an `--editor` flag that opens `$EDITOR` on a generated draft.
+
+**Inference options**
+
+- ☁️ **Cloud LLM inference** — wire in OpenAI / Anthropic / Cohere etc. via the existing `is_remote: true` model schema, with API-key prompts and `llm_api.secret` integration.
+- ⚡ **Local vLLM inference** — a third chat inference option alongside mock and Ollama for users with a vLLM server.
+
+**Security**
+
+- 🔐 **Keycloak authentication** — optional preset that spins up a real Keycloak container with a sample realm, replacing the current guest-mode default for production-like setups.
+
+**User experience**
+
+- 🖥️ **Web GUI** — a browser-based wizard alongside the shell one, for users who'd rather click than type. Reuses the same engine (templates, secrets, port logic, frontend build) and shells out to docker compose.
 
 ---
 
