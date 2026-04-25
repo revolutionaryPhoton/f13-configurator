@@ -221,6 +221,7 @@ AWKEOF
 
   awk -f "${awk_script}" "${target}" > "${tmp_out}"
   mv "${tmp_out}" "${target}"
+  chmod +x "${target}"
   rm -f "${awk_script}"
   ui::ok "docker-entrypoint.sh patched."
 }
