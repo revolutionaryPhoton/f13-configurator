@@ -25,12 +25,12 @@
 | S17 | Tauri scaffolding + dev workflow (macOS-validated) | 22b37be | 239+1 shell+vitest ✅ |
 | S18 | Engine adapter (`gui/src/lib/engine.ts`) | bdeb17d | 256/256 shell + 40/40 vitest ✅ |
 | S19 | Design system import (`gui/src/lib/theme/`) | ddef480 | 256/256 shell + 91/91 vitest ✅ |
+| S20 | Welcome screen + state-aware routing | TBD | 256/256 shell + 97/97 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S20 | Welcome screen + state-aware routing |
 | S21 | Preflight screen |
 | S22 | Inference picker |
 | S23 | Ollama model picker |
@@ -181,3 +181,15 @@
   40 Vitest tests covering parseEvent for all event types, engine methods with fixture
   streams, and error cases (>=75% coverage). Shell: 256/256 bats ✅, shellcheck clean.
   GUI: npm run check ✅ biome ✅ vitest 40/40 ✅ cargo check ✅.
+- S20 completed: Welcome screen + state-aware routing — gui/src/routes/+page.svelte replaces
+  placeholder with F13 Configurator welcome screen: inline SVG logo (currentColor themed),
+  "F13 Configurator" heading, tagline "Minimal · Batteries included · One command", preset badge
+  "v1 · core + frontend + chat", primary "Begin setup" CTA (→ /wizard/preflight), conditional
+  "Open existing setup" secondary button shown only after engine.detectState() resolves with
+  exists=true (→ /status). State detection runs in $effect with cancellation guard for safe
+  unmount. gui/src/lib/engineContext.ts: setEngine/getEngine module singleton for injecting
+  Engine in production (layout) and tests (prop). gui/src/routes/page.test.ts: 6 vitest tests
+  covering heading render, button render, state-absent hide, state-present show, and both
+  navigation routes (vi.mock('$app/navigation') + waitFor for async effects).
+  Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅ vitest 97/97 ✅
+  cargo check ✅.

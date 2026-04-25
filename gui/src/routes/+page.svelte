@@ -1,156 +1,117 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { goto } from "$app/navigation";
+  import Button from "$lib/components/Button.svelte";
+  import type { Engine, StateEvent } from "$lib/engine.js";
+  import { getEngine } from "$lib/engineContext.js";
 
-  let name = $state("");
-  let greetMsg = $state("");
-
-  async function greet(event: Event) {
-    event.preventDefault();
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    greetMsg = await invoke("greet", { name });
+  interface Props {
+    engine?: Engine | null;
+    generatedDir?: string;
   }
+
+  let {
+    engine: injectedEngine = null,
+    generatedDir = "./generated",
+  }: Props = $props();
+
+  let stateEvent = $state<StateEvent | null>(null);
+  let loading = $state(true);
+
+  const hasState = $derived(stateEvent !== null && stateEvent.exists === true);
+
+  $effect(() => {
+    let cancelled = false;
+    const eng = injectedEngine ?? getEngine();
+    if (!eng) {
+      loading = false;
+      return;
+    }
+    void eng
+      .detectState(generatedDir)
+      .then((evt) => {
+        if (!cancelled) {
+          stateEvent = evt;
+          loading = false;
+        }
+      })
+      .catch(() => {
+        if (!cancelled) loading = false;
+      });
+    return () => {
+      cancelled = true;
+    };
+  });
 </script>
 
-<main class="container">
-  <h1>Welcome to Tauri + Svelte</h1>
+<div
+  class="min-h-screen flex flex-col items-center justify-center bg-bg px-6 py-8"
+>
+  <div class="flex flex-col items-center gap-5 max-w-xs w-full">
+    <!-- F13 logo (inline for currentColor theming) -->
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 120 40"
+      fill="none"
+      class="w-24 h-8 text-text"
+      role="img"
+      aria-label="F13"
+    >
+      <!-- F -->
+      <rect x="2" y="4" width="4" height="32" fill="currentColor" />
+      <rect x="2" y="4" width="16" height="4" fill="currentColor" />
+      <rect x="2" y="18" width="12" height="4" fill="currentColor" />
+      <!-- 1 -->
+      <rect x="30" y="4" width="4" height="32" fill="currentColor" />
+      <rect x="26" y="4" width="4" height="4" fill="currentColor" />
+      <!-- 3 -->
+      <rect x="44" y="4" width="16" height="4" fill="currentColor" />
+      <rect x="56" y="4" width="4" height="16" fill="currentColor" />
+      <rect x="44" y="18" width="16" height="4" fill="currentColor" />
+      <rect x="56" y="22" width="4" height="14" fill="currentColor" />
+      <rect x="44" y="32" width="16" height="4" fill="currentColor" />
+    </svg>
 
-  <div class="row">
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte-kit" alt="SvelteKit Logo" />
-    </a>
+    <!-- Heading + tagline -->
+    <div class="text-center space-y-1.5">
+      <h1 class="text-xl font-semibold text-text">F13 Configurator</h1>
+      <p class="text-xs text-muted tracking-wide">
+        Minimal · Batteries included · One command
+      </p>
+    </div>
+
+    <!-- Preset badge -->
+    <span
+      class="inline-flex items-center rounded-full bg-surface border border-border
+             px-2.5 py-0.5 text-xs text-muted font-medium"
+    >
+      v1 · core + frontend + chat
+    </span>
+
+    <!-- CTA buttons -->
+    <div class="flex flex-col items-center gap-2 w-full mt-1">
+      <Button
+        size="lg"
+        class="w-full"
+        onclick={() => goto("/wizard/preflight")}
+      >
+        Begin setup
+      </Button>
+
+      {#if !loading && hasState}
+        <Button
+          variant="secondary"
+          size="md"
+          class="w-full"
+          onclick={() => goto("/status")}
+        >
+          Open existing setup
+        </Button>
+      {/if}
+    </div>
+
+    <!-- Footer hint -->
+    <p class="text-xs text-subtle text-center mt-2">
+      Keycloak guest mode · No hand-editing required
+    </p>
   </div>
-  <p>Click on the Tauri, Vite, and SvelteKit logos to learn more.</p>
-
-  <form class="row" onsubmit={greet}>
-    <input id="greet-input" placeholder="Enter a name..." bind:value={name} />
-    <button type="submit">Greet</button>
-  </form>
-  <p>{greetMsg}</p>
-</main>
-
-<style>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
-
-.logo.svelte-kit:hover {
-  filter: drop-shadow(0 0 2em #ff3e00);
-}
-
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
-
-</style>
+</div>
