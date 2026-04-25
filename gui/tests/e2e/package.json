@@ -1,0 +1,21 @@
+{
+  "name": "f13-configurator-e2e",
+  "version": "0.1.0",
+  "description": "E2E smoke tests for F13 Configurator — maintainer-only, not run in CI",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "wdio run wdio.conf.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@wdio/cli": "^9",
+    "@wdio/globals": "^9",
+    "@wdio/local-runner": "^9",
+    "@wdio/mocha-framework": "^9",
+    "@wdio/spec-reporter": "^9",
+    "ts-node": "^10",
+    "typescript": "~5.6.2",
+    "wdio-tauri-service": "^3"
+  }
+}
