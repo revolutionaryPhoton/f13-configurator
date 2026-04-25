@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
+  import F13Logo from "$lib/components/F13Logo.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import type { Engine } from "$lib/engine.js";
@@ -39,7 +40,6 @@
   let stopping = $state(false);
   let resetting = $state(false);
 
-  // Reset confirmation modal
   let resetConfirmOpen = $state(false);
   let resetConfirmText = $state("");
   const resetConfirmValid = $derived(resetConfirmText === "RESET");
@@ -48,6 +48,7 @@
   const port = $derived(frontendPortProp ?? wizState.frontendPort ?? 9999);
   const frontendUrl = $derived(`http://localhost:${port}`);
   const corePort = $derived(wizState.corePort ?? 8000);
+  const backend = $derived(wizState.backend ?? "mock");
 
   function addToast(type: ToastItem["type"], message: string, duration = 4000): number {
     const id = ++toastCounter;
@@ -96,8 +97,6 @@
       openUrlProp(frontendUrl);
       return;
     }
-    // Production default: Tauri's opener plugin actually opens the user's
-    // default browser. window.open is a no-op inside a Tauri webview.
     void import("@tauri-apps/plugin-opener")
       .then(({ openUrl }) => openUrl(frontendUrl))
       .catch((err) => {
@@ -162,90 +161,212 @@
     );
   }
 
-  const healthBadgeClass = $derived(
-    healthStatus === "healthy"
-      ? "bg-success-bg text-success"
-      : healthStatus === "unhealthy"
-        ? "bg-error-bg text-error"
-        : "bg-surface-raised text-muted",
-  );
+  // Service grid data
+  const services = $derived([
+    { name: "frontend", port, image: "f13-frontend:configurator-v1" },
+    { name: "core", port: corePort, image: "core/main:latest" },
+    { name: "chat", image: "chat:v1.1.0", extra: backend },
+    { name: "feedback-db", image: "postgres:16-alpine" },
+  ]);
 
-  const healthDotClass = $derived(
-    healthStatus === "healthy"
-      ? "bg-success"
-      : healthStatus === "unhealthy"
-        ? "bg-error"
-        : "bg-text-muted animate-pulse",
-  );
-
-  const healthLabel = $derived(
-    healthStatus === "healthy"
-      ? "Healthy"
-      : healthStatus === "unhealthy"
-        ? "Unhealthy"
-        : healthStatus === "checking"
-          ? "Checking…"
-          : "Unknown",
-  );
+  const isHealthy = $derived(healthStatus === "healthy");
 </script>
 
-<div class="min-h-screen flex flex-col bg-bg">
-  <!-- Slim header -->
-  <header class="flex items-center justify-between px-5 py-3 border-b border-border">
-    <h1 class="text-sm font-semibold text-text" data-testid="page-heading">F13 Status</h1>
+<div class="flex flex-col h-screen bg-bg relative">
+  <!-- Header -->
+  <div
+    class="flex items-center justify-between px-[22px] py-[14px] border-b border-border"
+  >
+    <div class="flex items-center gap-2.5">
+      <div class="text-text">
+        <F13Logo size={0.8} />
+      </div>
+      <span
+        class="text-[13px] font-semibold"
+        style:letter-spacing="-0.1px"
+        data-testid="page-heading"
+      >Status</span>
+    </div>
     <button
+      type="button"
       onclick={() => goto("/wizard/preflight")}
-      class="text-xs text-muted hover:text-text transition-colors duration-150 rounded
-             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+      class="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted hover:text-text hover:bg-surface-raised rounded-md transition-colors"
       aria-label="Reconfigure F13"
       data-testid="reconfigure-btn"
     >
-      Reconfigure →
+      Reconfigure
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="5" y1="12" x2="19" y2="12" />
+        <polyline points="12 5 19 12 12 19" />
+      </svg>
     </button>
-  </header>
+  </div>
 
-  <!-- Scrollable content -->
-  <main class="flex-1 overflow-y-auto px-5 py-5">
-    <div class="max-w-md mx-auto space-y-4">
+  <!-- Body -->
+  <div class="flex-1 overflow-y-auto p-[22px]">
+    <div
+      class="mx-auto flex flex-col gap-3"
+      style:max-width="460px"
+      style:animation="f13-fadeUp 350ms cubic-bezier(0.4,0,1,1) both"
+    >
+      <!-- Hero status card -->
+      <div
+        class="relative overflow-hidden p-[22px] rounded-[16px] text-white"
+        style:background="linear-gradient(135deg, #0a0a0c, #18181b)"
+        data-testid="health-card"
+      >
+        <!-- Decorative concentric circles -->
+        <div
+          class="absolute pointer-events-none rounded-full"
+          style:top="-30px"
+          style:right="-30px"
+          style:width="160px"
+          style:height="160px"
+          style:border="1px solid rgba(255,255,255,0.08)"
+        ></div>
+        <div
+          class="absolute pointer-events-none rounded-full"
+          style:top="-10px"
+          style:right="-10px"
+          style:width="120px"
+          style:height="120px"
+          style:border="1px solid rgba(255,255,255,0.1)"
+        ></div>
 
-      <!-- Health card -->
-      <div class="rounded-xl bg-surface shadow-sm p-4 space-y-2" data-testid="health-card">
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-text">System health</span>
+        <!-- Health badge -->
+        <div
+          class="relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-3.5 font-bold uppercase"
+          style:font-size="10px"
+          style:letter-spacing="1.5px"
+          style:border="1px solid rgba(255,255,255,0.25)"
+          data-testid="health-badge"
+        >
           <span
-            data-testid="health-badge"
-            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs
-                   font-medium {healthBadgeClass}"
-          >
-            <span class="w-1.5 h-1.5 rounded-full {healthDotClass}" aria-hidden="true"></span>
-            {healthLabel}
-          </span>
+            class="inline-block rounded-full"
+            style:width="6px"
+            style:height="6px"
+            style:background={isHealthy ? "#4ade80" : "#fbbf24"}
+            style:box-shadow={isHealthy
+              ? "0 0 8px #4ade80"
+              : "0 0 8px #fbbf24"}
+            style:animation="f13-pulse 2s ease-in-out infinite"
+            aria-hidden="true"
+          ></span>
+          {#if healthStatus === "healthy"}
+            Running · Healthy
+          {:else if healthStatus === "unhealthy"}
+            Running · Issues
+          {:else if healthStatus === "checking"}
+            Checking…
+          {:else}
+            Unknown
+          {/if}
         </div>
+
+        <!-- Big title -->
+        <div
+          class="relative font-bold mb-1"
+          style:font-size="24px"
+          style:letter-spacing="-0.3px"
+        >
+          {#if isHealthy}
+            F13 is up
+          {:else if healthStatus === "unhealthy"}
+            F13 has issues
+          {:else}
+            F13 status
+          {/if}
+        </div>
+        <div
+          class="relative mb-[18px]"
+          style:font-size="13px"
+          style:opacity="0.7"
+          style:font-family="var(--f13-font-mono)"
+        >
+          localhost:{port}
+        </div>
+
         {#if healthMessage}
-          <p class="text-xs text-muted" data-testid="health-message">{healthMessage}</p>
+          <div
+            class="relative mb-3 text-[11px]"
+            style:opacity="0.7"
+            data-testid="health-message"
+          >
+            {healthMessage}
+          </div>
         {/if}
-        <p class="text-xs text-subtle">
-          Core API · <span class="font-mono">localhost:{corePort}</span>
-        </p>
+
+        <!-- Open in browser button (white, on dark) -->
+        <button
+          type="button"
+          onclick={handleOpenBrowser}
+          class="relative w-full inline-flex items-center justify-center gap-2 font-semibold cursor-pointer"
+          style:padding="11px 14px"
+          style:background="#fff"
+          style:color="#000"
+          style:border="none"
+          style:border-radius="10px"
+          style:font-size="13px"
+          style:font-family="var(--f13-font)"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z" />
+          </svg>
+          Open F13 in browser
+        </button>
       </div>
 
-      <!-- Open in browser CTA -->
-      <div class="rounded-xl bg-surface shadow-sm p-4 space-y-3">
-        <div>
-          <p class="text-sm font-medium text-text">F13 is running</p>
-          <p class="text-xs text-muted mt-0.5">
-            Frontend · <span class="font-mono">{frontendUrl}</span>
-          </p>
+      <!-- Service grid -->
+      <div class="grid grid-cols-2 gap-2">
+        {#each services as svc (svc.name)}
+          <div class="p-3 bg-surface border border-border rounded-[10px]">
+            <div class="flex items-center gap-1.5 mb-1.5">
+              <span
+                class="inline-block rounded-full"
+                style:width="7px"
+                style:height="7px"
+                style:background={isHealthy ? "#22c55e" : "#9ca3af"}
+                aria-hidden="true"
+              ></span>
+              <span
+                class="text-[12px] font-semibold"
+                style:font-family="var(--f13-font-mono)"
+              >{svc.name}</span>
+            </div>
+            <div
+              class="text-[10px] text-muted"
+              style:font-family="var(--f13-font-mono)"
+            >
+              {svc.image}
+            </div>
+            {#if svc.port}
+              <div
+                class="text-[10.5px] text-subtle mt-[3px]"
+                style:font-family="var(--f13-font-mono)"
+              >
+                :{svc.port}
+              </div>
+            {/if}
+            {#if svc.extra}
+              <div class="text-[10px] text-subtle mt-[3px]">
+                backend: {svc.extra}
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+
+      <!-- Actions panel -->
+      <div class="p-3.5 bg-surface border border-border rounded-xl">
+        <div
+          class="text-[10px] font-bold text-subtle uppercase mb-2.5"
+          style:letter-spacing="1px"
+        >
+          Actions
         </div>
-        <Button variant="primary" onclick={handleOpenBrowser}>
-          🌐 Open F13 in browser
-        </Button>
-      </div>
-
-      <!-- Actions -->
-      <div class="rounded-xl bg-surface shadow-sm p-4">
-        <p class="text-xs font-medium text-muted uppercase tracking-wide mb-3">Actions</p>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-1.5">
           <Button variant="secondary" size="sm" onclick={handleViewLogs}>
             View logs
           </Button>
@@ -257,19 +378,26 @@
           >
             {stopping ? "Stopping…" : "Stop F13"}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
             disabled={resetting}
             onclick={handleReset}
+            class="inline-flex items-center gap-1 px-2.5 py-1 text-[12px] cursor-pointer rounded-md hover:bg-error/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            style:color="var(--f13-error)"
           >
             {resetting ? "Resetting…" : "Full reset"}
-          </Button>
+          </button>
         </div>
       </div>
 
+      <!-- Disclaimer -->
+      <p
+        class="m-0 text-center text-[10.5px] text-subtle leading-relaxed"
+      >
+        F13 can make mistakes. Verify results before relying on them.
+      </p>
     </div>
-  </main>
+  </div>
 
   <!-- Sticky toast stack -->
   {#if toasts.length > 0}
@@ -298,14 +426,19 @@
   title="Confirm full reset"
   onclose={handleCloseResetModal}
 >
-  <div class="space-y-3">
-    <p class="text-sm text-text leading-snug">
+  <div class="flex flex-col gap-3">
+    <p class="m-0 text-[13px] text-text leading-snug">
       This will stop all containers and delete all generated config files.
       <strong>This cannot be undone.</strong>
     </p>
-    <div class="space-y-1.5">
-      <label for="reset-confirm-input" class="block text-xs font-medium text-text">
-        Type <span class="font-mono font-semibold">RESET</span> to confirm
+    <div class="flex flex-col gap-1.5">
+      <label
+        for="reset-confirm-input"
+        class="block text-[11px] font-semibold text-text"
+      >
+        Type
+        <span style:font-family="var(--f13-font-mono)">RESET</span>
+        to confirm
       </label>
       <input
         id="reset-confirm-input"
@@ -315,9 +448,12 @@
         data-testid="reset-confirm-input"
         autocomplete="off"
         spellcheck={false}
-        class="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text
-               focus:outline-none focus:ring-2 focus:ring-error/20 focus:border-error/40
-               transition-colors duration-150"
+        class="w-full rounded-lg px-2.5 py-2 outline-none focus:ring-2"
+        style:font-family="var(--f13-font-mono)"
+        style:font-size="13px"
+        style:background="var(--f13-bg)"
+        style:border="1px solid var(--f13-border-strong)"
+        style:color="var(--f13-text)"
       />
     </div>
     <div class="flex justify-end gap-2 pt-1">
