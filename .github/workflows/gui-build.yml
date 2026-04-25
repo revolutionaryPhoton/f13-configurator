@@ -1,0 +1,54 @@
+name: GUI build (macOS)
+
+# Smoke-test that packaging config doesn't drift.
+# Produces a debug .app that the maintainer can launch on Apple Silicon.
+# Does NOT publish or upload any artifacts — that is Phase 8's job.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gui/**"
+      - "bin/**"
+      - "lib/**"
+      - "templates/**"
+  pull_request:
+    paths:
+      - "gui/**"
+      - "bin/**"
+      - "lib/**"
+      - "templates/**"
+
+jobs:
+  build-macos:
+    name: tauri build --debug (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: gui/package-lock.json
+
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Apple Silicon target
+        run: rustup target add aarch64-apple-darwin
+
+      - name: Install frontend dependencies
+        working-directory: gui
+        run: npm ci
+
+      - name: Run headless checks
+        working-directory: gui
+        run: npm run check && npm run test:unit && cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: tauri build --debug
+        working-directory: gui
+        run: npm run tauri build -- --debug
