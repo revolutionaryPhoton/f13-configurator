@@ -31,13 +31,14 @@
 | S23 | Ollama model picker | fb21e4d | 256/256 shell + 154/154 vitest ✅ |
 | S24 | Ports screen | 8595181 | 256/256 shell + 179/179 vitest ✅ |
 | S25 | Build / launch pipeline | 8fe9f41 | 256/256 shell + 205/205 vitest ✅ |
+| S26 | Status screen + actions | TBD | 256/256 shell + 232/232 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S26 | Status screen + actions |
 | S27 | Confirmations + edge cases |
+
 | S28 | Settings panel |
 | S29 | Packaging infrastructure (macOS only) |
 | S30 | GUI README + screenshots + CHANGELOG |
@@ -266,3 +267,19 @@
   failure marking, Cancel flow, null engine, and runWizardNonInteractive options passthrough.
   Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 205/205 ✅ cargo check ✅.
+- S26 completed: Status screen — gui/src/routes/status/+page.svelte: health card with
+  animated badge (Checking → Healthy/Unhealthy/Unknown) polled every 5 s via
+  engine.compose.health(); interval cancelled on unmount with cancelled flag guard.
+  Primary CTA "🌐 Open F13 in browser" calls injectable openUrl prop (defaults to
+  window.open; production Tauri wires @tauri-apps/plugin-opener). Three secondary
+  actions: View Logs (info toast with docker compose logs command), Stop F13 (info toast
+  while stopping → success toast + goto("/")), Full Reset (warning toast while resetting
+  → success toast + goto("/")). Each action removes the persistent loading toast and
+  adds a result toast on completion. Error path shows error toast with the failure
+  message. Reconfigure button (header) → /wizard/preflight. openUrl and frontendPort
+  injectable as props for full test isolation. Null engine renders without crashing.
+  27 vitest tests cover heading, health card, all badge states, health message, mount
+  call, 5-second polling with fake timers, Open F13 URL, frontendPort prop, Stop/Reset
+  button rendering, calls, loading toasts, success toasts, navigation, View Logs toast,
+  Reconfigure navigation, null engine, and error toast. GUI: npm run check ✅ biome ✅
+  vitest 232/232 ✅ cargo check ✅.
