@@ -56,6 +56,21 @@ const unhealthyEvent: ComposeEvent = {
   message: "core not responding",
 };
 
+// Open the reset modal, type RESET, and click Confirm reset.
+async function openAndConfirmReset(
+  getByRole: (r: string, opts?: { name?: RegExp }) => HTMLElement,
+  getByTestId: (id: string) => HTMLElement
+) {
+  await fireEvent.click(getByRole("button", { name: /full reset/i }));
+  const input = (await waitFor(() => getByTestId("reset-confirm-input"))) as HTMLElement;
+  await fireEvent.input(input, { target: { value: "RESET" } });
+  await waitFor(() => {
+    const btn = getByRole("button", { name: /confirm reset/i }) as HTMLButtonElement;
+    if (btn.disabled) throw new Error("still disabled");
+  });
+  await fireEvent.click(getByRole("button", { name: /confirm reset/i }));
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -163,7 +178,6 @@ describe("status/+page.svelte", () => {
 
   it("Stop F13 shows info toast while stopping", async () => {
     const engine = makeEngine();
-    // Make down hang so we can observe the loading state
     (engine.compose.down as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
     const { getByRole, getByTestId } = render(StatusPage, { engine });
     await fireEvent.click(getByRole("button", { name: /stop f13/i }));
@@ -190,10 +204,56 @@ describe("status/+page.svelte", () => {
     expect(getByRole("button", { name: /full reset/i })).toBeTruthy();
   });
 
-  it("Full Reset calls engine.compose.reset", async () => {
-    const engine = makeEngine();
-    const { getByRole } = render(StatusPage, { engine });
+  // ---- Reset confirmation modal ----
+
+  it("Full Reset button opens confirmation modal", async () => {
+    const { getByRole, getByTestId } = render(StatusPage, {
+      engine: makeNeverHealthEngine(),
+    });
     await fireEvent.click(getByRole("button", { name: /full reset/i }));
+    await waitFor(() => expect(getByTestId("reset-confirm-input")).toBeTruthy());
+  });
+
+  it("Confirm reset button is disabled until RESET is typed", async () => {
+    const { getByRole, getByTestId } = render(StatusPage, {
+      engine: makeNeverHealthEngine(),
+    });
+    await fireEvent.click(getByRole("button", { name: /full reset/i }));
+    await waitFor(() => getByTestId("reset-confirm-input"));
+    const confirmBtn = getByRole("button", { name: /confirm reset/i }) as HTMLButtonElement;
+    expect(confirmBtn.disabled).toBe(true);
+  });
+
+  it("Confirm reset button is enabled when RESET is typed", async () => {
+    const { getByRole, getByTestId } = render(StatusPage, {
+      engine: makeNeverHealthEngine(),
+    });
+    await fireEvent.click(getByRole("button", { name: /full reset/i }));
+    const input = (await waitFor(() => getByTestId("reset-confirm-input"))) as HTMLElement;
+    await fireEvent.input(input, { target: { value: "RESET" } });
+    await waitFor(() => {
+      const btn = getByRole("button", { name: /confirm reset/i }) as HTMLButtonElement;
+      expect(btn.disabled).toBe(false);
+    });
+  });
+
+  it("Cancel button in reset modal closes modal without resetting", async () => {
+    const engine = makeEngine();
+    const { getByRole, getByTestId, queryByTestId } = render(StatusPage, { engine });
+    await fireEvent.click(getByRole("button", { name: /full reset/i }));
+    await waitFor(() => getByTestId("reset-confirm-input"));
+    await fireEvent.click(getByRole("button", { name: /^cancel$/i }));
+    await waitFor(() => expect(queryByTestId("reset-confirm-input")).toBeNull());
+    expect(engine.compose.reset).not.toHaveBeenCalled();
+  });
+
+  it("Full Reset calls engine.compose.reset after confirming", async () => {
+    const engine = makeEngine();
+    const { getByRole, getByTestId } = render(StatusPage, { engine });
+    await openAndConfirmReset(
+      (r, o) => getByRole(r, o) as HTMLElement,
+      (id) => getByTestId(id) as HTMLElement
+    );
     await waitFor(() => expect(engine.compose.reset).toHaveBeenCalled());
   });
 
@@ -202,14 +262,24 @@ describe("status/+page.svelte", () => {
     (engine.compose.reset as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
     const { getByRole, getByTestId } = render(StatusPage, { engine });
     await fireEvent.click(getByRole("button", { name: /full reset/i }));
+    const input = (await waitFor(() => getByTestId("reset-confirm-input"))) as HTMLElement;
+    await fireEvent.input(input, { target: { value: "RESET" } });
+    await waitFor(() => {
+      const btn = getByRole("button", { name: /confirm reset/i }) as HTMLButtonElement;
+      if (btn.disabled) throw new Error("still disabled");
+    });
+    await fireEvent.click(getByRole("button", { name: /confirm reset/i }));
     await waitFor(() => expect(getByTestId("toast-stack")).toBeTruthy());
   });
 
   it("Full Reset navigates to / on success", async () => {
     const { goto } = await import("$app/navigation");
     const engine = makeEngine();
-    const { getByRole } = render(StatusPage, { engine });
-    await fireEvent.click(getByRole("button", { name: /full reset/i }));
+    const { getByRole, getByTestId } = render(StatusPage, { engine });
+    await openAndConfirmReset(
+      (r, o) => getByRole(r, o) as HTMLElement,
+      (id) => getByTestId(id) as HTMLElement
+    );
     await waitFor(() => expect(goto).toHaveBeenCalledWith("/"));
   });
 
@@ -246,8 +316,11 @@ describe("status/+page.svelte", () => {
 
   it("Full Reset shows success toast on completion", async () => {
     const engine = makeEngine();
-    const { container, getByRole } = render(StatusPage, { engine });
-    await fireEvent.click(getByRole("button", { name: /full reset/i }));
+    const { container, getByRole, getByTestId } = render(StatusPage, { engine });
+    await openAndConfirmReset(
+      (r, o) => getByRole(r, o) as HTMLElement,
+      (id) => getByTestId(id) as HTMLElement
+    );
     await waitFor(() => expect(container.textContent).toContain("Reset complete"));
   });
 });

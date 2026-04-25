@@ -3,6 +3,7 @@
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
   import Disclosure from "$lib/components/Disclosure.svelte";
+  import Modal from "$lib/components/Modal.svelte";
   import type { Engine } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
   import { getWizardVia, type WizardVia } from "$lib/wizardPath.js";
@@ -31,9 +32,38 @@
   let frontendStatus = $state<PortStatus>("idle");
   let coreStatus = $state<PortStatus>("idle");
 
+  // Port-collision modal
+  interface CollisionModal {
+    open: boolean;
+    field: "frontend" | "core";
+    port: number;
+    pid: number;
+    name: string;
+    suggested: number;
+  }
+
+  let collisionModal = $state<CollisionModal>({
+    open: false,
+    field: "frontend",
+    port: 9999,
+    pid: 0,
+    name: "",
+    suggested: 10000,
+  });
+
   const canContinue = $derived(
     frontendStatus === "free" && coreStatus === "free"
   );
+
+  function openCollisionModal(
+    field: "frontend" | "core",
+    port: number,
+    pid: number,
+    name: string,
+  ) {
+    if (collisionModal.open) return;
+    collisionModal = { open: true, field, port, pid, name, suggested: port + 1 };
+  }
 
   // Auto-check default ports on mount; untrack port values to avoid
   // re-running on every keypress (blur handlers handle manual re-checks).
@@ -47,11 +77,21 @@
     coreStatus = "checking";
     eng.checkPort(fp).then((r) => {
       if (cancelled) return;
-      frontendStatus = r === "free" ? "free" : { pid: r.inUseBy, name: r.name };
+      if (r === "free") {
+        frontendStatus = "free";
+      } else {
+        frontendStatus = { pid: r.inUseBy, name: r.name };
+        openCollisionModal("frontend", fp, r.inUseBy, r.name);
+      }
     });
     eng.checkPort(cp).then((r) => {
       if (cancelled) return;
-      coreStatus = r === "free" ? "free" : { pid: r.inUseBy, name: r.name };
+      if (r === "free") {
+        coreStatus = "free";
+      } else {
+        coreStatus = { pid: r.inUseBy, name: r.name };
+        openCollisionModal("core", cp, r.inUseBy, r.name);
+      }
     });
     return () => {
       cancelled = true;
@@ -63,7 +103,12 @@
     if (!eng) return;
     frontendStatus = "checking";
     const result = await eng.checkPort(frontendPort);
-    frontendStatus = result === "free" ? "free" : { pid: result.inUseBy, name: result.name };
+    if (result === "free") {
+      frontendStatus = "free";
+    } else {
+      frontendStatus = { pid: result.inUseBy, name: result.name };
+      openCollisionModal("frontend", frontendPort, result.inUseBy, result.name);
+    }
   }
 
   async function checkCore() {
@@ -71,7 +116,30 @@
     if (!eng) return;
     coreStatus = "checking";
     const result = await eng.checkPort(corePort);
-    coreStatus = result === "free" ? "free" : { pid: result.inUseBy, name: result.name };
+    if (result === "free") {
+      coreStatus = "free";
+    } else {
+      coreStatus = { pid: result.inUseBy, name: result.name };
+      openCollisionModal("core", corePort, result.inUseBy, result.name);
+    }
+  }
+
+  async function handlePickAnotherPort() {
+    const eng = injectedEngine ?? getEngine();
+    const { field, suggested } = collisionModal;
+    collisionModal = { ...collisionModal, open: false };
+    if (!eng) return;
+    if (field === "frontend") {
+      frontendPort = suggested;
+      frontendStatus = "checking";
+      const result = await eng.checkPort(suggested);
+      frontendStatus = result === "free" ? "free" : { pid: result.inUseBy, name: result.name };
+    } else {
+      corePort = suggested;
+      coreStatus = "checking";
+      const result = await eng.checkPort(suggested);
+      coreStatus = result === "free" ? "free" : { pid: result.inUseBy, name: result.name };
+    }
   }
 
   function handleContinue() {
@@ -272,3 +340,39 @@
     </div>
   </footer>
 </div>
+
+<!-- Port-collision modal -->
+<Modal
+  open={collisionModal.open}
+  title="Port in use"
+  onclose={() => { collisionModal = { ...collisionModal, open: false }; }}
+>
+  <div class="space-y-3" data-testid="port-collision-modal">
+    <p class="text-sm text-text leading-snug">
+      Port <span class="font-mono font-semibold">{collisionModal.port}</span>
+      {#if collisionModal.name}
+        is in use by <span class="font-medium">{collisionModal.name}</span>
+        (PID {collisionModal.pid}).
+      {:else}
+        is in use by PID {collisionModal.pid}.
+      {/if}
+    </p>
+    <p class="text-xs text-muted">
+      Try port <span class="font-mono font-semibold" data-testid="collision-suggested-port"
+        >{collisionModal.suggested}</span
+      > instead?
+    </p>
+    <div class="flex justify-end gap-2 pt-1">
+      <Button
+        variant="secondary"
+        size="sm"
+        onclick={() => { collisionModal = { ...collisionModal, open: false }; }}
+      >
+        Keep this port
+      </Button>
+      <Button variant="primary" size="sm" onclick={handlePickAnotherPort}>
+        Pick another port
+      </Button>
+    </div>
+  </div>
+</Modal>

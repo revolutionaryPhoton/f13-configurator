@@ -16,6 +16,9 @@
 
   let stateEvent = $state<StateEvent | null>(null);
   let loading = $state(true);
+  let isRunning = $state<boolean | null>(null);
+  let stopping = $state(false);
+  let stopError = $state<string | null>(null);
 
   const hasState = $derived(stateEvent !== null && stateEvent.exists === true);
 
@@ -28,10 +31,24 @@
     }
     void eng
       .detectState(generatedDir)
-      .then((evt) => {
-        if (!cancelled) {
-          stateEvent = evt;
-          loading = false;
+      .then(async (evt) => {
+        if (cancelled) return;
+        stateEvent = evt;
+        loading = false;
+
+        if (!evt.exists) return;
+
+        // Check if the deployment is currently healthy.
+        try {
+          for await (const healthEvt of eng.compose.health(generatedDir)) {
+            if (cancelled) break;
+            if (healthEvt.type === "health") {
+              if (!cancelled) isRunning = healthEvt.status === "healthy";
+              break;
+            }
+          }
+        } catch {
+          // health check failed — treat as not running
         }
       })
       .catch(() => {
@@ -41,6 +58,20 @@
       cancelled = true;
     };
   });
+
+  async function handleStopAndReconfigure() {
+    const eng = injectedEngine ?? getEngine();
+    if (!eng || stopping) return;
+    stopping = true;
+    stopError = null;
+    try {
+      await eng.compose.down(generatedDir);
+      goto("/wizard/preflight");
+    } catch (e) {
+      stopError = e instanceof Error ? e.message : "unknown error";
+      stopping = false;
+    }
+  }
 </script>
 
 <div
@@ -87,27 +118,60 @@
       v1 · core + frontend + chat
     </span>
 
-    <!-- CTA buttons -->
-    <div class="flex flex-col items-center gap-2 w-full mt-1">
-      <Button
-        size="lg"
-        class="w-full"
-        onclick={() => goto("/wizard/preflight")}
+    <!-- Already running banner -->
+    {#if isRunning}
+      <div
+        class="w-full rounded-xl bg-success-bg border border-success/20 px-4 py-3 space-y-3"
+        data-testid="already-running-banner"
       >
-        Begin setup
-      </Button>
-
-      {#if !loading && hasState}
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-success" aria-hidden="true"></span>
+          <p class="text-sm font-medium text-success">F13 is already running</p>
+        </div>
+        <div class="flex flex-col gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onclick={() => goto("/status")}
+          >
+            Show status
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={stopping}
+            onclick={handleStopAndReconfigure}
+          >
+            {stopping ? "Stopping…" : "Stop & reconfigure"}
+          </Button>
+          {#if stopError}
+            <p class="text-xs text-error" data-testid="stop-error">{stopError}</p>
+          {/if}
+        </div>
+      </div>
+    {:else}
+      <!-- CTA buttons (normal flow) -->
+      <div class="flex flex-col items-center gap-2 w-full mt-1">
         <Button
-          variant="secondary"
-          size="md"
+          size="lg"
           class="w-full"
-          onclick={() => goto("/status")}
+          onclick={() => goto("/wizard/preflight")}
         >
-          Open existing setup
+          Begin setup
         </Button>
-      {/if}
-    </div>
+
+        {#if !loading && hasState}
+          <Button
+            variant="secondary"
+            size="md"
+            class="w-full"
+            onclick={() => goto("/status")}
+          >
+            Open existing setup
+          </Button>
+        {/if}
+      </div>
+    {/if}
 
     <!-- Footer hint -->
     <p class="text-xs text-subtle text-center mt-2">

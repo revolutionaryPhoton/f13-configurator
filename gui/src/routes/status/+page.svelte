@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
+  import Modal from "$lib/components/Modal.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import type { Engine } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
@@ -37,6 +38,11 @@
 
   let stopping = $state(false);
   let resetting = $state(false);
+
+  // Reset confirmation modal
+  let resetConfirmOpen = $state(false);
+  let resetConfirmText = $state("");
+  const resetConfirmValid = $derived(resetConfirmText === "RESET");
 
   const wizState = getWizardState();
   const port = $derived(frontendPortProp ?? wizState.frontendPort ?? 9999);
@@ -108,9 +114,21 @@
     }
   }
 
-  async function handleReset() {
+  function handleReset() {
+    if (resetting) return;
+    resetConfirmText = "";
+    resetConfirmOpen = true;
+  }
+
+  function handleCloseResetModal() {
+    resetConfirmOpen = false;
+    resetConfirmText = "";
+  }
+
+  async function handleConfirmReset() {
     const eng = injectedEngine ?? getEngine();
-    if (!eng || resetting) return;
+    if (!eng || resetting || !resetConfirmValid) return;
+    resetConfirmOpen = false;
     resetting = true;
     const loadingId = addToast("warning", "Resetting F13…", 0);
     try {
@@ -263,3 +281,47 @@
     </div>
   {/if}
 </div>
+
+<!-- Reset confirmation modal -->
+<Modal
+  open={resetConfirmOpen}
+  title="Confirm full reset"
+  onclose={handleCloseResetModal}
+>
+  <div class="space-y-3">
+    <p class="text-sm text-text leading-snug">
+      This will stop all containers and delete all generated config files.
+      <strong>This cannot be undone.</strong>
+    </p>
+    <div class="space-y-1.5">
+      <label for="reset-confirm-input" class="block text-xs font-medium text-text">
+        Type <span class="font-mono font-semibold">RESET</span> to confirm
+      </label>
+      <input
+        id="reset-confirm-input"
+        type="text"
+        bind:value={resetConfirmText}
+        placeholder="RESET"
+        data-testid="reset-confirm-input"
+        autocomplete="off"
+        spellcheck={false}
+        class="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text
+               focus:outline-none focus:ring-2 focus:ring-error/20 focus:border-error/40
+               transition-colors duration-150"
+      />
+    </div>
+    <div class="flex justify-end gap-2 pt-1">
+      <Button variant="secondary" size="sm" onclick={handleCloseResetModal}>
+        Cancel
+      </Button>
+      <Button
+        variant="primary"
+        size="sm"
+        disabled={!resetConfirmValid}
+        onclick={handleConfirmReset}
+      >
+        Confirm reset
+      </Button>
+    </div>
+  </div>
+</Modal>

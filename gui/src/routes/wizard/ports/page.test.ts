@@ -27,6 +27,28 @@ function makeEngine(result: PortResult): Engine {
   } as unknown as Engine;
 }
 
+/** Engine that returns different results per port number. */
+function makePerPortEngine(results: Record<number, PortResult>): Engine {
+  const impl = vi.fn().mockImplementation(async (port: number) => {
+    const r = results[port] ?? "free";
+    if (r === "pending") return new Promise<never>(() => {});
+    return r;
+  });
+  return {
+    detectState: vi.fn(),
+    preflight: vi.fn(),
+    listOllamaModels: vi.fn(),
+    checkPort: impl,
+    runWizardNonInteractive: vi.fn(),
+    compose: {
+      up: vi.fn(),
+      down: vi.fn(),
+      reset: vi.fn(),
+      health: vi.fn(),
+    },
+  } as unknown as Engine;
+}
+
 describe("ports/+page.svelte", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -202,5 +224,81 @@ describe("ports/+page.svelte", () => {
   it("footer shows available hint when both ports are free", async () => {
     const { getByText } = render(PortsPage, { via: "mock", engine: makeEngine("free") });
     await waitFor(() => expect(getByText(/ports.*are available/i)).toBeTruthy());
+  });
+
+  // ---- Port-collision modal ----
+
+  it("opens port-collision modal when frontend port is taken", async () => {
+    const { getByTestId } = render(PortsPage, {
+      via: "mock",
+      engine: makeEngine({ inUseBy: 1234, name: "nginx" }),
+    });
+    await waitFor(() => expect(getByTestId("port-collision-modal")).toBeTruthy());
+  });
+
+  it("port-collision modal shows the process name", async () => {
+    const { getByTestId } = render(PortsPage, {
+      via: "mock",
+      engine: makeEngine({ inUseBy: 1234, name: "nginx" }),
+    });
+    await waitFor(() => expect(getByTestId("port-collision-modal").textContent).toContain("nginx"));
+  });
+
+  it("port-collision modal shows suggested port (port + 1)", async () => {
+    const { getByTestId } = render(PortsPage, {
+      via: "mock",
+      engine: makeEngine({ inUseBy: 1234, name: "nginx" }),
+    });
+    await waitFor(() => {
+      const suggested = getByTestId("collision-suggested-port");
+      // Default frontend port is 9999, so suggested = 10000
+      expect(suggested.textContent).toContain("10000");
+    });
+  });
+
+  it("'Keep this port' button closes the collision modal", async () => {
+    const { getByRole, getByTestId, queryByTestId } = render(PortsPage, {
+      via: "mock",
+      engine: makeEngine({ inUseBy: 1234, name: "nginx" }),
+    });
+    await waitFor(() => getByTestId("port-collision-modal"));
+    await fireEvent.click(getByRole("button", { name: /keep this port/i }));
+    await waitFor(() => expect(queryByTestId("port-collision-modal")).toBeNull());
+  });
+
+  it("'Pick another port' closes the modal and re-checks the suggested port", async () => {
+    const eng = makePerPortEngine({
+      9999: { inUseBy: 1234, name: "nginx" },
+      10000: "free",
+      8000: "free",
+    });
+    const { getByRole, getByTestId } = render(PortsPage, {
+      via: "mock",
+      engine: eng,
+    });
+    await waitFor(() => getByTestId("port-collision-modal"));
+    await fireEvent.click(getByRole("button", { name: /pick another port/i }));
+    // Modal should close and port 10000 should be checked
+    await waitFor(() => expect(eng.checkPort).toHaveBeenCalledWith(10000));
+  });
+
+  it("opens port-collision modal when core port is taken on blur", async () => {
+    const eng = makePerPortEngine({
+      9999: "free",
+      8000: { inUseBy: 5678, name: "python" },
+    });
+    const { getByLabelText, getByTestId, queryByTestId } = render(PortsPage, {
+      via: "mock",
+      engine: eng,
+    });
+    // Initially only free on frontend, taken on core triggers modal for core on auto-check
+    await waitFor(() => {
+      const modal = queryByTestId("port-collision-modal");
+      if (!modal) throw new Error("modal not yet visible");
+      return modal;
+    });
+    // Modal should show for port 8000
+    expect(getByTestId("port-collision-modal").textContent).toContain("python");
+    void getByLabelText; // suppress unused
   });
 });
