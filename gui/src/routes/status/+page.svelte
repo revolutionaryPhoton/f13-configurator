@@ -394,7 +394,7 @@
       <p
         class="m-0 text-center text-[10.5px] text-subtle leading-relaxed"
       >
-        F13 can make mistakes. Verify results before relying on them.
+        F13 uses AI models and those can make mistakes. Verify results before relying on them.
       </p>
     </div>
   </div>
