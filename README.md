@@ -2,6 +2,15 @@
 
 A shell-based wizard that brings up a minimal F13 deployment — `core + frontend + chat` — with a single command. No YAML hand-editing, no manual secret generation, no ops experience required.
 
+## What is F13?
+
+F13 is an open-source AI assistant platform for German public administration, built as a set of microservices (chat, RAG, summary, transcription, …) behind a Svelte frontend.
+
+- **Project site & documentation:** [www.f13-os.de](https://www.f13-os.de)
+- **Microservice source:** [gitlab.opencode.de/f13/microservices](https://gitlab.opencode.de/f13/microservices)
+
+This configurator is an independent, third-party tool that wraps F13's shipped Docker images and configs into a friendly setup wizard. It does not modify the upstream services.
+
 ---
 
 ## Quickstart
@@ -198,6 +207,18 @@ generated/
 ```
 
 Secrets are never committed — `generated/` is in `.gitignore`.
+
+---
+
+## Roadmap
+
+Planned (no fixed dates — pull requests welcome):
+
+- **Linux & WSL support.** v1 is developed and tested on macOS (Apple Silicon). Linux and WSL2 should largely work but need explicit testing and small fixes (e.g. `host.docker.internal` quirks, file-permission edge cases).
+- **Full / per-service F13 configuration.** Add presets beyond `core+chat` — RAG, summary, parser, transcription, inference — with toggles to mix and match.
+- **Cloud LLM backends.** Wire in OpenAI / Anthropic / Cohere etc. via the existing `is_remote: true` model schema, with API-key prompts and `llm_api.secret` integration.
+- **Local vLLM backend.** Add a third chat backend option alongside mock and Ollama for users with a vLLM server.
+- **Keycloak authentication.** Optional preset that spins up a real Keycloak container with a sample realm, replacing the current guest-mode default for production-like setups.
 
 ---
 
