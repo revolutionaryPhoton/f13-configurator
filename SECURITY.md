@@ -1,7 +1,10 @@
 # Security Notes — F13 Configurator
 
 This configurator (both the shell wizard and the desktop GUI) is designed
-for **local development use only**. The stack
+for **local development use only**. The desktop GUI is additionally
+**in active testing on macOS only and not yet usable on Linux** — its
+click-through UX has not been hand-validated end-to-end, so prefer the
+shell wizard for anything beyond exploration. The stack
 it generates is not hardened for production or internet-facing deployment.
 
 ---
