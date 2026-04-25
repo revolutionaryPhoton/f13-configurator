@@ -8,6 +8,12 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig({
   plugins: [sveltekit(), tailwindcss()],
 
+  // Use browser exports so Svelte resolves to the DOM build in tests.
+  // SSR is disabled (ssr: false in +layout.ts) so this is safe for builds too.
+  resolve: {
+    conditions: ["browser"],
+  },
+
   clearScreen: false,
   server: {
     port: 1420,

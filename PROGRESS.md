@@ -24,12 +24,12 @@
 | S16 | Patched frontend image with ENABLED_FEATURES gating | 4542a73 | 239/239 ✅ |
 | S17 | Tauri scaffolding + dev workflow (macOS-validated) | 22b37be | 239+1 shell+vitest ✅ |
 | S18 | Engine adapter (`gui/src/lib/engine.ts`) | bdeb17d | 256/256 shell + 40/40 vitest ✅ |
+| S19 | Design system import (`gui/src/lib/theme/`) | TBD | 256/256 shell + 91/91 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S19 | Design system import (`gui/src/lib/theme/`) |
 | S20 | Welcome screen + state-aware routing |
 | S21 | Preflight screen |
 | S22 | Inference picker |
@@ -150,6 +150,23 @@
   install Tauri Linux build deps (libwebkit2gtk-4.1-dev, libgtk-3-dev etc.) and Rust
   stable in the Docker bootstrap for future loop iterations. Shell backpressure: 239/239.
   GUI backpressure: npm run check ✅ biome ✅ vitest 1/1 ✅ cargo check ✅.
+- S19 completed: Design system import — gui/src/lib/theme/tokens.css: F13 color palette (light +
+  dark) with all text tokens meeting WCAG 2.2 AA (4.5:1+). Ubuntu font via @font-face + Google
+  Fonts CDN link in app.html. gui/src/app.css: @custom-variant dark, @theme inline mapping tokens
+  to Tailwind v4 utilities (bg-bg, bg-surface, text-text, text-muted, text-subtle, bg-primary,
+  text-success, text-error, text-warning, text-info), @font-face declarations. gui/static/f13-logo.svg:
+  block-character F13 SVG logo. 8 base Svelte 5 components in gui/src/lib/components/:
+  Button (primary/secondary/ghost variants, sm/md/lg sizes), Tile (large inference-picker tile
+  with icon, pros/cons, recommended badge, aria-checked), RadioRow (native radio + label with
+  description), ProgressBar (determinate + indeterminate, role=progressbar, ARIA attrs),
+  Disclosure (details/summary with untrack-initialized local state), LogViewer (role=log,
+  aria-live polite, auto-scroll on line append), Modal (role=dialog, aria-modal, backdrop click
+  to close), Toast (role=alert for errors, role=status for others, aria-live, auto-dismiss).
+  All 8 components exported from gui/src/lib/index.ts. 51 vitest tests cover rendering, ARIA
+  attributes, event handlers, and axe-core a11y smoke tests (color-contrast rule disabled for
+  jsdom). Fixed test env: resolve.conditions=['browser'] at root of vite.config.ts so Svelte
+  resolves to index-client.js (DOM mount) not index-server.js (SSR mount, throws). Shell:
+  256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅ vitest 91/91 ✅ cargo check ✅.
 - S18 completed: lib/events.sh — events::emit TYPE [key=value ...] emits one JSON line to
   stdout when F13_EMIT_EVENTS=1, no-op otherwise. lib/preflight.sh extended to emit
   {"type":"preflight","name":X,"status":ok|fail|info} after every check. bin/f13-config

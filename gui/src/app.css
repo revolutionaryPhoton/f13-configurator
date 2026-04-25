@@ -1,1 +1,94 @@
 @import "tailwindcss";
+@import "./lib/theme/tokens.css";
+
+/* Dark mode: activate when an ancestor has class="dark" */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Font family tokens (resolved at build time) */
+@theme {
+  --font-sans: "Ubuntu", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Color tokens — inline so dark-mode CSS vars are honoured at runtime */
+@theme inline {
+  --color-bg:             var(--f13-bg);
+  --color-surface:        var(--f13-surface);
+  --color-surface-raised: var(--f13-surface-raised);
+
+  --color-text:           var(--f13-text);
+  --color-text-muted:     var(--f13-text-muted);
+  --color-text-subtle:    var(--f13-text-subtle);
+
+  --color-border:         var(--f13-border);
+
+  --color-primary:        var(--f13-primary);
+  --color-primary-fg:     var(--f13-primary-fg);
+  --color-primary-hover:  var(--f13-primary-hover);
+
+  --color-success:        var(--f13-success);
+  --color-success-bg:     var(--f13-success-bg);
+  --color-error:          var(--f13-error);
+  --color-error-bg:       var(--f13-error-bg);
+  --color-warning:        var(--f13-warning);
+  --color-warning-bg:     var(--f13-warning-bg);
+  --color-info:           var(--f13-info);
+  --color-info-bg:        var(--f13-info-bg);
+}
+
+/* Ubuntu font — self-hosted declarations.
+   Font files should be placed at gui/static/fonts/ubuntu/
+   and served at /fonts/ubuntu/ in production.
+   During development, Google Fonts CDN (added in app.html) handles serving. */
+@font-face {
+  font-family: "Ubuntu";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local("Ubuntu"), url("/fonts/ubuntu/ubuntu-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Ubuntu";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local("Ubuntu Medium"), local("Ubuntu-Medium"),
+       url("/fonts/ubuntu/ubuntu-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Ubuntu";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local("Ubuntu Bold"), local("Ubuntu-Bold"),
+       url("/fonts/ubuntu/ubuntu-700.woff2") format("woff2");
+}
+
+/* Global base */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--f13-bg);
+  color: var(--f13-text);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

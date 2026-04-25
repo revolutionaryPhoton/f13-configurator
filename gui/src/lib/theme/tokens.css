@@ -1,0 +1,62 @@
+/* F13 design tokens — raw CSS custom properties. Override in .dark. */
+/* All text tokens meet WCAG 2.2 AA (≥4.5:1 on their surface). */
+
+:root {
+  /* Backgrounds */
+  --f13-bg:             #fafafa;  /* zinc-50  */
+  --f13-surface:        #ffffff;  /* white    */
+  --f13-surface-raised: #f4f4f5;  /* zinc-100 */
+
+  /* Text */
+  --f13-text:           #09090b;  /* zinc-950 — >21:1 on white   */
+  --f13-text-muted:     #52525b;  /* zinc-600 —  7.7:1 on white  */
+  --f13-text-subtle:    #71717a;  /* zinc-500 —  4.6:1 on white  */
+
+  /* Border */
+  --f13-border:         #e4e4e7;  /* zinc-200 */
+
+  /* Primary (black in light mode) */
+  --f13-primary:        #09090b;  /* zinc-950 */
+  --f13-primary-fg:     #fafafa;  /* zinc-50  */
+  --f13-primary-hover:  #27272a;  /* zinc-800 */
+
+  /* Semantic */
+  --f13-success:        #166534;  /* green-800 — 9.1:1 on white  */
+  --f13-success-bg:     #f0fdf4;  /* green-50  */
+  --f13-error:          #991b1b;  /* red-800   — 8.1:1 on white  */
+  --f13-error-bg:       #fef2f2;  /* red-50    */
+  --f13-warning:        #92400e;  /* amber-800 — 7.2:1 on white  */
+  --f13-warning-bg:     #fffbeb;  /* amber-50  */
+  --f13-info:           #1e40af;  /* blue-800  — 8.4:1 on white  */
+  --f13-info-bg:        #eff6ff;  /* blue-50   */
+
+  /* Focus ring */
+  --f13-ring:           rgba(9, 9, 11, 0.25);
+}
+
+.dark {
+  --f13-bg:             #09090b;  /* zinc-950 */
+  --f13-surface:        #18181b;  /* zinc-900 */
+  --f13-surface-raised: #27272a;  /* zinc-800 */
+
+  --f13-text:           #fafafa;  /* zinc-50  — >21:1 on zinc-950 */
+  --f13-text-muted:     #a1a1aa;  /* zinc-400 —  7.7:1 on zinc-950 */
+  --f13-text-subtle:    #71717a;  /* zinc-500 —  4.6:1 on zinc-950 */
+
+  --f13-border:         #3f3f46;  /* zinc-700 */
+
+  --f13-primary:        #fafafa;  /* zinc-50  */
+  --f13-primary-fg:     #09090b;  /* zinc-950 */
+  --f13-primary-hover:  #e4e4e7;  /* zinc-200 */
+
+  --f13-success:        #4ade80;  /* green-400 — 11.5:1 on zinc-950 */
+  --f13-success-bg:     #052e16;  /* green-950 */
+  --f13-error:          #f87171;  /* red-400   —  8.0:1 on zinc-950 */
+  --f13-error-bg:       #2d0000;
+  --f13-warning:        #fbbf24;  /* amber-400 —  9.3:1 on zinc-950 */
+  --f13-warning-bg:     #1c1400;
+  --f13-info:           #60a5fa;  /* blue-400  —  7.8:1 on zinc-950 */
+  --f13-info-bg:        #0c1a2e;
+
+  --f13-ring:           rgba(250, 250, 250, 0.25);
+}

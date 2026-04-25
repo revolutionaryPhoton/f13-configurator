@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" fill="none" aria-label="F13 logo">
+  <!-- F -->
+  <rect x="2" y="4" width="4" height="32" fill="currentColor"/>
+  <rect x="2" y="4" width="16" height="4" fill="currentColor"/>
+  <rect x="2" y="18" width="12" height="4" fill="currentColor"/>
+  <!-- 1 -->
+  <rect x="30" y="4" width="4" height="32" fill="currentColor"/>
+  <rect x="26" y="4" width="4" height="4" fill="currentColor"/>
+  <!-- 3 -->
+  <rect x="44" y="4" width="16" height="4" fill="currentColor"/>
+  <rect x="56" y="4" width="4" height="16" fill="currentColor"/>
+  <rect x="44" y="18" width="16" height="4" fill="currentColor"/>
+  <rect x="56" y="22" width="4" height="14" fill="currentColor"/>
+  <rect x="44" y="32" width="16" height="4" fill="currentColor"/>
+</svg>
