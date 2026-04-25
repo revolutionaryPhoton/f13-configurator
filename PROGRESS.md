@@ -34,13 +34,13 @@
 | S26 | Status screen + actions | 1a236e5 | 256/256 shell + 232/232 vitest ✅ |
 | S27 | Confirmations + edge cases | 648578a | 256/256 shell + 248/248 vitest ✅ |
 | S28 | Settings panel | 7f6ecd4 | 256/256 shell + 272/272 vitest ✅ |
+| S29 | Packaging infrastructure (macOS only) | a71e545 | 256/256 shell + 277/277 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
 
-| S29 | Packaging infrastructure (macOS only) |
 | S30 | GUI README + screenshots + CHANGELOG |
 | S31 | End-to-end smoke test (maintainer-only) |
 
@@ -301,6 +301,17 @@
   ports +6, welcome +6); the 4 existing "Full Reset" tests updated to flow through the
   modal. All tests pass: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅
   biome ✅ vitest 248/248 ✅ cargo check ✅.
+- S29 completed: Packaging infrastructure — gui/src-tauri/tauri.conf.json bundle.resources
+  added: maps ../../bin → bin, ../../lib → lib, ../../templates → templates (paths relative
+  to src-tauri/ so shell scripts are bundled inside the .app on macOS). gui/src/lib/
+  resourcePath.ts: resolveBinPaths(resourceDirOverride?) returns BinPaths; in Tauri context
+  (window.__TAURI__ present) it calls @tauri-apps/api/path resourceDir() and prefixes all
+  script paths; in dev/test context returns relative default paths. 5 vitest tests cover
+  dev-mode defaults and build-mode override simulation. .github/workflows/gui-build.yml:
+  macOS-only CI stub — runs tauri build --debug on macos-latest (Apple Silicon aarch64
+  target included), preceded by headless checks; does not publish artifacts.
+  Shell: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
+  vitest 277/277 ✅ cargo check ✅.
 - S28 completed: Settings panel — gui/src/routes/settings/+page.svelte: three sections:
   (1) Appearance — segmented theme toggle (System / Light / Dark) using a radiogroup;
   selected option tracked via $state, persisted to localStorage via setTheme from the
