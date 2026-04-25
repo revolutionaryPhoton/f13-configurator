@@ -1,4 +1,4 @@
-F13 Shell Configurator — Demo Transcript (mock backend)
+F13 Shell Configurator — Demo Transcript (mock inference)
 =========================================================
 Recorded 2026-04-24  |  macOS 14, Docker 26.1, Bash 5.2
 
@@ -29,9 +29,9 @@ $ ./bin/f13-config
 
 Continue with this preset? [Y/n]: y
 
-🔧 2. Chat backend
+🔧 2. Chat inference
 Where should chat inference run?
-  1) 🧪 Mock backend (no GPU, deterministic responses)
+  1) 🧪 Mock inference (no GPU, deterministic responses)
   2) 🦙 Host Ollama (connects to ollama serve on this machine)
 Choice [1-2]: 1
 
@@ -50,7 +50,7 @@ Core API port [8000]:
 ╠══════════════════════════════════════════════╣
 ║ Preset:    core + frontend + chat (Keycloak  ║
 ║            guest mode)                       ║
-║ Backend:   mock                              ║
+║ Inference: mock                              ║
 ║ Model:     test_model:mock (deterministic)   ║
 ║ Frontend:  http://localhost:9999             ║
 ║ API:       http://localhost:8000             ║

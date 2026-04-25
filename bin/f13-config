@@ -77,7 +77,7 @@ _wizard_reset() {
   fi
 }
 
-_wizard_pick_backend() {
+_wizard_pick_inference() {
   if [[ -n "${F13_CONFIG_NONINTERACTIVE:-}" ]]; then
     CHAT_BACKEND="${CHAT_BACKEND:-mock}"
     return 0
@@ -85,7 +85,7 @@ _wizard_pick_backend() {
 
   local _choice
   prompt::pickone _choice "Where should chat inference run?" \
-    "🧪 Mock backend (no GPU, deterministic responses)" \
+    "🧪 Mock inference (no GPU, deterministic responses)" \
     "🦙 Host Ollama (connects to ollama serve on this machine)"
 
   case "${_choice}" in
@@ -103,7 +103,7 @@ _wizard_pick_ollama_model() {
   while ! ollama::is_running; do
     ui::warn "Ollama is not running. Start it with: ollama serve"
     if ! prompt::yesno "Retry connection?" "y"; then
-      ui::err "Ollama required for this backend. Aborting."
+      ui::err "Ollama required for this inference. Aborting."
       exit 1
     fi
   done
@@ -254,7 +254,7 @@ _wizard_summary_box() {
 
   ui::box "F13 Configuration Summary" <<EOF
 Preset:    core + frontend + chat (Keycloak guest mode)
-Backend:   ${CHAT_BACKEND}
+Inference: ${CHAT_BACKEND}
 Model:     ${_model_label}
 Frontend:  http://localhost:${FRONTEND_PORT}
 API:       http://localhost:${CORE_PORT}
@@ -334,9 +334,9 @@ wizard() {
   fi
   printf '\n'
 
-  # Step 3 — chat backend
-  ui::step "2. Chat backend"
-  _wizard_pick_backend
+  # Step 3 — chat inference
+  ui::step "2. Chat inference"
+  _wizard_pick_inference
 
   if [[ "${CHAT_BACKEND}" == "ollama" ]]; then
     _wizard_pick_ollama_model

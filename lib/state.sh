@@ -63,7 +63,7 @@ state::check() {
   ui::info "Existing configuration found:"
   ui::box "Current Configuration" <<EOF
 Preset:    ${_preset:-core+frontend+chat}
-Backend:   ${_backend:-mock}
+Inference: ${_backend:-mock}
 Model:     ${_model:-(mock)}
 Frontend:  http://localhost:${_fport:-9999}
 API:       http://localhost:${_cport:-8000}
