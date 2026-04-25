@@ -33,13 +33,13 @@
 | S25 | Build / launch pipeline | 8fe9f41 | 256/256 shell + 205/205 vitest ✅ |
 | S26 | Status screen + actions | 1a236e5 | 256/256 shell + 232/232 vitest ✅ |
 | S27 | Confirmations + edge cases | 648578a | 256/256 shell + 248/248 vitest ✅ |
+| S28 | Settings panel | TBD | 256/256 shell + 272/272 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
 
-| S28 | Settings panel |
 | S29 | Packaging infrastructure (macOS only) |
 | S30 | GUI README + screenshots + CHANGELOG |
 | S31 | End-to-end smoke test (maintainer-only) |
@@ -301,3 +301,21 @@
   ports +6, welcome +6); the 4 existing "Full Reset" tests updated to flow through the
   modal. All tests pass: 256/256 bats ✅, shellcheck clean. GUI: npm run check ✅
   biome ✅ vitest 248/248 ✅ cargo check ✅.
+- S28 completed: Settings panel — gui/src/routes/settings/+page.svelte: three sections:
+  (1) Appearance — segmented theme toggle (System / Light / Dark) using a radiogroup;
+  selected option tracked via $state, persisted to localStorage via setTheme from the
+  new gui/src/lib/theme.ts module; +layout.svelte updated to call applyTheme(getTheme())
+  on mount so the user's preference is applied on every page load. (2) Generated config —
+  accordion list of four config files (docker-compose.yml, .env, core/general.yml,
+  chat/llm_models.yml); each row expands to load and display file content (read-only
+  <pre>); Copy button appears alongside expanded content, calls injectable
+  copyToClipboard prop (defaults to navigator.clipboard.writeText), shows success/error
+  Toast; readFile prop is injectable for tests (defaults to "not available" error when
+  omitted so tests can exercise the error path without a real filesystem). (3) System
+  prompts — "Edit system prompt" button styled with opacity-60 + cursor-not-allowed +
+  aria-disabled=true; clicking opens a Modal.svelte dialog explaining the feature is on
+  the roadmap ("coming soon"); "Got it" button closes the modal. Back button in the
+  header navigates to /status. gui/src/lib/theme.ts: getTheme/applyTheme/setTheme with
+  localStorage persistence and document.documentElement.classList toggle. 6 vitest tests
+  for theme.ts; 17 vitest tests for the settings page (272 total). Shell: 256/256 bats ✅,
+  shellcheck clean. GUI: npm run check ✅ biome ✅ vitest 272/272 ✅ cargo check ✅.
