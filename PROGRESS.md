@@ -33,7 +33,7 @@
 | S25 | Build / launch pipeline | 8fe9f41 | 256/256 shell + 205/205 vitest ✅ |
 | S26 | Status screen + actions | 1a236e5 | 256/256 shell + 232/232 vitest ✅ |
 | S27 | Confirmations + edge cases | 648578a | 256/256 shell + 248/248 vitest ✅ |
-| S28 | Settings panel | TBD | 256/256 shell + 272/272 vitest ✅ |
+| S28 | Settings panel | 7f6ecd4 | 256/256 shell + 272/272 vitest ✅ |
 
 ## Pending Stories
 
