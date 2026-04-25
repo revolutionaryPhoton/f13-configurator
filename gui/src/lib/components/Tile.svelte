@@ -1,6 +1,6 @@
 <script lang="ts">
   interface Props {
-    /** Emoji or short text icon shown prominently */
+    /** Emoji or short text icon shown next to the title */
     icon: string;
     title: string;
     description?: string;
@@ -23,61 +23,57 @@
     onclick,
     class: extraClass = "",
   }: Props = $props();
-
-  const base =
-    "relative flex flex-col gap-2 rounded-xl p-4 border cursor-pointer " +
-    "transition-colors duration-150 focus-visible:outline-none " +
-    "focus-visible:ring-2 focus-visible:ring-offset-2 text-left w-full";
-
-  const stateClass = $derived(
-    selected
-      ? "border-primary bg-surface shadow-sm ring-1 ring-primary"
-      : "border-border bg-surface hover:bg-surface-raised hover:border-text-muted"
-  );
 </script>
 
 <button
   role="radio"
+  type="button"
   aria-checked={selected}
-  class="{base} {stateClass} {extraClass}"
   {onclick}
+  class="relative w-full text-left p-4 rounded-xl flex flex-col gap-2.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 {extraClass}"
+  style:background={selected ? "var(--f13-text)" : "var(--f13-surface)"}
+  style:color={selected ? "var(--f13-primary-fg)" : "var(--f13-text)"}
+  style:border={selected
+    ? "1.5px solid var(--f13-text)"
+    : "1.5px solid var(--f13-border)"}
 >
   {#if recommended}
     <span
-      class="absolute top-3 right-3 rounded-full bg-primary text-primary-fg
-             text-xs font-medium px-2 py-0.5"
+      class="absolute -top-2 right-3 px-2 py-[2px] rounded-full uppercase font-bold"
+      style:font-size="9px"
+      style:letter-spacing="0.8px"
+      style:background={selected ? "#fff" : "var(--f13-text)"}
+      style:color={selected ? "#000" : "#fff"}
     >
       Recommended
     </span>
   {/if}
 
-  <span class="text-3xl leading-none" aria-hidden="true">{icon}</span>
-
-  <span class="font-semibold text-text text-base">{title}</span>
+  <div class="flex items-center gap-2.5">
+    <span class="leading-none" style:font-size="22px" aria-hidden="true">{icon}</span>
+    <div class="text-[15px] font-semibold">{title}</div>
+  </div>
 
   {#if description}
-    <span class="text-text-muted text-sm leading-snug">{description}</span>
+    <div class="text-[12px] leading-relaxed" style:opacity="0.85">
+      {description}
+    </div>
   {/if}
 
-  {#if pros.length > 0}
-    <ul class="mt-1 space-y-1" aria-label="Pros">
-      {#each pros as pro}
-        <li class="flex items-start gap-1.5 text-sm text-success">
-          <span aria-hidden="true">✓</span>
+  {#if pros.length > 0 || cons.length > 0}
+    <div class="flex flex-col gap-[3px] mt-1">
+      {#each pros as pro (pro)}
+        <div class="flex gap-1.5 text-[11px]" style:opacity="0.9">
+          <span style:color={selected ? "#86efac" : "#16a34a"}>+</span>
           <span>{pro}</span>
-        </li>
+        </div>
       {/each}
-    </ul>
-  {/if}
-
-  {#if cons.length > 0}
-    <ul class="mt-1 space-y-1" aria-label="Cons">
-      {#each cons as con}
-        <li class="flex items-start gap-1.5 text-sm text-text-muted">
-          <span aria-hidden="true">–</span>
+      {#each cons as con (con)}
+        <div class="flex gap-1.5 text-[11px]" style:opacity="0.65">
+          <span aria-hidden="true">−</span>
           <span>{con}</span>
-        </li>
+        </div>
       {/each}
-    </ul>
+    </div>
   {/if}
 </button>
