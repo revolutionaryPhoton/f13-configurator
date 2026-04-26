@@ -30,6 +30,55 @@ No extra Homebrew packages are required. Tauri uses the system WebKit framework 
 Linux GUI *runtime* is deferred to Phase 8. The Ralph loop only exercises
 `cargo check` on Linux (aarch64/x86_64), not `tauri dev` or `tauri build`.
 
+### WSL2 / headless-Linux runtime quirks (Phase 8)
+
+Three things macOS gives you for free that have to be installed
+explicitly on WSL2 + Ubuntu:
+
+#### 1. Color-emoji font
+
+The inference picker (and a couple of other screens) renders
+emoji glyphs (🧪 🦙 ✓ ⚠️ ⓘ). macOS ships Apple Color Emoji
+system-wide; Ubuntu / WSL2 ships none by default — emoji codepoints
+fall back to a missing-glyph box. Install:
+
+```bash
+sudo apt install -y fonts-noto-color-emoji
+fc-cache -fv
+```
+
+After installing, restart the app — fontconfig caches the new font.
+
+#### 2. `xdg-open` shim for the Windows browser
+
+The Status screen's "Open F13 in browser" button calls
+`tauri-plugin-opener::openUrl()`, which on Linux calls `xdg-open`.
+WSL2 has no graphical browser registered by default, so `xdg-open`
+silently fails. The fix is `wslu`, which provides `wslview` and
+wires `xdg-open` through to the Windows-side default browser:
+
+```bash
+sudo apt install -y wslu
+```
+
+No restart required — the next click on "Open F13 in browser" will
+open your Windows browser at `http://localhost:9999`.
+
+#### 3. libEGL noise + GPU probe failures
+
+WebKit2GTK and Mesa probe `/dev/dri/card0` / `/dev/dri/renderD128`
+on startup. On WSL2 + Ubuntu these nodes are owned `root:root` mode
+`0600` and the real GPU bridge goes through `/dev/dxg`, so the
+probes log noisy `libEGL warning: failed to open … Permission denied`
+lines on stderr while Mesa silently falls back to software
+rendering anyway. The runtime forces the software path explicitly
+on Linux via `apply_linux_runtime_defaults()` in
+`src-tauri/src/lib.rs` — it sets `LIBGL_ALWAYS_SOFTWARE=1`,
+`WEBKIT_DISABLE_DMABUF_RENDERER=1`, and
+`WEBKIT_DISABLE_COMPOSITING_MODE=1` when the user hasn't already
+set them. To opt back in on a Linux box with real DRI access,
+export each var as `0` before launching.
+
 ### Apt dependencies (require root):
 
 ```bash

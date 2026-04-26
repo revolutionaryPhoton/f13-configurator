@@ -103,8 +103,51 @@ fn get_generated_dir(app: tauri::AppHandle) -> Result<String, String> {
     Err("bundled mode: could not derive generated/ from resource_dir".to_string())
 }
 
+// Quiet GPU-related warnings on Linux setups without an accessible
+// GPU device node. On WSL2 + Ubuntu, /dev/dri/* are owned root:root
+// 0600 (the real GPU bridge goes through /dev/dxg), so libEGL spams
+// `failed to open /dev/dri/* — Permission denied` on stderr while
+// Mesa silently falls back to software rendering anyway. We force
+// the software path explicitly:
+//
+//   * LIBGL_ALWAYS_SOFTWARE=1     — Mesa picks llvmpipe; no /dev/dri
+//                                    probe, no libEGL warning.
+//   * WEBKIT_DISABLE_DMABUF_RENDERER=1
+//                                  — Skip WebKit's DMA-BUF compositor
+//                                    path (which also pokes at GBM).
+//   * WEBKIT_DISABLE_COMPOSITING_MODE=1
+//                                  — Final hammer: disable WebKit's
+//                                    accelerated compositor entirely.
+//
+// Each is only set when the user hasn't set it themselves, so
+// someone on a Linux box with real DRI access can opt out by
+// exporting "0" before launching.
+//
+// Safe no-op on macOS — none of the variables are read there.
+#[cfg(target_os = "linux")]
+fn apply_linux_runtime_defaults() {
+    let defaults = [
+        ("LIBGL_ALWAYS_SOFTWARE", "1"),
+        ("WEBKIT_DISABLE_DMABUF_RENDERER", "1"),
+        ("WEBKIT_DISABLE_COMPOSITING_MODE", "1"),
+    ];
+    for (key, value) in defaults {
+        if std::env::var_os(key).is_none() {
+            // SAFETY: called once at startup before any threads spawn.
+            unsafe {
+                std::env::set_var(key, value);
+            }
+        }
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn apply_linux_runtime_defaults() {}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    apply_linux_runtime_defaults();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
