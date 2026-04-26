@@ -7,6 +7,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-04-26
+
+> **Highlights:** Linux runtime parity for the GUI (WSL2 Ubuntu 22.04
+> validated end-to-end), all upstream images pinned to documented F13
+> versions, locally built frontend image renamed to reflect its
+> upstream basis, and a handful of UX bug fixes that surfaced during
+> Linux testing. Phase 8 of the PRD ships here. Ralph loop was not
+> used for any of this — interactive maintainer + Claude Code
+> sessions on the actual Linux box.
+>
+> Note: the "Added — Desktop GUI" block below (Phase 7) actually
+> shipped in v0.2.0; it was never given its own CHANGELOG entry at
+> the time. It's grouped into this entry for completeness rather
+> than backfilling three retroactive sections.
+
 ### Changed — Pinned upstream component versions
 
 - `core` image: `core/main:latest` → `core:v2.0.0`.
