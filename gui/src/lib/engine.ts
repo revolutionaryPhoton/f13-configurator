@@ -21,6 +21,7 @@ export interface StepEvent {
   type: "step";
   name: string;
   status: "started" | "done" | "fail";
+  skipped?: boolean;
   message?: string;
 }
 
@@ -117,6 +118,7 @@ function coerceEvent(raw: Record<string, unknown>): EngineEvent | null {
         type: "step",
         name: String(raw.name ?? ""),
         status: (raw.status as "started" | "done" | "fail") ?? "started",
+        ...(raw.skipped != null ? { skipped: raw.skipped === "true" || raw.skipped === true } : {}),
         ...(raw.message != null ? { message: String(raw.message) } : {}),
       };
 

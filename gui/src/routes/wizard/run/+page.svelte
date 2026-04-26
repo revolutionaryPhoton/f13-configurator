@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
+  import ProgressBar from "$lib/components/ProgressBar.svelte";
   import type { Engine, StepEvent, DoneEvent } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
   import { getWizardState } from "$lib/wizardState.js";
@@ -30,17 +31,18 @@
     label: string;
     short: string;
     status: StepStatus;
+    skipped: boolean;
     logs: string[];
   }
 
   // Six visible stages, matching the design canvas STEP_DEFS.
   let steps = $state<RunStep[]>([
-    { key: "secrets", label: "Secrets",   short: "SEC", status: "pending", logs: [] },
-    { key: "render",  label: "Compose",   short: "CMP", status: "pending", logs: [] },
-    { key: "build",   label: "Frontend",  short: "BLD", status: "pending", logs: [] },
-    { key: "pull",    label: "Images",    short: "PUL", status: "pending", logs: [] },
-    { key: "start",   label: "Containers", short: "RUN", status: "pending", logs: [] },
-    { key: "health",  label: "Health",    short: "HLT", status: "pending", logs: [] },
+    { key: "secrets", label: "Secrets",    short: "SEC", status: "pending", skipped: false, logs: [] },
+    { key: "render",  label: "Compose",    short: "CMP", status: "pending", skipped: false, logs: [] },
+    { key: "build",   label: "Frontend",   short: "BLD", status: "pending", skipped: false, logs: [] },
+    { key: "pull",    label: "Images",     short: "PUL", status: "pending", skipped: false, logs: [] },
+    { key: "start",   label: "Containers", short: "RUN", status: "pending", skipped: false, logs: [] },
+    { key: "health",  label: "Health",     short: "HLT", status: "pending", skipped: false, logs: [] },
   ]);
 
   let pipelineRunning = $state(false);
@@ -55,15 +57,25 @@
   const headerBackend = $derived(backendProp ?? wizState.backend);
   const headerPort = $derived(frontendPortProp ?? wizState.frontendPort ?? 9999);
 
-  function setStep(key: string, status: StepStatus, logLine?: string) {
+  function setStep(key: string, status: StepStatus, logLine?: string, skipped?: boolean) {
     steps = steps.map((s) =>
       s.key === key
-        ? { ...s, status, logs: logLine !== undefined ? [...s.logs, logLine] : s.logs }
+        ? {
+            ...s,
+            status,
+            skipped: skipped ?? s.skipped,
+            logs: logLine !== undefined ? [...s.logs, logLine] : s.logs,
+          }
         : s,
     );
   }
 
   function handleStepEvent(evt: StepEvent) {
+    // Skipped events from the keep path: mark done immediately, no animation.
+    if (evt.skipped) {
+      setStep(evt.name, "done", undefined, true);
+      return;
+    }
     if (evt.status === "fail") {
       const uiKey = evt.name === "start" ? "pull" : evt.name;
       setStep(uiKey, "failed", evt.message);
@@ -168,6 +180,9 @@
   const NODE = 56;
   const GAP = $derived((W - NODE * steps.length) / (steps.length - 1));
   const LINE_Y = NODE / 2 + 16;
+
+  // ── Build progress bar ──
+  const buildRunning = $derived(steps.find((s) => s.key === "build")?.status === "running");
 
   // ── Active log ──
   // Flatten all log lines across steps for the terminal-style viewer.
@@ -292,7 +307,14 @@
             {@const isPending = step.status === "pending"}
             {@const isRunning = step.status === "running"}
             {@const isDone = step.status === "done"}
-            <g>
+            <g
+              data-testid="step-{step.key}"
+              data-status={step.status}
+              data-skipped={step.skipped ? "true" : undefined}
+            >
+              {#if step.skipped}
+                <title>skipped — existing state</title>
+              {/if}
               {#if isRunning}
                 <rect
                   x={x - 3}
@@ -313,26 +335,32 @@
                 width={NODE}
                 height={NODE}
                 rx="10"
-                fill={isDone
+                fill={isDone && !step.skipped
                   ? "var(--f13-text)"
-                  : isRunning
-                    ? "var(--f13-surface)"
-                    : "var(--f13-surface-raised)"}
-                stroke={isDone
+                  : isDone && step.skipped
+                    ? "var(--f13-surface-raised)"
+                    : isRunning
+                      ? "var(--f13-surface)"
+                      : "var(--f13-surface-raised)"}
+                stroke={isDone && !step.skipped
                   ? "var(--f13-text)"
-                  : isRunning
-                    ? "var(--f13-text)"
-                    : "var(--f13-border-strong)"}
+                  : isDone && step.skipped
+                    ? "var(--f13-border-strong)"
+                    : isRunning
+                      ? "var(--f13-text)"
+                      : "var(--f13-border-strong)"}
                 stroke-width={isRunning ? 2 : 1.5}
+                opacity={step.skipped ? 0.6 : 1}
               />
               {#if isDone}
                 <path
                   d="M {x + 18} {y + 28} L {x + 25} {y + 35} L {x + 38} {y + 22}"
-                  stroke="var(--f13-primary-fg)"
-                  stroke-width="3"
+                  stroke={step.skipped ? "var(--f13-text-subtle)" : "var(--f13-primary-fg)"}
+                  stroke-width={step.skipped ? 2 : 3}
                   fill="none"
                   stroke-linecap="round"
                   stroke-linejoin="round"
+                  opacity={step.skipped ? 0.5 : 1}
                 />
               {/if}
               {#if isRunning}
@@ -363,7 +391,11 @@
                 font-size="10"
                 font-family="var(--f13-font-mono)"
                 font-weight={isRunning || isDone ? 600 : 400}
-                fill={isPending ? "var(--f13-text-subtle)" : "var(--f13-text)"}
+                fill={isPending
+                  ? "var(--f13-text-subtle)"
+                  : step.skipped
+                    ? "var(--f13-text-subtle)"
+                    : "var(--f13-text)"}
               >
                 {step.short}
               </text>
@@ -380,6 +412,13 @@
           {/each}
         </svg>
       </div>
+
+      <!-- Build indeterminate progress bar (best-effort; docker build output is not separately streamed) -->
+      {#if buildRunning}
+        <div class="mb-[14px]" data-testid="build-progress">
+          <ProgressBar label="Building frontend image…" />
+        </div>
+      {/if}
 
       <!-- Terminal-style live log -->
       <div

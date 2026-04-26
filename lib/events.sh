@@ -24,3 +24,10 @@ events::emit() {
   _json="${_json}}"
   printf '%s\n' "${_json}"
 }
+
+# events::emit_skipped <name>
+# Emits {type:"step",name:<name>,status:"done",skipped:"true"}.  No-op unless F13_EMIT_EVENTS=1.
+events::emit_skipped() {
+  local _name="${1:?events::emit_skipped requires a name}"
+  events::emit step "name=${_name}" "status=done" "skipped=true"
+}

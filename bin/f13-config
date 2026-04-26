@@ -309,6 +309,10 @@ wizard() {
         _wizard_compute_vars
         _wizard_summary_box
         printf '\n'
+        # Emit synthetic done+skipped events for stages that ran in the previous wizard pass.
+        events::emit_skipped secrets
+        events::emit_skipped render
+        events::emit_skipped build
         if [[ "${_dry_run}" -ne 1 ]] && prompt::yesno "Start it now?" "y"; then
           ui::step "Starting F13..."
           events::emit step "name=start" "status=started"

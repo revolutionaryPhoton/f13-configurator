@@ -253,4 +253,51 @@ describe("wizard/run/+page.svelte", () => {
       )
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // Skipped events (S34)
+  // ---------------------------------------------------------------------------
+
+  it("skipped step is marked done instantly without running state", async () => {
+    const engine = makeEngine([
+      { type: "step", name: "secrets", status: "done", skipped: true } as StepEvent,
+    ]);
+    const { getByTestId } = render(RunPage, { engine, backend: "mock" });
+    await waitFor(() => expect(getByTestId("step-secrets")).toHaveAttribute("data-status", "done"));
+  });
+
+  it("skipped step has data-skipped=true attribute", async () => {
+    const engine = makeEngine([
+      { type: "step", name: "render", status: "done", skipped: true } as StepEvent,
+    ]);
+    const { getByTestId } = render(RunPage, { engine, backend: "mock" });
+    await waitFor(() => expect(getByTestId("step-render")).toHaveAttribute("data-skipped", "true"));
+  });
+
+  it("skipped secrets+render+build steps then normal start flow fills all stages", async () => {
+    const engine = makeEngine([
+      { type: "step", name: "secrets", status: "done", skipped: true } as StepEvent,
+      { type: "step", name: "render", status: "done", skipped: true } as StepEvent,
+      { type: "step", name: "build", status: "done", skipped: true } as StepEvent,
+      { type: "step", name: "start", status: "started" } as StepEvent,
+      { type: "step", name: "start", status: "done" } as StepEvent,
+      { type: "done", status: "ok" } as DoneEvent,
+    ]);
+    const { getByTestId } = render(RunPage, { engine, backend: "mock" });
+    await waitFor(() => {
+      expect(getByTestId("step-secrets")).toHaveAttribute("data-status", "done");
+      expect(getByTestId("step-render")).toHaveAttribute("data-status", "done");
+      expect(getByTestId("step-build")).toHaveAttribute("data-status", "done");
+      expect(getByTestId("step-pull")).toHaveAttribute("data-status", "done");
+      expect(getByTestId("step-start")).toHaveAttribute("data-status", "done");
+      expect(getByTestId("step-health")).toHaveAttribute("data-status", "done");
+    });
+  });
+
+  it("non-skipped done event does not set data-skipped", async () => {
+    const engine = makeEngine([{ type: "step", name: "secrets", status: "done" } as StepEvent]);
+    const { getByTestId } = render(RunPage, { engine, backend: "mock" });
+    await waitFor(() => expect(getByTestId("step-secrets")).toHaveAttribute("data-status", "done"));
+    expect(getByTestId("step-secrets")).not.toHaveAttribute("data-skipped");
+  });
 });

@@ -341,3 +341,41 @@ STATEOF
   [ "$status" -eq 0 ]
   [[ "$output" == *'"name":"render"'* ]]
 }
+
+# ---------------------------------------------------------------------------
+# keep path emits skipped events (S34)
+# ---------------------------------------------------------------------------
+
+@test "keep path with --emit-events emits skipped:true for secrets" {
+  # First run to create .state file
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  # Second run (keep) — emit-events + dry-run to skip compose::up
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=keep "${BIN}" --emit-events --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"name":"secrets"'* ]]
+  [[ "$output" == *'"skipped":"true"'* ]]
+}
+
+@test "keep path with --emit-events emits skipped:true for render" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=keep "${BIN}" --emit-events --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"name":"render"'* ]]
+  [[ "$output" == *'"skipped":"true"'* ]]
+}
+
+@test "keep path with --emit-events emits skipped:true for build" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=keep "${BIN}" --emit-events --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"name":"build"'* ]]
+  [[ "$output" == *'"skipped":"true"'* ]]
+}
+
+@test "keep path with --emit-events emits done status=ok" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=keep "${BIN}" --emit-events --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"type":"done"'* ]]
+  [[ "$output" == *'"status":"ok"'* ]]
+}

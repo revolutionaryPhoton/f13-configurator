@@ -78,6 +78,28 @@ setup() {
 }
 
 # ---------------------------------------------------------------------------
+# events::emit_skipped (S34)
+# ---------------------------------------------------------------------------
+
+@test "events::emit_skipped emits step done+skipped JSON" {
+  F13_EMIT_EVENTS=1 run events::emit_skipped secrets
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"type":"step","name":"secrets","status":"done","skipped":"true"}' ]
+}
+
+@test "events::emit_skipped is silent when F13_EMIT_EVENTS is unset" {
+  unset F13_EMIT_EVENTS
+  run events::emit_skipped render
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "events::emit_skipped requires a name argument" {
+  F13_EMIT_EVENTS=1 run events::emit_skipped
+  [ "$status" -ne 0 ]
+}
+
+# ---------------------------------------------------------------------------
 # Preflight events integration
 # ---------------------------------------------------------------------------
 
