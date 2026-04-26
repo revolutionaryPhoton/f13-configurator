@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
+  import { getGeneratedDir } from "$lib/bootstrap.js";
   import Button from "$lib/components/Button.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import Toast from "$lib/components/Toast.svelte";
@@ -17,9 +18,13 @@
 
   let {
     readFile: readFileProp,
-    generatedDir = "./generated",
+    generatedDir: generatedDirProp,
     copyToClipboard: clipProp,
   }: Props = $props();
+
+  const generatedDir = $derived(
+    generatedDirProp ?? getGeneratedDir() ?? "./generated",
+  );
 
   // ---------------------------------------------------------------------------
   // Theme

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { getGeneratedDir } from "$lib/bootstrap.js";
   import Button from "$lib/components/Button.svelte";
   import F13Logo from "$lib/components/F13Logo.svelte";
   import type { Engine, StateEvent } from "$lib/engine.js";
@@ -12,8 +13,12 @@
 
   let {
     engine: injectedEngine = null,
-    generatedDir = "./generated",
+    generatedDir: generatedDirProp,
   }: Props = $props();
+
+  const generatedDir = $derived(
+    generatedDirProp ?? getGeneratedDir() ?? "./generated",
+  );
 
   let stateEvent = $state<StateEvent | null>(null);
   let loading = $state(true);

@@ -10,13 +10,9 @@
 
   interface Props {
     engine?: Engine | null;
-    generatedDir?: string;
   }
 
-  let {
-    engine: injectedEngine = null,
-    generatedDir = "./generated",
-  }: Props = $props();
+  let { engine: injectedEngine = null }: Props = $props();
 
   interface CheckRow {
     name: string;

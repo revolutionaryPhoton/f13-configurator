@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { getGeneratedDir } from "$lib/bootstrap.js";
   import Button from "$lib/components/Button.svelte";
   import F13Logo from "$lib/components/F13Logo.svelte";
   import Modal from "$lib/components/Modal.svelte";
@@ -20,8 +21,12 @@
     engine: injectedEngine = null,
     openUrl: openUrlProp,
     frontendPort: frontendPortProp,
-    generatedDir = "./generated",
+    generatedDir: generatedDirProp,
   }: Props = $props();
+
+  const generatedDir = $derived(
+    generatedDirProp ?? getGeneratedDir() ?? "./generated",
+  );
 
   type HealthStatus = "checking" | "healthy" | "unhealthy" | "unknown";
 
