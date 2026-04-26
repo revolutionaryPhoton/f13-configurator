@@ -1,13 +1,14 @@
 # Security Notes — F13 Configurator
 
 This configurator (both the shell wizard and the desktop GUI) is designed
-for **local development use only**. As of v0.2.2 the macOS desktop GUI
-is mostly stable for daily local use — every documented flow works, but
-not every combination of state transitions and error paths has been
-exercised, so edge cases may still surface bugs. The Linux GUI is
-**not yet usable** (Phase 8). Prefer the shell wizard for any
-production-adjacent work. The stack it generates is not hardened for
-production or internet-facing deployment.
+for **local development use only**. As of v0.3.0 the desktop GUI is
+mostly stable on macOS and Linux (WSL2 Ubuntu 22.04 validated) for
+daily local use — every documented flow works, but not every
+combination of state transitions and error paths has been exercised,
+so a few loose ends and edge cases remain (notably the reconfigure
+flow on a running stack — see PRD HF4). Prefer the shell wizard for
+any production-adjacent work. The stack it generates is not hardened
+for production or internet-facing deployment.
 
 ---
 
@@ -44,11 +45,19 @@ Implications for anyone reading or running this code:
 
 ## 🔐 Secrets
 
-- All generated secrets live in `generated/secrets/` with `chmod 600`.
+- All generated secrets live in `generated/secrets/` with `chmod 644`.
+  Mode 0644 (not 0600) is required so the non-root container user
+  inside the `core` image can read the secrets through a Linux Docker
+  bind-mount; macOS Docker Desktop's userspace bind-mount shim
+  papers over UID mismatches but native Linux / WSL2 doesn't, so
+  0600 caused `PermissionError` on `core` startup. Host-side gating
+  is provided by the parent `generated/` directory living inside
+  `$HOME`.
 - `generated/` is listed in `.gitignore` — never commit it.
 - The `feedback_db.secret` file contains the postgres password in plain text.
   On a shared machine, ensure `generated/` is only readable by your user
-  (`chmod -R go-rwx generated/`).
+  (`chmod -R go-rwx generated/` is fine — it tightens the parent dir, not
+  the secret files).
 - Placeholder secret files (llm_api, transcription_db, rabbitmq, rustfs,
   huggingface_token) contain random values. If you later put real credentials
   in them, treat the entire `generated/secrets/` folder as sensitive.
