@@ -38,12 +38,11 @@
 | S30 | GUI README + screenshots + CHANGELOG | 034691b | 256/256 shell + 277/277 vitest ✅ |
 | S31 | End-to-end smoke test (maintainer-only) | 41595e4 | 256/256 shell + 277/277 vitest ✅ |
 | S32 | `f13-reset` honours `F13_GENERATED_DIR` (Phase 7.5) | bba394d | 266/266 shell + 250/283 vitest ✅ |
+| S34 | Wizard's `keep` path emits per-stage `skipped:true` events (Phase 7.5) | b192f98 | 273/273 shell + 265/287 vitest ✅ |
 
 ## Pending Stories
 
-| Story | Description |
-|-------|-------------|
-| S34 | Wizard's `keep` path emits per-stage `skipped:true` events (Phase 7.5 — bash + Svelte + vitest) |
+*(none — all loop-verifiable stories complete)*
 
 > Phase 7.5 spec: see `/PRD.md` Phase 7.5 section. S33, S35, S36 are
 > intentionally not in the loop — they're maintainer hand-fixes (HF1,
@@ -356,6 +355,20 @@
   localStorage persistence and document.documentElement.classList toggle. 6 vitest tests
   for theme.ts; 17 vitest tests for the settings page (272 total). Shell: 256/256 bats ✅,
   shellcheck clean. GUI: npm run check ✅ biome ✅ vitest 272/272 ✅ cargo check ✅.
+- S34 completed: Phase 7.5 event-emission fix — `events::emit_skipped <name>` helper added to
+  `lib/events.sh`, emitting `{type:"step",name:…,status:"done",skipped:"true"}`. The wizard's
+  `keep` branch in `bin/f13-config` now calls it for secrets, render, and build before
+  `compose::up`, so the GUI pipeline graph fills those nodes instantly rather than staying
+  pending forever. `StepEvent` in `engine.ts` gains `skipped?:boolean`; `coerceEvent` threads
+  it through (tolerates both `"true"` string and `true` boolean). `handleStepEvent` in
+  `run/+page.svelte` fast-paths skipped events to `status:done` with `skipped:true`. SVG
+  nodes gain `data-testid="step-{key}"` and `data-status` attributes (restoring S25 test hooks
+  removed by zinc polish), plus a faded checkmark + `<title>skipped — existing state</title>`
+  tooltip for skipped steps. `ProgressBar` re-introduced for the build step while running
+  (with `data-testid="build-progress"`). Tests: 3 new events.bats, 4 new f13-config.bats,
+  4 new vitest. Shell: 273/273 bats ✅, shellcheck clean.
+  GUI: npm run check ✅ biome ✅ vitest 265/287 ✅ (22 pre-existing) cargo check ✅.
+
 - S32 completed: Phase 7.5 bash/bats fix — `bin/f13-reset` and `bin/f13-stop` already used
   `${F13_GENERATED_DIR:-…}` but had no tests exercising the custom-path code path. Added
   `tests/f13-reset.bats` with 10 tests: f13-reset wipes the custom dir, exits 1 when dir is
