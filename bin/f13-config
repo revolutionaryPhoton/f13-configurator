@@ -207,8 +207,10 @@ _wizard_generate_secrets() {
   fi
 
   # Write the password into the secret file core reads at /core/secrets/feedback_db.secret
+  # 0644 (not 0600) so the non-root container user can read it through the
+  # Docker bind-mount on Linux. Same rationale as secret::write in lib/secrets.sh.
   printf '%s' "${FEEDBACK_DB_PASSWORD}" > "${_sd}/feedback_db.secret"
-  chmod 600 "${_sd}/feedback_db.secret"
+  chmod 644 "${_sd}/feedback_db.secret"
 
   # Placeholder secrets for future presets — idempotent (no --force)
   secret::write "${_sd}/llm_api.secret"

@@ -16,7 +16,10 @@ secret::gen() {
 }
 
 # secret::write PATH [--force]
-# Generate a secret and write it to PATH with chmod 600.
+# Generate a secret and write it to PATH with chmod 644.
+# Mode 0644 (not 0600) so non-root container users can read the file
+# through a Docker bind-mount on Linux. Host-side access is gated by
+# the parent generated/ directory living inside $HOME.
 # Idempotent: skips if file already exists, unless --force is passed.
 secret::write() {
   local path="${1:?secret::write requires a PATH argument}"
@@ -37,5 +40,5 @@ secret::write() {
   dir="$(dirname "$path")"
   mkdir -p "$dir"
   secret::gen > "$path"
-  chmod 600 "$path"
+  chmod 644 "$path"
 }

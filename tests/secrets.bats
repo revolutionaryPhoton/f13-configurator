@@ -53,7 +53,7 @@ LIB_DIR="${BATS_TEST_DIRNAME}/../lib"
   [ "$status" -eq 0 ]
 }
 
-@test "secret::write creates file with mode 0600" {
+@test "secret::write creates file with mode 0644" {
   local tmpdir
   tmpdir="$(mktemp -d)"
   run bash -c "
@@ -63,7 +63,7 @@ LIB_DIR="${BATS_TEST_DIRNAME}/../lib"
       || stat -f '%Lp' '${tmpdir}/test.secret'
   "
   [ "$status" -eq 0 ]
-  [ "$output" = "600" ]
+  [ "$output" = "644" ]
   rm -rf "$tmpdir"
 }
 
