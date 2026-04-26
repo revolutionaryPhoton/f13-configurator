@@ -106,6 +106,17 @@ html {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+/* Indeterminate-progress slide. Lives here (not inline in
+   ProgressBar.svelte) because @tailwindcss/vite 4.x trips on
+   Svelte components that have BOTH a <script lang="ts"> block AND
+   a <style> block — it tries to parse the file as CSS and the
+   <script> block surfaces as `Invalid declaration`. Keeping the
+   keyframe global means ProgressBar.svelte has no <style> and is
+   only scanned for utility class names. */
+@keyframes f13-progressIndeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {

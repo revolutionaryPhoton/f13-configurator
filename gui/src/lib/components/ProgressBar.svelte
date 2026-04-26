@@ -48,9 +48,8 @@
   >
     {#if isIndeterminate}
       <div
-        class="h-full w-1/3 rounded-full {fillClass[status]}
-               animate-[slide_1.5s_ease-in-out_infinite]"
-        style="animation: progressIndeterminate 1.5s ease-in-out infinite"
+        class="h-full w-1/3 rounded-full {fillClass[status]}"
+        style="animation: f13-progressIndeterminate 1.5s ease-in-out infinite"
       ></div>
     {:else}
       <div
@@ -60,10 +59,3 @@
     {/if}
   </div>
 </div>
-
-<style>
-  @keyframes progressIndeterminate {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(400%); }
-  }
-</style>
