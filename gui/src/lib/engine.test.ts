@@ -391,3 +391,67 @@ describe("engine.compose", () => {
     expect((events[0] as ComposeEvent).type).toBe("health");
   });
 });
+
+// ---------------------------------------------------------------------------
+// S32: env-var passthrough — F13_GENERATED_DIR reaches the subprocess
+// ---------------------------------------------------------------------------
+
+function makeCapturingRunner(lines: string[] = ['{"type":"done","status":"ok"}']): {
+  captured: Array<{ cmd: string; args: string[]; env?: Record<string, string> }>;
+  runner: ProcessRunner;
+} {
+  const captured: Array<{ cmd: string; args: string[]; env?: Record<string, string> }> = [];
+  const runner: ProcessRunner = {
+    run(cmd, args, env) {
+      captured.push({ cmd, args, env });
+      return (async function* () {
+        for (const l of lines) yield l;
+      })();
+    },
+  };
+  return { captured, runner };
+}
+
+describe("engine.compose env-var passthrough (S32)", () => {
+  it("reset() passes F13_GENERATED_DIR to subprocess", async () => {
+    const { captured, runner } = makeCapturingRunner();
+    const engine = createEngine(runner, TEST_BINS);
+    await engine.compose.reset("/custom/generated");
+    expect(captured[0].env).toMatchObject({ F13_GENERATED_DIR: "/custom/generated" });
+  });
+
+  it("down() passes F13_GENERATED_DIR to subprocess", async () => {
+    const { captured, runner } = makeCapturingRunner();
+    const engine = createEngine(runner, TEST_BINS);
+    await engine.compose.down("/custom/generated");
+    expect(captured[0].env).toMatchObject({ F13_GENERATED_DIR: "/custom/generated" });
+  });
+
+  it("up() passes F13_GENERATED_DIR to subprocess", async () => {
+    const { captured, runner } = makeCapturingRunner();
+    const engine = createEngine(runner, TEST_BINS);
+    await engine.compose.up("/custom/generated");
+    expect(captured[0].env).toMatchObject({ F13_GENERATED_DIR: "/custom/generated" });
+  });
+
+  it("health() passes F13_GENERATED_DIR to subprocess", async () => {
+    const { captured, runner } = makeCapturingRunner(['{"type":"health","status":"healthy"}']);
+    const engine = createEngine(runner, TEST_BINS);
+    await collect(engine.compose.health("/custom/generated"));
+    expect(captured[0].env).toMatchObject({ F13_GENERATED_DIR: "/custom/generated" });
+  });
+
+  it("reset() uses the bins.reset binary path", async () => {
+    const { captured, runner } = makeCapturingRunner();
+    const engine = createEngine(runner, TEST_BINS);
+    await engine.compose.reset("/custom/generated");
+    expect(captured[0].cmd).toBe(TEST_BINS.reset);
+  });
+
+  it("down() uses the bins.stop binary path", async () => {
+    const { captured, runner } = makeCapturingRunner();
+    const engine = createEngine(runner, TEST_BINS);
+    await engine.compose.down("/custom/generated");
+    expect(captured[0].cmd).toBe(TEST_BINS.stop);
+  });
+});
