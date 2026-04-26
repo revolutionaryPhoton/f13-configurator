@@ -1,12 +1,13 @@
 # Security Notes — F13 Configurator
 
 This configurator (both the shell wizard and the desktop GUI) is designed
-for **local development use only**. The desktop GUI is additionally a
-**buggy work-in-progress** on macOS and **not yet usable on Linux** —
-click-through works after v0.2.0 fixes but state-aware re-runs and
-edge cases are still broken. Prefer the shell wizard for anything
-beyond exploration. The stack
-it generates is not hardened for production or internet-facing deployment.
+for **local development use only**. As of v0.2.2 the macOS desktop GUI
+is mostly stable for daily local use — every documented flow works, but
+not every combination of state transitions and error paths has been
+exercised, so edge cases may still surface bugs. The Linux GUI is
+**not yet usable** (Phase 8). Prefer the shell wizard for any
+production-adjacent work. The stack it generates is not hardened for
+production or internet-facing deployment.
 
 ---
 

@@ -1,6 +1,6 @@
 # F13 Configurator
 
-A setup wizard that brings up a minimal F13 deployment — `core + frontend + chat` — with a single command. The shell wizard (`bin/f13-config`) is the stable surface today; a desktop GUI (`gui/`, Tauri 2 + Svelte 5) **works on macOS for click-through but is still buggy and incomplete** — known issues with re-runs, path resolution, and edge cases. Linux GUI is not usable yet. Both surfaces share one engine. No YAML hand-editing, no manual secret generation, no ops experience required.
+A setup wizard that brings up a minimal F13 deployment — `core + frontend + chat` — with a single command. The shell wizard (`bin/f13-config`) is the fully stable surface; the desktop GUI (`gui/`, Tauri 2 + Svelte 5) is **mostly stable on macOS for daily local use** — every documented flow works, but we haven't checked every combination of state transitions, error paths, and inputs, so edge cases may still surface bugs. Linux GUI is not usable yet (Phase 8). Both surfaces share one engine. No YAML hand-editing, no manual secret generation, no ops experience required.
 
 > ⚠️  **AI-generated code.** Almost all of this codebase was written by Claude Code running inside an automated [ralph loop](https://github.com/revolutionaryPhoton/f13-configurator-ralph) driven by a PRD. Human review has been spot-check level, not line-by-line. Read the diffs before using it for anything beyond local development, and treat the test suite as a smoke check rather than a guarantee. Issues and PRs are very welcome — see [SECURITY.md](SECURITY.md) for the implications.
 
@@ -28,19 +28,15 @@ The wizard walks you through every choice (chat inference, ports), generates all
 
 ## GUI vs CLI
 
-Two surfaces, one engine — but only the shell wizard is stable today.
+Two surfaces, one engine. The shell wizard is fully stable. The desktop GUI is mostly stable on macOS for daily local use.
 
-> ⚠️  The desktop GUI works for clicking through on macOS but is still
-> rough — known issues with state-aware re-runs, the path the wizard
-> writes into when invoked from the GUI, and incomplete error states.
-> **Use the shell wizard for anything beyond exploration; the GUI is not
-> yet usable on Linux.**
+> ℹ️  The desktop GUI on macOS handles every documented flow — first-time setup, Stop/Start cycles, full reset, mock or host-Ollama (including cloud-tagged models). We have **not** exercised every combination of state transitions, error paths, and inputs yet, so edge cases may still surface bugs. For production-adjacent work, the shell wizard remains the recommended surface. The GUI on Linux is **not yet usable** (Phase 8).
 
 | | Shell wizard (`bin/f13-config`) | Desktop GUI (`gui/`) |
 |---|---|---|
-| **Status** | ✅ stable (v0.1.0) | 🧪 buggy WIP (macOS click-through works), 🚫 not usable on Linux yet |
+| **Status** | ✅ stable (v0.1.0) | 🟢 mostly stable on macOS (v0.2.2), 🚫 not usable on Linux yet |
 | **Launch** | `./bin/f13-config` in any terminal | `npm run tauri dev` (dev) or open the `.app` (packaged) |
-| **Platform** | macOS, Linux, WSL2 | macOS (in testing); Linux deferred to Phase 8 |
+| **Platform** | macOS, Linux, WSL2 | macOS (mostly stable); Linux deferred to Phase 8 |
 | **Requirements** | Bash 4+, Docker | Node 20+, Rust stable, Docker |
 | **Non-interactive / CI** | `F13_CONFIG_NONINTERACTIVE=1 …` env vars | Not applicable |
 | **Scripting / automation** | Full — pipes, env overrides, `--emit-events` | Not applicable |
@@ -272,7 +268,7 @@ Secrets are never committed — `generated/` is in `.gitignore`.
 
 **User experience**
 
-- 🖥️ **Desktop GUI — _buggy WIP on macOS, not yet usable on Linux_** — a Tauri 2 + Svelte 5 desktop app alongside the shell wizard, for users who'd rather click than type. Same engine: shells out to `bin/f13-config` via a JSON-event protocol, no logic duplication. macOS click-through works after the v0.2.0 fixes, but expect rough edges around state-aware re-runs, generated-dir resolution, and error states. Linux runtime is untouched (deferred to Phase 8). See [`gui/README.md`](gui/README.md) and the [ralph loop repo](https://github.com/revolutionaryPhoton/f13-configurator-ralph).
+- 🖥️ **Desktop GUI — _mostly stable on macOS (v0.2.2), not yet usable on Linux_** — a Tauri 2 + Svelte 5 desktop app alongside the shell wizard, for users who'd rather click than type. Same engine: shells out to `bin/f13-config` via a JSON-event protocol, no logic duplication. Every documented flow works on macOS — first-time setup, Stop/Start, Reset, mock or host-Ollama with cloud-tagged models. Edge-case combinations of state and error paths haven't been exhaustively exercised. Linux runtime is untouched (deferred to Phase 8). See [`gui/README.md`](gui/README.md) and the [ralph loop repo](https://github.com/revolutionaryPhoton/f13-configurator-ralph).
 
 ---
 
