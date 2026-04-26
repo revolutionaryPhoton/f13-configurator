@@ -56,7 +56,7 @@ Both surfaces produce identical `generated/` output and share the same shell-scr
 | Bash 4+ | macOS ships 3.2 — run `brew install bash` and use `/usr/local/bin/bash` |
 | `curl` | Used for Ollama probing and health checks |
 | `awk`, `sed`, `envsubst` | Usually pre-installed; `envsubst` is in `gettext` |
-| `git` | Only required if `../frontend/` is not present locally — the wizard clones it from GitLab |
+| `git` | Required — the wizard clones the pinned frontend tag from GitLab on every install |
 | ~3 GB free disk | F13 images plus the local frontend build |
 | Ports 8000 and 9999 | Defaults; the wizard lets you pick alternatives if busy |
 
@@ -143,7 +143,7 @@ The only preset in v1 is **`core + frontend + chat`**:
 
 | Service | Image | Notes |
 |---|---|---|
-| `frontend` | `f13-frontend:configurator-v1` (built locally) | Patched to honour `ENABLED_FEATURES`; only the Chat tab is visible |
+| `frontend` | `f13-frontend:v2.0.0_based` (built locally) | Patched to honour `ENABLED_FEATURES`; only the Chat tab is visible |
 | `core` | `registry.opencode.de/f13/microservices/core:v2.0.0` | Guest mode enabled (`authentication.guest_mode: true`) |
 | `chat` | `registry.opencode.de/f13/microservices/chat:v1.2.0` | Configured for mock or host-Ollama |
 | `feedback-db` | `postgres:17-alpine` | Password from generated secret; user `member` |
@@ -155,13 +155,13 @@ The F13 service images (`core`, `chat`, `ollama-mock`) are `linux/amd64`. On App
 
 The shipped F13 frontend hardcodes all features visible when Keycloak is disabled — chat, RAG, summary, transcription tabs would all show even though the configurator only runs `chat`. To fix that, the wizard:
 
-1. Obtains the frontend source — local monorepo (`../frontend/`) if available, otherwise `git clone --depth 1 --branch v2.0.0` from `https://gitlab.opencode.de/f13/microservices/frontend.git` (the tag is pinned, so an unattended clone always produces a known build).
+1. Obtains the frontend source by `git clone --depth 1 --branch v2.0.0` from `https://gitlab.opencode.de/f13/microservices/frontend.git` (the tag is pinned so every install produces the same build, regardless of what may sit alongside in `../frontend/`).
 2. Patches `src/utils/UIStore.js` so the guest-mode default reads `window.APP_CONFIG.ENABLED_FEATURES` (a comma-separated list).
 3. Patches `scripts/docker-entrypoint.sh` to inject that field into `window.APP_CONFIG` at container start.
-4. Builds `f13-frontend:configurator-v1` locally.
+4. Builds `f13-frontend:v2.0.0_based` locally.
 5. Sets `ENABLED_FEATURES=chat` in the generated `.env` so only the Chat tab renders.
 
-The original `../frontend/` is never modified; all patching happens on a temp copy. Force a rebuild after upstream frontend changes with `./bin/f13-rebuild-frontend`.
+All patching happens on a temp copy of the cloned tag. Force a rebuild after bumping `_FRONTEND_GIT_REF` in `lib/frontend.sh` with `./bin/f13-rebuild-frontend`.
 
 ---
 
@@ -275,7 +275,7 @@ Secrets are never committed — `generated/` is in `.gitignore`.
 ## Known limitations
 
 - **Single preset**: `core + frontend + chat` only. No RAG, summary, parser, transcription, or inference services. The corresponding tabs are hidden in the patched frontend.
-- **First-run is slower**: The frontend is built locally (~1–3 min depending on hardware and network). Subsequent runs reuse the cached `f13-frontend:configurator-v1` image.
+- **First-run is slower**: The frontend is built locally (~1–3 min depending on hardware and network). Subsequent runs reuse the cached `f13-frontend:v2.0.0_based` image.
 - **No real auth**: Keycloak runs in guest mode; there is no login UI.
 - **No cloud LLM**: API-key inference providers (OpenAI, Anthropic, etc.) are out of scope for v1.
 - **No GPU variants**: The compose file does not wire NVIDIA/ROCm device grants.

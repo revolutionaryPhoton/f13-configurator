@@ -3,9 +3,6 @@
 # Requires lib/ui.sh to be sourced before use.
 set -euo pipefail
 
-# IMAGE_TAG for the locally built patched frontend image.
-readonly FRONTEND_IMAGE_TAG="f13-frontend:configurator-v1"
-
 # Upstream repo used when the local monorepo is absent.
 readonly _FRONTEND_REPO_URL="https://gitlab.opencode.de/f13/microservices/frontend.git"
 
@@ -13,6 +10,13 @@ readonly _FRONTEND_REPO_URL="https://gitlab.opencode.de/f13/microservices/fronte
 # unattended clone produces a known build, instead of tracking
 # whatever main happens to be on the day of install.
 readonly _FRONTEND_GIT_REF="v2.0.0"
+
+# IMAGE_TAG for the locally built patched frontend image.  Derived
+# from the upstream git ref so a tag bump automatically renames the
+# built image — single source of truth.  Format: "<ref>_based" (e.g.
+# v2.0.0_based) makes it obvious in `docker images` that this is a
+# locally patched copy of upstream v2.0.0.
+readonly FRONTEND_IMAGE_TAG="f13-frontend:${_FRONTEND_GIT_REF}_based"
 
 # ---------------------------------------------------------------------------
 # Internal helpers — may be overridden in tests
@@ -23,55 +27,23 @@ frontend::_docker_image_inspect() { docker image inspect "$@" &>/dev/null 2>&1; 
 frontend::_git_clone()            { git clone "$@"; }
 frontend::_git_ls_remote()        { git ls-remote "$@"; }
 
-# frontend::_local_path
-# Returns the path to the local monorepo frontend directory.
-# Override _FRONTEND_LOCAL_PATH in tests to point at a fixture.
-frontend::_local_path() {
-  if [[ -n "${_FRONTEND_LOCAL_PATH:-}" ]]; then
-    printf '%s' "${_FRONTEND_LOCAL_PATH}"
-    return
-  fi
-  local _script_dir
-  _script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  printf '%s' "${_script_dir}/../../frontend"
-}
-
-# ---------------------------------------------------------------------------
-# frontend::clone_required
-# Returns 0 (true) when the local monorepo frontend/src is absent — meaning
-# a git clone will be required.  Returns 1 when the local path IS present.
-# ---------------------------------------------------------------------------
-frontend::clone_required() {
-  local _local_src
-  _local_src="$(frontend::_local_path)/src"
-  if [[ -d "${_local_src}" ]]; then
-    return 1
-  fi
-  return 0
-}
-
 # ---------------------------------------------------------------------------
 # frontend::get_source DEST_DIR
-# Populates DEST_DIR with the frontend source tree.
-# Prefers the local monorepo (../../frontend/); falls back to git clone.
+# Populates DEST_DIR with the frontend source tree by cloning the
+# pinned upstream tag.  Always clones; the previous local-monorepo
+# fast-path was removed because an arbitrary local checkout could
+# diverge from the pinned ref the patched image is supposed to be
+# based on, breaking the FRONTEND_IMAGE_TAG (v2.0.0_based) contract.
 # ---------------------------------------------------------------------------
 frontend::get_source() {
   local dest_dir="${1:?frontend::get_source: DEST_DIR required}"
-  local _local_path
-  _local_path="$(frontend::_local_path)"
-
-  if [[ -d "${_local_path}/src" ]]; then
-    ui::info "Using local monorepo frontend source."
-    cp -a "${_local_path}/." "${dest_dir}/"
-    return 0
-  fi
 
   if ! command -v git &>/dev/null; then
     ui::err "git not found — needed to clone frontend source. Install git and retry."
     return 1
   fi
 
-  ui::info "Local frontend source not found — cloning ${_FRONTEND_GIT_REF} from remote..."
+  ui::info "Cloning frontend ${_FRONTEND_GIT_REF} from remote..."
   frontend::_git_clone --depth 1 --branch "${_FRONTEND_GIT_REF}" "${_FRONTEND_REPO_URL}" "${dest_dir}"
 }
 

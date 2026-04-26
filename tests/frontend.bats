@@ -18,12 +18,6 @@ _source_frontend() {
   [ "$status" -eq 0 ]
 }
 
-@test "lib/frontend.sh defines frontend::clone_required" {
-  run bash -c "source '${LIB_DIR}/ui.sh'; source '${LIB_DIR}/frontend.sh'
-    declare -f frontend::clone_required > /dev/null"
-  [ "$status" -eq 0 ]
-}
-
 @test "lib/frontend.sh defines frontend::get_source" {
   run bash -c "source '${LIB_DIR}/ui.sh'; source '${LIB_DIR}/frontend.sh'
     declare -f frontend::get_source > /dev/null"
@@ -43,150 +37,67 @@ _source_frontend() {
 }
 
 # ---------------------------------------------------------------------------
-# frontend::clone_required
+# frontend::get_source — git clone (always cloned, no local fast-path)
 # ---------------------------------------------------------------------------
 
-@test "frontend::clone_required returns 1 when local src exists" {
-  local fake_fe
-  fake_fe="$(mktemp -d)"
-  mkdir -p "${fake_fe}/src"
-
-  run bash -c "
-    source '${LIB_DIR}/ui.sh'
-    source '${LIB_DIR}/frontend.sh'
-    _FRONTEND_LOCAL_PATH='${fake_fe}'
-    frontend::clone_required
-  "
-  [ "$status" -eq 1 ]
-  rm -rf "${fake_fe}"
-}
-
-@test "frontend::clone_required returns 0 when local src is absent" {
-  local fake_fe
-  fake_fe="$(mktemp -d)"
-  # no src/ subdirectory
-
-  run bash -c "
-    source '${LIB_DIR}/ui.sh'
-    source '${LIB_DIR}/frontend.sh'
-    _FRONTEND_LOCAL_PATH='${fake_fe}'
-    frontend::clone_required
-  "
-  [ "$status" -eq 0 ]
-  rm -rf "${fake_fe}"
-}
-
-# ---------------------------------------------------------------------------
-# frontend::get_source — local path present
-# ---------------------------------------------------------------------------
-
-@test "frontend::get_source copies local path when src exists" {
-  local fake_fe dest
-  fake_fe="$(mktemp -d)"
+@test "frontend::get_source calls git clone with the upstream URL" {
+  local dest
   dest="$(mktemp -d)"
-  mkdir -p "${fake_fe}/src"
-  echo "sentinel" > "${fake_fe}/src/App.svelte"
 
   run bash -c "
     source '${LIB_DIR}/ui.sh'
     source '${LIB_DIR}/frontend.sh'
-    _FRONTEND_LOCAL_PATH='${fake_fe}'
-    frontend::get_source '${dest}'
-  "
-  [ "$status" -eq 0 ]
-  [ -f "${dest}/src/App.svelte" ]
-  rm -rf "${fake_fe}" "${dest}"
-}
-
-@test "frontend::get_source does not call git when local path exists" {
-  local fake_fe dest
-  fake_fe="$(mktemp -d)"
-  dest="$(mktemp -d)"
-  mkdir -p "${fake_fe}/src"
-
-  run bash -c "
-    source '${LIB_DIR}/ui.sh'
-    source '${LIB_DIR}/frontend.sh'
-    _FRONTEND_LOCAL_PATH='${fake_fe}'
-    frontend::_git_clone() { echo 'UNEXPECTED_CLONE'; exit 1; }
-    frontend::get_source '${dest}'
-  "
-  [ "$status" -eq 0 ]
-  [[ "${output}" != *"UNEXPECTED_CLONE"* ]]
-  rm -rf "${fake_fe}" "${dest}"
-}
-
-# ---------------------------------------------------------------------------
-# frontend::get_source — git clone path
-# ---------------------------------------------------------------------------
-
-@test "frontend::get_source calls git clone when local src absent" {
-  local fake_fe dest
-  fake_fe="$(mktemp -d)"
-  dest="$(mktemp -d)"
-  # no src/ subdirectory — clone required
-
-  run bash -c "
-    source '${LIB_DIR}/ui.sh'
-    source '${LIB_DIR}/frontend.sh'
-    _FRONTEND_LOCAL_PATH='${fake_fe}'
     frontend::_git_clone() { echo \"git_clone_called \$*\"; mkdir -p '${dest}/src'; }
     frontend::get_source '${dest}'
   "
   [ "$status" -eq 0 ]
   [[ "${output}" == *"git_clone_called"* ]]
   [[ "${output}" == *"gitlab.opencode.de"* ]]
-  rm -rf "${fake_fe}" "${dest}"
+  rm -rf "${dest}"
 }
 
 @test "frontend::get_source passes --depth 1 to git clone" {
-  local fake_fe dest
-  fake_fe="$(mktemp -d)"
+  local dest
   dest="$(mktemp -d)"
 
   run bash -c "
     source '${LIB_DIR}/ui.sh'
     source '${LIB_DIR}/frontend.sh'
-    _FRONTEND_LOCAL_PATH='${fake_fe}'
     frontend::_git_clone() { echo \"ARGS: \$*\"; }
     frontend::get_source '${dest}'
   "
   [ "$status" -eq 0 ]
   [[ "${output}" == *"--depth 1"* ]]
-  rm -rf "${fake_fe}" "${dest}"
+  rm -rf "${dest}"
 }
 
 @test "frontend::get_source pins git clone to v2.0.0 via --branch" {
-  local fake_fe dest
-  fake_fe="$(mktemp -d)"
+  local dest
   dest="$(mktemp -d)"
 
   run bash -c "
     source '${LIB_DIR}/ui.sh'
     source '${LIB_DIR}/frontend.sh'
-    _FRONTEND_LOCAL_PATH='${fake_fe}'
     frontend::_git_clone() { echo \"ARGS: \$*\"; }
     frontend::get_source '${dest}'
   "
   [ "$status" -eq 0 ]
   [[ "${output}" == *"--branch v2.0.0"* ]]
-  rm -rf "${fake_fe}" "${dest}"
+  rm -rf "${dest}"
 }
 
-@test "frontend::get_source fails if git absent and local path missing" {
-  local fake_fe dest
-  fake_fe="$(mktemp -d)"
+@test "frontend::get_source fails if git is not on PATH" {
+  local dest
   dest="$(mktemp -d)"
 
   run bash -c "
     source '${LIB_DIR}/ui.sh'
     source '${LIB_DIR}/frontend.sh'
-    _FRONTEND_LOCAL_PATH='${fake_fe}'
     command() { [[ \"\$*\" == *git* ]] && return 1; builtin command \"\$@\"; }
     frontend::get_source '${dest}'
   "
   [ "$status" -ne 0 ]
-  rm -rf "${fake_fe}" "${dest}"
+  rm -rf "${dest}"
 }
 
 # ---------------------------------------------------------------------------
@@ -221,7 +132,7 @@ _source_frontend() {
     frontend::image_exists
   "
   [ "$status" -eq 0 ]
-  [[ "${output}" == *"f13-frontend:configurator-v1"* ]]
+  [[ "${output}" == *"f13-frontend:v2.0.0_based"* ]]
 }
 
 # ---------------------------------------------------------------------------

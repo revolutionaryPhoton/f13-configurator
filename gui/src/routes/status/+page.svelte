@@ -204,7 +204,7 @@
   // truth is bin/f13-config (_wizard_compute_vars) and the compose
   // template. Keep these in sync when bumping pins.
   const services = $derived([
-    { name: "frontend", port, image: "f13-frontend:configurator-v1" },
+    { name: "frontend", port, image: "f13-frontend:v2.0.0_based" },
     { name: "core", port: corePort, image: "core:v2.0.0" },
     { name: "chat", image: "chat:v1.2.0", extra: backend },
     { name: "feedback-db", image: "postgres:17-alpine" },

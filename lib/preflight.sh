@@ -126,23 +126,21 @@ preflight::run() {
     events::emit preflight "name=ollama" "status=info" "detail=not detected"
   fi
 
-  # 7. git reachability check — only when a clone will be needed for S16
-  #    frontend::clone_required is defined in lib/frontend.sh (sourced by f13-config).
-  #    If the function is not loaded yet, skip this check gracefully.
-  if declare -f frontend::clone_required &>/dev/null && frontend::clone_required; then
-    local _fe_url="https://gitlab.opencode.de/f13/microservices/frontend.git"
-    if ! preflight::_has_cmd git; then
-      ui::err "git not found — needed to clone frontend source (brew install git / apt install git)"
-      events::emit preflight "name=git" "status=fail" "detail=not found"
-      failed=$(( failed + 1 ))
-    elif preflight::_git_ls_remote "${_fe_url}"; then
-      ui::ok "git (clone required — remote reachable)"
-      events::emit preflight "name=git" "status=ok"
-    else
-      ui::err "git remote unreachable: ${_fe_url}"
-      events::emit preflight "name=git" "status=fail" "detail=remote unreachable"
-      failed=$(( failed + 1 ))
-    fi
+  # 7. git reachability check — frontend source is always cloned from
+  #    the pinned upstream tag (lib/frontend.sh _FRONTEND_GIT_REF), so
+  #    git is unconditionally required at preflight.
+  local _fe_url="https://gitlab.opencode.de/f13/microservices/frontend.git"
+  if ! preflight::_has_cmd git; then
+    ui::err "git not found — needed to clone frontend source (brew install git / apt install git)"
+    events::emit preflight "name=git" "status=fail" "detail=not found"
+    failed=$(( failed + 1 ))
+  elif preflight::_git_ls_remote "${_fe_url}"; then
+    ui::ok "git (frontend clone — remote reachable)"
+    events::emit preflight "name=git" "status=ok"
+  else
+    ui::err "git remote unreachable: ${_fe_url}"
+    events::emit preflight "name=git" "status=fail" "detail=remote unreachable"
+    failed=$(( failed + 1 ))
   fi
 
   if [[ "${failed}" -gt 0 ]]; then

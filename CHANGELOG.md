@@ -16,6 +16,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Frontend git clone (when the local monorepo is absent): pinned to
   `--branch v2.0.0` instead of the upstream default branch
   (`_FRONTEND_GIT_REF` constant in `lib/frontend.sh`).
+- Locally built patched frontend image renamed:
+  `f13-frontend:configurator-v1` → `f13-frontend:v2.0.0_based`. The
+  tag is derived from `_FRONTEND_GIT_REF`, so future ref bumps
+  cascade through `frontend::patch_and_build`, the GUI status
+  screen, and the README image table without further edits. Old
+  image lingers as a dangling tag after upgrade — clear with
+  `docker image rm f13-frontend:configurator-v1` once you don't
+  need it anymore.
+- `frontend::get_source` always clones the pinned upstream tag
+  now. The previous fast-path that copied a local
+  `../frontend/` checkout was removed: an arbitrary local tree
+  could diverge from the pinned ref, breaking the
+  `vX.Y.Z_based` image-tag contract. `git` is therefore an
+  unconditional preflight requirement. `frontend::clone_required`
+  and `frontend::_local_path` were removed since the predicate
+  is now always true.
 
 > ⚠️ **Postgres major bump (16 → 17) is a breaking change for existing
 > stacks.** The `feedback-db-data` named volume initialized by the old
