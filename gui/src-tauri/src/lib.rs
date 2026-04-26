@@ -22,12 +22,22 @@ fn is_dev_build() -> bool {
 }
 
 // Walks up from the running executable to the configurator_v1/ workspace
-// root (target/debug -> target -> src-tauri -> gui -> configurator_v1).
-// Only meaningful when is_dev_build() is true.
+// root. Only meaningful when is_dev_build() is true.
+//
+// The exe path looks like:
+//   /…/configurator_v1/gui/src-tauri/target/debug/f13-configurator-gui
+// So we need to walk up FIVE parents (exe -> debug -> target -> src-tauri
+// -> gui -> configurator_v1). A previous version of this function used
+// four — that was an off-by-one and landed at gui/, which made
+// dev_workspace_root().join("bin") return gui/bin (not configurator_v1/bin).
+//
+// NOTE: this helper assumes the dev checkout layout and won't work for
+// bundled installs. Phase 9 (signed distributables) replaces the bundled
+// branch with appLocalDataDir() — see PRD Phase 9.
 fn dev_workspace_root() -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let mut p = exe.clone();
-    for _ in 0..4 {
+    for _ in 0..5 {
         p = p
             .parent()
             .ok_or_else(|| format!("could not derive workspace from {}", exe.display()))?
