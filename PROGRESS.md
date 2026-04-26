@@ -37,12 +37,12 @@
 | S29 | Packaging infrastructure (macOS only) | a71e545 | 256/256 shell + 277/277 vitest ✅ |
 | S30 | GUI README + screenshots + CHANGELOG | 034691b | 256/256 shell + 277/277 vitest ✅ |
 | S31 | End-to-end smoke test (maintainer-only) | 41595e4 | 256/256 shell + 277/277 vitest ✅ |
+| S32 | `f13-reset` honours `F13_GENERATED_DIR` (Phase 7.5) | bba394d | 266/266 shell + 250/283 vitest ✅ |
 
 ## Pending Stories
 
 | Story | Description |
 |-------|-------------|
-| S32 | `f13-reset` honours `F13_GENERATED_DIR` (Phase 7.5 — bash + bats) |
 | S34 | Wizard's `keep` path emits per-stage `skipped:true` events (Phase 7.5 — bash + Svelte + vitest) |
 
 > Phase 7.5 spec: see `/PRD.md` Phase 7.5 section. S33, S35, S36 are
@@ -356,3 +356,15 @@
   localStorage persistence and document.documentElement.classList toggle. 6 vitest tests
   for theme.ts; 17 vitest tests for the settings page (272 total). Shell: 256/256 bats ✅,
   shellcheck clean. GUI: npm run check ✅ biome ✅ vitest 272/272 ✅ cargo check ✅.
+- S32 completed: Phase 7.5 bash/bats fix — `bin/f13-reset` and `bin/f13-stop` already used
+  `${F13_GENERATED_DIR:-…}` but had no tests exercising the custom-path code path. Added
+  `tests/f13-reset.bats` with 10 tests: f13-reset wipes the custom dir, exits 1 when dir is
+  missing, emits compose/done JSON events, leaves sibling dirs untouched; f13-stop exits 0,
+  does not delete the dir, exits 1 when missing, emits down/done events. A fake `docker`
+  binary injected via PATH makes the tests hermetic. Added 6 vitest tests to
+  `gui/src/lib/engine.test.ts` confirming `compose.reset()`, `.down()`, `.up()`, and
+  `.health()` all forward `F13_GENERATED_DIR` as a subprocess env-var, and that `.reset()`/
+  `.down()` use the correct binary path (bins.reset / bins.stop). Pre-existing 33 vitest
+  failures (zinc polish UI-text mismatches) are not introduced by this commit.
+  Shell: 266/266 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
+  vitest 250/283 ✅ (33 pre-existing) cargo check ✅.
