@@ -42,8 +42,12 @@
 
 | Story | Description |
 |-------|-------------|
+| S32 | `f13-reset` honours `F13_GENERATED_DIR` (Phase 7.5 — bash + bats) |
+| S34 | Wizard's `keep` path emits per-stage `skipped:true` events (Phase 7.5 — bash + Svelte + vitest) |
 
-(none — all stories complete)
+> Phase 7.5 spec: see `/PRD.md` Phase 7.5 section. S33, S35, S36 are
+> intentionally not in the loop — they're maintainer hand-fixes (HF1,
+> HF2, HF3) since their acceptance requires running the actual app.
 
 ## Notes
 
