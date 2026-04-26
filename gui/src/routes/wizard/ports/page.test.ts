@@ -87,7 +87,7 @@ describe("ports/+page.svelte", () => {
 
   it("Continue is disabled while ports are checking (pending engine)", () => {
     const { getByRole } = render(PortsPage, { via: "mock", engine: makeEngine("pending") });
-    expect(getByRole("button", { name: /continue/i })).toHaveAttribute("disabled");
+    expect(getByRole("button", { name: /^launch$/i })).toHaveAttribute("disabled");
   });
 
   it("Continue is disabled when both ports are taken", async () => {
@@ -96,14 +96,14 @@ describe("ports/+page.svelte", () => {
       engine: makeEngine({ inUseBy: 1234, name: "nginx" }),
     });
     await waitFor(() =>
-      expect(getByRole("button", { name: /continue/i })).toHaveAttribute("disabled")
+      expect(getByRole("button", { name: /^launch$/i })).toHaveAttribute("disabled")
     );
   });
 
   it("Continue is enabled when both ports are free", async () => {
     const { getByRole } = render(PortsPage, { via: "mock", engine: makeEngine("free") });
     await waitFor(() =>
-      expect(getByRole("button", { name: /continue/i })).not.toHaveAttribute("disabled")
+      expect(getByRole("button", { name: /^launch$/i })).not.toHaveAttribute("disabled")
     );
   });
 
@@ -166,14 +166,14 @@ describe("ports/+page.svelte", () => {
   it("Back button navigates to /wizard/inference for mock", async () => {
     const { goto } = await import("$app/navigation");
     const { getByRole } = render(PortsPage, { via: "mock", engine: makeEngine("pending") });
-    await fireEvent.click(getByRole("button", { name: /back to inference picker/i }));
+    await fireEvent.click(getByRole("button", { name: /^back$/i }));
     expect(goto).toHaveBeenCalledWith("/wizard/inference");
   });
 
   it("Back button navigates to /wizard/inference/ollama for ollama", async () => {
     const { goto } = await import("$app/navigation");
     const { getByRole } = render(PortsPage, { via: "ollama", engine: makeEngine("pending") });
-    await fireEvent.click(getByRole("button", { name: /back to model picker/i }));
+    await fireEvent.click(getByRole("button", { name: /^back$/i }));
     expect(goto).toHaveBeenCalledWith("/wizard/inference/ollama");
   });
 
@@ -198,7 +198,7 @@ describe("ports/+page.svelte", () => {
     const { goto } = await import("$app/navigation");
     const { getByRole } = render(PortsPage, { via: "mock", engine: makeEngine("free") });
     const btn = await waitFor(() => {
-      const b = getByRole("button", { name: /continue/i });
+      const b = getByRole("button", { name: /^launch$/i });
       if (b.hasAttribute("disabled")) throw new Error("still disabled");
       return b;
     });
@@ -213,7 +213,7 @@ describe("ports/+page.svelte", () => {
 
   it("null engine keeps Continue disabled", () => {
     const { getByRole } = render(PortsPage, { via: "mock", engine: null });
-    expect(getByRole("button", { name: /continue/i })).toHaveAttribute("disabled");
+    expect(getByRole("button", { name: /^launch$/i })).toHaveAttribute("disabled");
   });
 
   it("footer shows 'both ports must be free' when not ready", () => {

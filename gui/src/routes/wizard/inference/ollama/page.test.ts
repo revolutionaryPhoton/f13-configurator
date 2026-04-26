@@ -30,7 +30,7 @@ describe("ollama/+page.svelte", () => {
 
   it("renders the heading", async () => {
     const { getByRole } = render(OllamaPage, { engine: makeEngine([]) });
-    expect(getByRole("heading", { name: /choose an ollama model/i })).toBeTruthy();
+    expect(getByRole("heading", { name: /choose a model/i })).toBeTruthy();
   });
 
   it("renders Step 3 of 4 breadcrumb", () => {
@@ -39,8 +39,8 @@ describe("ollama/+page.svelte", () => {
   });
 
   it("shows loading indicator while engine is fetching", () => {
-    const { getByLabelText } = render(OllamaPage, { engine: makeEngine("pending") });
-    expect(getByLabelText(/loading models/i)).toBeTruthy();
+    const { container } = render(OllamaPage, { engine: makeEngine("pending") });
+    expect(container.textContent).toContain("Checking Ollama…");
   });
 
   it("shows not-running state when engine returns not-running", async () => {
@@ -67,7 +67,8 @@ describe("ollama/+page.svelte", () => {
 
   it("shows GPU warning banner", () => {
     const { getByRole } = render(OllamaPage, { engine: makeEngine("pending") });
-    expect(getByRole("note", { name: /gpu and cloud model requirements/i })).toBeTruthy();
+    // Warning banner is a div with role="note" — assert by text content.
+    expect(getByRole("note").textContent).toMatch(/gpu recommended/i);
   });
 
   it("shows model list when Ollama is running", async () => {
@@ -164,7 +165,7 @@ describe("ollama/+page.svelte", () => {
   it("Back button navigates to /wizard/inference", async () => {
     const { goto } = await import("$app/navigation");
     const { getByRole } = render(OllamaPage, { engine: makeEngine("pending") });
-    const back = getByRole("button", { name: /back to inference picker/i });
+    const back = getByRole("button", { name: /^back$/i });
     await fireEvent.click(back);
     expect(goto).toHaveBeenCalledWith("/wizard/inference");
   });
@@ -203,7 +204,7 @@ describe("ollama/+page.svelte", () => {
 
   it("shows no-models hint when list is empty", async () => {
     const { getByText } = render(OllamaPage, { engine: makeEngine([]) });
-    await waitFor(() => expect(getByText(/no models installed/i)).toBeTruthy());
+    await waitFor(() => expect(getByText(/no models pulled locally/i)).toBeTruthy());
   });
 
   it("renders radiogroup with aria-label when models present", async () => {

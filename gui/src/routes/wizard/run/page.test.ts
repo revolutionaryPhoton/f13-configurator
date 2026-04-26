@@ -52,7 +52,10 @@ describe("wizard/run/+page.svelte", () => {
 
   it("renders the launch heading", () => {
     const { getByRole } = render(RunPage, { engine: makeNeverEngine(), backend: "mock" });
-    expect(getByRole("heading", { name: /launch f13/i })).toBeTruthy();
+    // Heading reflects pipeline state — pre-events it reads "Setting up…"
+    expect(getByRole("heading", { level: 1 }).textContent).toMatch(
+      /setting up|f13 is up|setup failed/i,
+    );
   });
 
   it("shows 'Launching' breadcrumb text", () => {
@@ -162,8 +165,10 @@ describe("wizard/run/+page.svelte", () => {
     const engine = makeEngine([
       { type: "done", status: "error", message: "compose up failed" } as DoneEvent,
     ]);
-    const { getByText } = render(RunPage, { engine, backend: "mock" });
-    await waitFor(() => expect(getByText(/compose up failed/i)).toBeTruthy());
+    const { getAllByText } = render(RunPage, { engine, backend: "mock" });
+    // Error appears in BOTH the subtitle paragraph AND the terminal log,
+    // so use getAllByText (>=1 match) instead of getByText (exactly 1).
+    await waitFor(() => expect(getAllByText(/compose up failed/i).length).toBeGreaterThan(0));
   });
 
   it("done-error event marks any running step as failed", async () => {
@@ -236,7 +241,10 @@ describe("wizard/run/+page.svelte", () => {
 
   it("null engine renders without crashing", () => {
     const { getByRole } = render(RunPage, { engine: null, backend: "mock" });
-    expect(getByRole("heading", { name: /launch f13/i })).toBeTruthy();
+    // Heading reflects pipeline state — pre-events it reads "Setting up…"
+    expect(getByRole("heading", { level: 1 }).textContent).toMatch(
+      /setting up|f13 is up|setup failed/i,
+    );
   });
 
   it("null engine shows no Cancel button", () => {

@@ -15,7 +15,7 @@ describe("inference/+page.svelte", () => {
 
   it("renders the heading", () => {
     const { getByRole } = render(InferencePage);
-    expect(getByRole("heading", { name: /choose inference backend/i })).toBeTruthy();
+    expect(getByRole("heading", { name: /where should chat run/i })).toBeTruthy();
   });
 
   it("renders Step 2 of 4 breadcrumb", () => {
@@ -115,14 +115,14 @@ describe("inference/+page.svelte", () => {
   it("Back button navigates to /wizard/preflight", async () => {
     const { goto } = await import("$app/navigation");
     const { getByRole } = render(InferencePage);
-    const back = getByRole("button", { name: /back to preflight/i });
+    const back = getByRole("button", { name: /^back$/i });
     await fireEvent.click(back);
     expect(goto).toHaveBeenCalledWith("/wizard/preflight");
   });
 
   it("footer hint says 'Select a backend' initially", () => {
     const { getByText } = render(InferencePage);
-    expect(getByText(/select a backend to continue/i)).toBeTruthy();
+    expect(getByText(/select an option/i)).toBeTruthy();
   });
 
   it("footer hint updates when Mock is selected", async () => {

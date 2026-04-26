@@ -81,7 +81,7 @@ describe("status/+page.svelte", () => {
 
   it("renders the page heading", () => {
     const { getByTestId } = render(StatusPage, { engine: makeNeverHealthEngine() });
-    expect(getByTestId("page-heading").textContent).toContain("F13 Status");
+    expect(getByTestId("page-heading").textContent).toContain("Status");
   });
 
   it("renders the health card", () => {
@@ -106,11 +106,11 @@ describe("status/+page.svelte", () => {
     await waitFor(() => expect(getByTestId("health-badge").textContent).toContain("Healthy"));
   });
 
-  it("shows 'Unhealthy' badge after an unhealthy event", async () => {
+  it("shows 'Stopped' badge after an unhealthy event", async () => {
     const { getByTestId } = render(StatusPage, {
       engine: makeEngine([unhealthyEvent]),
     });
-    await waitFor(() => expect(getByTestId("health-badge").textContent).toContain("Unhealthy"));
+    await waitFor(() => expect(getByTestId("health-badge").textContent).toContain("Stopped"));
   });
 
   it("shows health message when unhealthy event includes message", async () => {
@@ -137,31 +137,40 @@ describe("status/+page.svelte", () => {
     await waitFor(() => expect(engine.compose.health).toHaveBeenCalledTimes(2));
   });
 
-  it("renders 'Open F13 in browser' button", () => {
-    const { getByRole } = render(StatusPage, { engine: makeNeverHealthEngine() });
-    expect(getByRole("button", { name: /open f13 in browser/i })).toBeTruthy();
+  it("renders 'Open F13 in browser' button when healthy", async () => {
+    const { findByRole } = render(StatusPage, { engine: makeEngine([healthyEvent]) });
+    expect(await findByRole("button", { name: /open f13 in browser/i })).toBeTruthy();
   });
 
   it("Open F13 button calls openUrl with the frontend URL", async () => {
     const openUrl = vi.fn();
-    const { getByRole } = render(StatusPage, {
-      engine: makeNeverHealthEngine(),
+    const { findByRole } = render(StatusPage, {
+      engine: makeEngine([healthyEvent]),
       openUrl,
       frontendPort: 9999,
     });
-    await fireEvent.click(getByRole("button", { name: /open f13 in browser/i }));
+    const btn = await findByRole("button", { name: /open f13 in browser/i });
+    await fireEvent.click(btn);
     expect(openUrl).toHaveBeenCalledWith("http://localhost:9999");
   });
 
   it("Open F13 uses injected frontendPort in URL", async () => {
     const openUrl = vi.fn();
-    const { getByRole } = render(StatusPage, {
-      engine: makeNeverHealthEngine(),
+    const { findByRole } = render(StatusPage, {
+      engine: makeEngine([healthyEvent]),
       openUrl,
       frontendPort: 7777,
     });
-    await fireEvent.click(getByRole("button", { name: /open f13 in browser/i }));
+    const btn = await findByRole("button", { name: /open f13 in browser/i });
+    await fireEvent.click(btn);
     expect(openUrl).toHaveBeenCalledWith("http://localhost:7777");
+  });
+
+  it("renders 'Start F13' CTA when stopped", async () => {
+    const { findByTestId } = render(StatusPage, {
+      engine: makeEngine([unhealthyEvent]),
+    });
+    expect(await findByTestId("status-start-btn")).toBeTruthy();
   });
 
   it("renders Stop F13 button", () => {
@@ -170,33 +179,40 @@ describe("status/+page.svelte", () => {
   });
 
   it("Stop F13 calls engine.compose.down", async () => {
-    const engine = makeEngine();
-    const { getByRole } = render(StatusPage, { engine });
-    await fireEvent.click(getByRole("button", { name: /stop f13/i }));
+    const engine = makeEngine([healthyEvent]);
+    const { findByRole } = render(StatusPage, { engine });
+    const stopBtn = await findByRole("button", { name: /stop f13/i });
+    await fireEvent.click(stopBtn);
     await waitFor(() => expect(engine.compose.down).toHaveBeenCalled());
   });
 
   it("Stop F13 shows info toast while stopping", async () => {
-    const engine = makeEngine();
+    const engine = makeEngine([healthyEvent]);
     (engine.compose.down as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
-    const { getByRole, getByTestId } = render(StatusPage, { engine });
-    await fireEvent.click(getByRole("button", { name: /stop f13/i }));
+    const { findByRole, getByTestId } = render(StatusPage, { engine });
+    const stopBtn = await findByRole("button", { name: /stop f13/i });
+    await fireEvent.click(stopBtn);
     await waitFor(() => expect(getByTestId("toast-stack")).toBeTruthy());
   });
 
   it("Stop F13 shows success toast on completion", async () => {
-    const engine = makeEngine();
-    const { container, getByRole } = render(StatusPage, { engine });
-    await fireEvent.click(getByRole("button", { name: /stop f13/i }));
+    const engine = makeEngine([healthyEvent]);
+    const { container, findByRole } = render(StatusPage, { engine });
+    const stopBtn = await findByRole("button", { name: /stop f13/i });
+    await fireEvent.click(stopBtn);
     await waitFor(() => expect(container.textContent).toContain("F13 stopped."));
   });
 
-  it("Stop F13 navigates to / on success", async () => {
+  it("Stop F13 stays on /status and flips badge to Stopped", async () => {
     const { goto } = await import("$app/navigation");
-    const engine = makeEngine();
-    const { getByRole } = render(StatusPage, { engine });
-    await fireEvent.click(getByRole("button", { name: /stop f13/i }));
-    await waitFor(() => expect(goto).toHaveBeenCalledWith("/"));
+    const engine = makeEngine([healthyEvent]);
+    const { findByRole, getByTestId } = render(StatusPage, { engine });
+    // Wait until the stack reads as healthy so the Stop button is enabled.
+    await waitFor(() => expect(getByTestId("health-badge").textContent).toContain("Healthy"));
+    const stopBtn = await findByRole("button", { name: /stop f13/i });
+    await fireEvent.click(stopBtn);
+    await waitFor(() => expect(getByTestId("health-badge").textContent).toContain("Stopped"));
+    expect(goto).not.toHaveBeenCalledWith("/");
   });
 
   it("renders Full Reset button", () => {

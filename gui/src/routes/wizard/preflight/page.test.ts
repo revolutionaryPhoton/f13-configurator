@@ -42,12 +42,14 @@ function makeEngine(events: PreflightEvent[], models: string[] | "not-running" =
 describe("preflight/+page.svelte", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("renders the System Check heading", () => {
-    const { getByRole } = render(PreflightPage, { engine: makeEngine([]) });
-    expect(getByRole("heading", { name: /system check/i })).toBeTruthy();
+  it("renders the Preflight kicker / scanning heading", () => {
+    const { getByRole, container } = render(PreflightPage, { engine: makeEngine([]) });
+    // Heading is one of the three streaming-state strings; assert generally.
+    expect(getByRole("heading", { level: 1 })).toBeTruthy();
+    expect(container.textContent?.toLowerCase()).toContain("preflight");
   });
 
-  it("shows a loading indicator while streaming", () => {
+  it("shows a checking indicator while streaming", () => {
     // Provide an engine that never resolves (never yields)
     const neverEngine = {
       ...makeEngine([]),
@@ -59,8 +61,8 @@ describe("preflight/+page.svelte", () => {
       ),
     } as unknown as Engine;
 
-    const { getByLabelText } = render(PreflightPage, { engine: neverEngine });
-    expect(getByLabelText(/running checks/i)).toBeTruthy();
+    const { container } = render(PreflightPage, { engine: neverEngine });
+    expect(container.textContent).toContain("Checking…");
   });
 
   it("shows ok checks with a ✓ icon after streaming", async () => {
@@ -178,7 +180,7 @@ describe("preflight/+page.svelte", () => {
   it("shows 'Back' button that navigates to /", async () => {
     const { goto } = await import("$app/navigation");
     const { getByRole } = render(PreflightPage, { engine: makeEngine([]) });
-    const back = getByRole("button", { name: /back to home/i });
+    const back = getByRole("button", { name: /^back$/i });
     await fireEvent.click(back);
     expect(goto).toHaveBeenCalledWith("/");
   });
