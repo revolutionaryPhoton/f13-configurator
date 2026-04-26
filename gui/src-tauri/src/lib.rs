@@ -1,10 +1,29 @@
 use std::path::PathBuf;
 use tauri::Manager;
 
+// Are we running from a `cargo`/`tauri dev` build? Detected by looking
+// for `target/debug` or `target/release` in the running executable's
+// path. Bundled .app / .AppImage / .deb installs don't have either.
+//
+// We need this distinction because Tauri 2's `resource_dir()` returns
+// `<project>/src-tauri/target/debug/` in dev mode — and ALSO copies/
+// symlinks declared resources (bin/, lib/, templates/) into that dir
+// for runtime resolution. So sentinel-file checks like
+// `resource_dir/bin exists?` look indistinguishable between dev and
+// bundled. The only reliable signal is the exe path itself.
+fn is_dev_build() -> bool {
+    let Ok(exe) = std::env::current_exe() else {
+        return false;
+    };
+    exe.components().any(|c| {
+        let s = c.as_os_str();
+        s == "debug" || s == "release"
+    }) && exe.components().any(|c| c.as_os_str() == "target")
+}
+
 // Walks up from the running executable to the configurator_v1/ workspace
 // root (target/debug -> target -> src-tauri -> gui -> configurator_v1).
-// Used as the dev-mode fallback when bundled resource_dir is unavailable
-// or doesn't contain the resource we're looking for.
+// Only meaningful when is_dev_build() is true.
 fn dev_workspace_root() -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let mut p = exe.clone();
@@ -18,25 +37,28 @@ fn dev_workspace_root() -> Result<PathBuf, String> {
 }
 
 // Returns the absolute path to the configurator's `bin/` directory.
-// Bundled mode: <resource_dir>/bin
 // Dev mode: <configurator_v1>/bin
+// Bundled mode: <resource_dir>/bin
 #[tauri::command]
 fn get_bin_dir(app: tauri::AppHandle) -> Result<String, String> {
+    if is_dev_build() {
+        let candidate = dev_workspace_root()?.join("bin");
+        if candidate.exists() {
+            return Ok(candidate.to_string_lossy().into_owned());
+        }
+        return Err(format!(
+            "dev mode: bin/ not found at {}",
+            candidate.display()
+        ));
+    }
+
     if let Ok(resource_dir) = app.path().resource_dir() {
         let bundled = resource_dir.join("bin");
         if bundled.exists() {
             return Ok(bundled.to_string_lossy().into_owned());
         }
     }
-
-    let candidate = dev_workspace_root()?.join("bin");
-    if candidate.exists() {
-        return Ok(candidate.to_string_lossy().into_owned());
-    }
-    Err(format!(
-        "could not locate configurator bin/ (tried bundled resource_dir/bin and dev fallback {})",
-        candidate.display()
-    ))
+    Err("bundled mode: could not locate bin/ in resource_dir".to_string())
 }
 
 // Returns the absolute path to the configurator's `generated/` directory —
@@ -53,27 +75,22 @@ fn get_bin_dir(app: tauri::AppHandle) -> Result<String, String> {
 // render. Only the path is computed.
 #[tauri::command]
 fn get_generated_dir(app: tauri::AppHandle) -> Result<String, String> {
-    // We treat the build as "bundled" only when resource_dir contains the
-    // shipped bin/ resource. In dev mode resource_dir() returns
-    // <project>/src-tauri/target/debug/ whose parent target/ also exists,
-    // so a naive parent.exists() check returns the wrong path. The bin/
-    // sentinel is reliable because it's only present when Tauri actually
-    // bundled our resources.
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        if resource_dir.join("bin").exists() {
-            // Bundled: GEN_DIR is sibling to bin/, lib/, templates/.
-            if let Some(parent) = resource_dir.parent() {
-                return Ok(parent.join("generated").to_string_lossy().into_owned());
-            }
-        }
+    // Dev: <configurator_v1>/generated (mirrors the shell wizard's
+    // default GEN_DIR so `./bin/f13-stop` from a terminal Just Works).
+    if is_dev_build() {
+        return Ok(dev_workspace_root()?
+            .join("generated")
+            .to_string_lossy()
+            .into_owned());
     }
 
-    // Dev: <configurator_v1>/generated (mirrors the shell wizard's default
-    // GEN_DIR so `./bin/f13-stop` from a terminal Just Works).
-    Ok(dev_workspace_root()?
-        .join("generated")
-        .to_string_lossy()
-        .into_owned())
+    // Bundled: GEN_DIR is sibling to the shipped bin/, lib/, templates/.
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        if let Some(parent) = resource_dir.parent() {
+            return Ok(parent.join("generated").to_string_lossy().into_owned());
+        }
+    }
+    Err("bundled mode: could not derive generated/ from resource_dir".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
