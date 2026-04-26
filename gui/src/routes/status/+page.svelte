@@ -208,6 +208,13 @@
   ]);
 
   const isHealthy = $derived(healthStatus === "healthy");
+  const dotColor = $derived(
+    healthStatus === "healthy"
+      ? "#4ade80"
+      : healthStatus === "checking"
+        ? "#fbbf24"
+        : "#ef4444",
+  );
 </script>
 
 <div class="flex flex-col h-screen bg-bg relative">
@@ -283,21 +290,17 @@
             class="inline-block rounded-full"
             style:width="6px"
             style:height="6px"
-            style:background={isHealthy ? "#4ade80" : "#fbbf24"}
-            style:box-shadow={isHealthy
-              ? "0 0 8px #4ade80"
-              : "0 0 8px #fbbf24"}
-            style:animation="f13-pulse 2s ease-in-out infinite"
+            style:background={dotColor}
+            style:box-shadow="0 0 8px {dotColor}"
+            style:animation="f13-pulse 1.4s ease-in-out infinite"
             aria-hidden="true"
           ></span>
           {#if healthStatus === "healthy"}
             Running · Healthy
-          {:else if healthStatus === "unhealthy"}
-            Running · Issues
           {:else if healthStatus === "checking"}
             Checking…
           {:else}
-            Unknown
+            Stopped
           {/if}
         </div>
 
