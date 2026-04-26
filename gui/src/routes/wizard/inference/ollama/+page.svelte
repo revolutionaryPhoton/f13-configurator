@@ -21,7 +21,14 @@
   let loadState = $state<LoadState>("loading");
   let models = $state<string[]>([]);
   let selected = $state<string | null>(null);
+  // Free-text model name — for cloud models (which never appear in
+  // /api/tags) or any model the user wants to pull lazily.
+  let customModel = $state<string>("");
   let refreshKey = $state(0);
+
+  // The actual model that gets passed to the wizard: typed input wins
+  // when non-empty, falls back to the radio selection.
+  const effectiveModel = $derived(customModel.trim() || selected);
 
   $effect(() => {
     void refreshKey;
@@ -65,11 +72,17 @@
     return name.slice(idx + 1).endsWith("cloud");
   }
 
-  const canContinue = $derived(loadState === "running" && selected !== null);
+  // Continue when either: a model is typed (any text), OR Ollama is
+  // running and a list pick is selected. Typed always wins.
+  const canContinue = $derived(
+    customModel.trim().length > 0 ||
+      (loadState === "running" && selected !== null),
+  );
 
   function handleContinue() {
-    if (selected) {
-      setWizardState({ ollamaModel: selected });
+    const m = effectiveModel;
+    if (m) {
+      setWizardState({ ollamaModel: m });
       setWizardVia("ollama");
       goto("/wizard/ports");
     }
@@ -108,7 +121,9 @@
         style:font-family="var(--f13-font-mono)"
         style:font-size="11px"
         style:background="var(--f13-surface)"
-      >gemma4:31b-cloud</code>) require a signed-in Ollama account.
+      >gemma4:31b-cloud</code>) require a signed-in Ollama account
+      and won't appear in the list below — type the name into the
+      <em>Use any model name</em> field instead.
     </div>
 
     {#if loadState === "loading"}
@@ -239,18 +254,63 @@ ollama serve</pre>
         Refresh list
       </button>
     {/if}
+
+    <!-- Free-text model name — works regardless of load state, so cloud
+         models (which don't appear in /api/tags) and not-yet-pulled
+         models can still be configured. -->
+    <div class="mt-5 pt-4 border-t border-border flex flex-col gap-1.5">
+      <label
+        for="ollama-custom-model"
+        class="text-[12px] font-semibold text-text"
+      >
+        Use any model name
+      </label>
+      <p class="m-0 text-[11px] text-muted leading-relaxed">
+        Type any model tag — e.g.
+        <code
+          class="px-1 rounded"
+          style:font-family="var(--f13-font-mono)"
+          style:background="var(--f13-surface-raised)"
+          style:font-size="11px"
+        >gemma3:27b-cloud</code>
+        for cloud-hosted models, or any name Ollama can pull on
+        first request. Overrides the selection above when filled in.
+      </p>
+      <input
+        id="ollama-custom-model"
+        type="text"
+        bind:value={customModel}
+        placeholder="model:tag"
+        autocomplete="off"
+        spellcheck={false}
+        data-testid="ollama-custom-model"
+        class="w-full rounded-lg px-2.5 py-2 outline-none focus:ring-2"
+        style:font-family="var(--f13-font-mono)"
+        style:font-size="13px"
+        style:background="var(--f13-bg)"
+        style:border="1px solid var(--f13-border-strong)"
+        style:color="var(--f13-text)"
+      />
+      {#if customModel.trim() && isCloud(customModel.trim())}
+        <p class="m-0 text-[11px] text-muted">
+          ☁ cloud — requires
+          <code style:font-family="var(--f13-font-mono)">ollama signin</code>
+          on this machine.
+        </p>
+      {/if}
+    </div>
   </PageBody>
 
   <Footer>
     {#snippet status()}
-      {#if loadState === "not-running"}
-        Start Ollama to continue.
+      {#if effectiveModel}
+        <span style:font-family="var(--f13-font-mono)">{effectiveModel}</span> selected.
+      {:else if loadState === "not-running"}
+        Start Ollama or type a model name.
       {:else if loadState === "loading"}
         Loading models…
-      {:else if selected === null}
-        Select a model.
       {:else}
-        <span style:font-family="var(--f13-font-mono)">{selected}</span> selected.
+        Select or type a model.
       {/if}
     {/snippet}
     {#snippet action()}
