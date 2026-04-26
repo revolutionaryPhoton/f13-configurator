@@ -136,6 +136,29 @@
       >gemma4:31b-cloud</code>) require a signed-in Ollama account
       and won't appear in the list below — type the name into the
       <em>Use any model name</em> field instead.
+      <div class="mt-1.5">
+        <strong>Embedding models</strong> (e.g.
+        <code
+          class="px-1"
+          style:font-family="var(--f13-font-mono)"
+          style:font-size="11px"
+          style:background="var(--f13-surface)"
+        >nomic-embed-text</code>, anything matching
+        <code
+          class="px-1"
+          style:font-family="var(--f13-font-mono)"
+          style:font-size="11px"
+          style:background="var(--f13-surface)"
+        >*-embed-*</code> /
+        <code
+          class="px-1"
+          style:font-family="var(--f13-font-mono)"
+          style:font-size="11px"
+          style:background="var(--f13-surface)"
+        >*-embedding-*</code>) produce vector outputs, not chat
+        completions. They may appear in the list below — please
+        don't pick one for chat inference.
+      </div>
     </div>
 
     {#if loadState === "loading"}

@@ -115,7 +115,10 @@ _wizard_pick_ollama_model() {
     "  capable GPU, responses can take many seconds per token." \
     "Cloud-hosted models (tags ending in ':cloud') require a signed-in" \
     "  Ollama account on this machine — run 'ollama signin' first if" \
-    "  you haven't already."
+    "  you haven't already." \
+    "Embedding models (e.g. nomic-embed-text, *-embed-*, *-embedding-*)" \
+    "  produce vector outputs, not chat completions. They may appear in" \
+    "  the list below — please don't pick one for chat inference."
   printf '\n'
 
   while ! ollama::is_running; do

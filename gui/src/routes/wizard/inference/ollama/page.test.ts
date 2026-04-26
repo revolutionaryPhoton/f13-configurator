@@ -71,6 +71,11 @@ describe("ollama/+page.svelte", () => {
     expect(getByRole("note").textContent).toMatch(/gpu recommended/i);
   });
 
+  it("warns about embedding models in the banner", () => {
+    const { getByRole } = render(OllamaPage, { engine: makeEngine("pending") });
+    expect(getByRole("note").textContent).toMatch(/embedding models/i);
+  });
+
   it("shows model list when Ollama is running", async () => {
     const { getByRole } = render(OllamaPage, {
       engine: makeEngine(["llama3.2:3b", "gemma4:31b-cloud"]),
