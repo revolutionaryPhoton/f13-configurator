@@ -66,6 +66,18 @@
     refreshKey += 1;
   }
 
+  // Open a URL in the user's default browser. Tauri's webview ignores
+  // window.open / target=_blank, so we route through the opener plugin
+  // for production. Tests can stub via injection if needed later.
+  function openExternal(url: string): void {
+    void import("@tauri-apps/plugin-opener")
+      .then(({ openUrl }) => openUrl(url))
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error("[ollama] openExternal failed:", err);
+      });
+  }
+
   function isCloud(name: string): boolean {
     const idx = name.indexOf(":");
     if (idx === -1) return false;
@@ -161,14 +173,22 @@ ollama serve</pre>
         </div>
       </div>
     {:else if models.length === 0}
-      <p class="m-0 py-1.5 text-[13px] text-muted">
-        No models installed. Pull one with:
+      <p class="m-0 py-1.5 text-[13px] text-muted leading-relaxed">
+        No models pulled locally. Either pull one from a terminal —
         <code
           class="px-1 rounded"
           style:font-family="var(--f13-font-mono)"
           style:background="var(--f13-surface)"
           style:font-size="11.5px"
-        >ollama pull gemma4:31b-cloud</code>
+        >ollama pull modelname:tag</code>
+        (browse at
+        <button
+          type="button"
+          onclick={() => openExternal("https://ollama.com/search")}
+          class="underline decoration-dotted underline-offset-2 hover:text-text transition-colors cursor-pointer"
+          style:color="var(--f13-text-muted)"
+        >ollama.com/search</button>) — or just type any model name in
+        the field below and Ollama will pull it on first request.
       </p>
     {:else}
       <div
@@ -272,9 +292,16 @@ ollama serve</pre>
           style:font-family="var(--f13-font-mono)"
           style:background="var(--f13-surface-raised)"
           style:font-size="11px"
-        >gemma3:27b-cloud</code>
+        >gemma4:31b-cloud</code>
         for cloud-hosted models, or any name Ollama can pull on
-        first request. Overrides the selection above when filled in.
+        first request. Browse models at
+        <button
+          type="button"
+          onclick={() => openExternal("https://ollama.com/search")}
+          class="underline decoration-dotted underline-offset-2 hover:text-text transition-colors cursor-pointer"
+          style:color="var(--f13-text-muted)"
+        >ollama.com/search</button>.
+        Overrides the selection above when filled in.
       </p>
       <input
         id="ollama-custom-model"
