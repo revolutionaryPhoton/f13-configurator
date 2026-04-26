@@ -144,9 +144,9 @@ The only preset in v1 is **`core + frontend + chat`**:
 | Service | Image | Notes |
 |---|---|---|
 | `frontend` | `f13-frontend:configurator-v1` (built locally) | Patched to honour `ENABLED_FEATURES`; only the Chat tab is visible |
-| `core` | `registry.opencode.de/f13/microservices/core/main:latest` | Guest mode enabled (`authentication.guest_mode: true`) |
-| `chat` | `registry.opencode.de/f13/microservices/chat:v1.1.0` | Configured for mock or host-Ollama |
-| `feedback-db` | `postgres:16-alpine` | Password from generated secret; user `member` |
+| `core` | `registry.opencode.de/f13/microservices/core:v2.0.0` | Guest mode enabled (`authentication.guest_mode: true`) |
+| `chat` | `registry.opencode.de/f13/microservices/chat:v1.2.0` | Configured for mock or host-Ollama |
+| `feedback-db` | `postgres:17-alpine` | Password from generated secret; user `member` |
 | `ollama-mock` | `base-images/ollama-mock-f13:1.2.0` | Only when mock inference is selected (compose profile) |
 
 The F13 service images (`core`, `chat`, `ollama-mock`) are `linux/amd64`. On Apple Silicon the generated compose sets `platform: linux/amd64` so Docker Desktop runs them via Rosetta 2 emulation — no rebuild needed, first boot is slightly slower. The `frontend` image is built locally and is therefore native (`arm64` on Apple Silicon).
@@ -155,7 +155,7 @@ The F13 service images (`core`, `chat`, `ollama-mock`) are `linux/amd64`. On App
 
 The shipped F13 frontend hardcodes all features visible when Keycloak is disabled — chat, RAG, summary, transcription tabs would all show even though the configurator only runs `chat`. To fix that, the wizard:
 
-1. Obtains the frontend source — local monorepo (`../frontend/`) if available, otherwise `git clone` from `https://gitlab.opencode.de/f13/microservices/frontend.git`.
+1. Obtains the frontend source — local monorepo (`../frontend/`) if available, otherwise `git clone --depth 1 --branch v2.0.0` from `https://gitlab.opencode.de/f13/microservices/frontend.git` (the tag is pinned, so an unattended clone always produces a known build).
 2. Patches `src/utils/UIStore.js` so the guest-mode default reads `window.APP_CONFIG.ENABLED_FEATURES` (a comma-separated list).
 3. Patches `scripts/docker-entrypoint.sh` to inject that field into `window.APP_CONFIG` at container start.
 4. Builds `f13-frontend:configurator-v1` locally.

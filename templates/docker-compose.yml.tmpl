@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
 
   core:
-    image: registry.opencode.de/f13/microservices/core/main:latest
+    image: registry.opencode.de/f13/microservices/core:v2.0.0
     platform: linux/amd64
     volumes:
       - ./configs/core:/core/configs:ro
@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
 
   feedback-db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: feedback
       POSTGRES_USER: member

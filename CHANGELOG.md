@@ -7,6 +7,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — Pinned upstream component versions
+
+- `core` image: `core/main:latest` → `core:v2.0.0`.
+- `chat` image (both mock and Ollama backends): `chat:v1.1.0` /
+  `chat/main:latest` → `chat:v1.2.0`.
+- `feedback-db` image: `postgres:16-alpine` → `postgres:17-alpine`.
+- Frontend git clone (when the local monorepo is absent): pinned to
+  `--branch v2.0.0` instead of the upstream default branch
+  (`_FRONTEND_GIT_REF` constant in `lib/frontend.sh`).
+
+> ⚠️ **Postgres major bump (16 → 17) is a breaking change for existing
+> stacks.** The `feedback-db-data` named volume initialized by the old
+> postgres:16 image will not auto-upgrade. Existing installs need to
+> `./bin/f13-reset` (which drops the volume) before pulling this
+> version, or perform a manual `pg_upgrade` outside the configurator.
+
 ### Added — Desktop GUI (Phase 7, `gui/`)
 
 A cross-platform desktop application built with Tauri 2 + Svelte 5 + Vite +

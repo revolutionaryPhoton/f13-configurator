@@ -200,11 +200,14 @@
   }
 
   // Service grid data
+  // Image strings are duplicated here for display only; the source of
+  // truth is bin/f13-config (_wizard_compute_vars) and the compose
+  // template. Keep these in sync when bumping pins.
   const services = $derived([
     { name: "frontend", port, image: "f13-frontend:configurator-v1" },
-    { name: "core", port: corePort, image: "core/main:latest" },
-    { name: "chat", image: "chat:v1.1.0", extra: backend },
-    { name: "feedback-db", image: "postgres:16-alpine" },
+    { name: "core", port: corePort, image: "core:v2.0.0" },
+    { name: "chat", image: "chat:v1.2.0", extra: backend },
+    { name: "feedback-db", image: "postgres:17-alpine" },
   ]);
 
   const isHealthy = $derived(healthStatus === "healthy");

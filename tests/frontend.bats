@@ -156,6 +156,23 @@ _source_frontend() {
   rm -rf "${fake_fe}" "${dest}"
 }
 
+@test "frontend::get_source pins git clone to v2.0.0 via --branch" {
+  local fake_fe dest
+  fake_fe="$(mktemp -d)"
+  dest="$(mktemp -d)"
+
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/frontend.sh'
+    _FRONTEND_LOCAL_PATH='${fake_fe}'
+    frontend::_git_clone() { echo \"ARGS: \$*\"; }
+    frontend::get_source '${dest}'
+  "
+  [ "$status" -eq 0 ]
+  [[ "${output}" == *"--branch v2.0.0"* ]]
+  rm -rf "${fake_fe}" "${dest}"
+}
+
 @test "frontend::get_source fails if git absent and local path missing" {
   local fake_fe dest
   fake_fe="$(mktemp -d)"

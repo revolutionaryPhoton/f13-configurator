@@ -9,6 +9,11 @@ readonly FRONTEND_IMAGE_TAG="f13-frontend:configurator-v1"
 # Upstream repo used when the local monorepo is absent.
 readonly _FRONTEND_REPO_URL="https://gitlab.opencode.de/f13/microservices/frontend.git"
 
+# Git ref (tag or branch) checked out when cloning. Pinned so an
+# unattended clone produces a known build, instead of tracking
+# whatever main happens to be on the day of install.
+readonly _FRONTEND_GIT_REF="v2.0.0"
+
 # ---------------------------------------------------------------------------
 # Internal helpers — may be overridden in tests
 # ---------------------------------------------------------------------------
@@ -66,8 +71,8 @@ frontend::get_source() {
     return 1
   fi
 
-  ui::info "Local frontend source not found — cloning from remote..."
-  frontend::_git_clone --depth 1 "${_FRONTEND_REPO_URL}" "${dest_dir}"
+  ui::info "Local frontend source not found — cloning ${_FRONTEND_GIT_REF} from remote..."
+  frontend::_git_clone --depth 1 --branch "${_FRONTEND_GIT_REF}" "${_FRONTEND_REPO_URL}" "${dest_dir}"
 }
 
 # ---------------------------------------------------------------------------

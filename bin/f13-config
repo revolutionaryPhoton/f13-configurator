@@ -234,15 +234,20 @@ _wizard_generate_secrets() {
 }
 
 _wizard_compute_vars() {
+  # Pinned chat image — both backends use the same tagged release
+  # (registry.opencode.de/.../chat:vX.Y.Z) so behavior matches what
+  # F13 documentation describes for that version.
+  local _chat_image="registry.opencode.de/f13/microservices/chat:v1.2.0"
+
   if [[ "${CHAT_BACKEND}" == "mock" ]]; then
-    CHAT_IMAGE="registry.opencode.de/f13/microservices/chat:v1.1.0"
+    CHAT_IMAGE="${_chat_image}"
     CHAT_BASE_URL="http://ollama-mock:11434/v1"
     CHAT_MODEL_NAME="test_model:mock"
     CHAT_MAX_CONTEXT_TOKENS="4096"
     CHAT_MODEL_ID="test_model_mock"
     COMPOSE_PROFILES="mock"
   else
-    CHAT_IMAGE="registry.opencode.de/f13/microservices/chat/main:latest"
+    CHAT_IMAGE="${_chat_image}"
     CHAT_BASE_URL="$(ollama::host_url_for_docker)"
     CHAT_MODEL_NAME="${OLLAMA_MODEL}"
     CHAT_MAX_CONTEXT_TOKENS="8192"
