@@ -53,18 +53,23 @@ fn get_bin_dir(app: tauri::AppHandle) -> Result<String, String> {
 // render. Only the path is computed.
 #[tauri::command]
 fn get_generated_dir(app: tauri::AppHandle) -> Result<String, String> {
+    // We treat the build as "bundled" only when resource_dir contains the
+    // shipped bin/ resource. In dev mode resource_dir() returns
+    // <project>/src-tauri/target/debug/ whose parent target/ also exists,
+    // so a naive parent.exists() check returns the wrong path. The bin/
+    // sentinel is reliable because it's only present when Tauri actually
+    // bundled our resources.
     if let Ok(resource_dir) = app.path().resource_dir() {
-        // The wizard's GEN_DIR is sibling to bin/, lib/, templates/.
-        if let Some(parent) = resource_dir.parent() {
-            let bundled = parent.join("generated");
-            // The dir may not exist yet (first run) — return the path
-            // unconditionally as long as the parent path exists.
-            if parent.exists() {
-                return Ok(bundled.to_string_lossy().into_owned());
+        if resource_dir.join("bin").exists() {
+            // Bundled: GEN_DIR is sibling to bin/, lib/, templates/.
+            if let Some(parent) = resource_dir.parent() {
+                return Ok(parent.join("generated").to_string_lossy().into_owned());
             }
         }
     }
 
+    // Dev: <configurator_v1>/generated (mirrors the shell wizard's default
+    // GEN_DIR so `./bin/f13-stop` from a terminal Just Works).
     Ok(dev_workspace_root()?
         .join("generated")
         .to_string_lossy()

@@ -142,6 +142,7 @@
           ...(ollamaModel !== undefined ? { ollamaModel } : {}),
           frontendPort,
           corePort,
+          generatedDir,
         })) {
           if (cancelToken.cancelled) break;
           if (evt.type === "step") handleStepEvent(evt as StepEvent);
