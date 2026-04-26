@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
   import Footer from "$lib/components/Footer.svelte";
@@ -83,6 +84,36 @@
     if (idx === -1) return false;
     return name.slice(idx + 1).endsWith("cloud");
   }
+
+  // Embedding models surface in /api/tags alongside chat models, but
+  // produce vector outputs and will leave the chat backend silently
+  // broken. Match by substring since upstream naming varies
+  // (nomic-embed-text, mxbai-embed-large, all-minilm-l6-embedding, …).
+  function isEmbedding(name: string): boolean {
+    return /embed/i.test(name);
+  }
+
+  const selectionLooksEmbedding = $derived(
+    !!effectiveModel && isEmbedding(effectiveModel),
+  );
+
+  // Scroll the danger banner into view when it appears. PageBody is
+  // scrollable but the banner sits at the bottom of its content, so a
+  // user who selected from the radio list above might never see the
+  // warning otherwise. block:"nearest" only scrolls when the banner
+  // isn't already visible — no churn on already-visible state.
+  // The typeof guard tolerates environments that lack scrollIntoView
+  // (jsdom in vitest, some embedded webviews).
+  let warningEl: HTMLDivElement | null = $state(null);
+  $effect(() => {
+    if (selectionLooksEmbedding && warningEl) {
+      void tick().then(() => {
+        if (typeof warningEl?.scrollIntoView === "function") {
+          warningEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
+    }
+  });
 
   // Continue when either: a model is typed (any text), OR Ollama is
   // running and a list pick is selected. Typed always wins.
@@ -349,6 +380,38 @@ ollama serve</pre>
         </p>
       {/if}
     </div>
+
+    {#if selectionLooksEmbedding}
+      <div
+        bind:this={warningEl}
+        class="mt-4 px-3 py-2.5 rounded-lg text-[12px] leading-relaxed scroll-mt-4"
+        style:background="var(--f13-error-bg)"
+        style:color="var(--f13-text)"
+        style:border="1px solid rgba(220,38,38,0.30)"
+        style:border-left="3px solid var(--f13-error)"
+        role="alert"
+        data-testid="embedding-warning"
+      >
+        <div
+          class="font-bold uppercase mb-1 flex items-center gap-1.5"
+          style:font-size="11px"
+          style:letter-spacing="0.5px"
+          style:color="var(--f13-error)"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          Are you sure?
+        </div>
+        <span style:font-family="var(--f13-font-mono)">{effectiveModel}</span>
+        looks like an embedding model. Embedding models produce vector
+        outputs, not chat completions — picking one will leave the chat
+        backend silently broken. Choose a generative model instead, or
+        proceed if you know what you're doing.
+      </div>
+    {/if}
   </PageBody>
 
   <Footer>

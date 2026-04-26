@@ -101,6 +101,41 @@ describe("ollama/+page.svelte", () => {
     expect(queryAllByTestId("cloud-badge")).toHaveLength(0);
   });
 
+  it("shows embedding-model warning when an 'embed' name is auto-selected", async () => {
+    const { getByTestId } = render(OllamaPage, {
+      engine: makeEngine(["nomic-embed-text"]),
+    });
+    await waitFor(() => {
+      const banner = getByTestId("embedding-warning");
+      expect(banner).toBeTruthy();
+      expect(banner.textContent).toMatch(/are you sure/i);
+      expect(banner.textContent).toMatch(/nomic-embed-text/);
+    });
+  });
+
+  it("does not show embedding warning for a chat model", async () => {
+    const { queryByTestId } = render(OllamaPage, {
+      engine: makeEngine(["llama3.2:3b"]),
+    });
+    await waitFor(() => {
+      // Wait for the model list to render before asserting absence.
+      // The embedding-warning testid should never appear for chat models.
+    });
+    expect(queryByTestId("embedding-warning")).toBeNull();
+  });
+
+  it("typed custom model with 'embed' triggers the warning", async () => {
+    const { getByTestId } = render(OllamaPage, {
+      engine: makeEngine(["llama3.2:3b"]),
+    });
+    const input = getByTestId("ollama-custom-model") as HTMLInputElement;
+    input.value = "mxbai-embed-large";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await waitFor(() => {
+      expect(getByTestId("embedding-warning")).toBeTruthy();
+    });
+  });
+
   it("auto-selects gemma4:31b-cloud when present", async () => {
     const { getByRole } = render(OllamaPage, {
       engine: makeEngine(["llama3.2:3b", "gemma4:31b-cloud"]),
