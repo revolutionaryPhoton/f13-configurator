@@ -508,6 +508,12 @@
         data-testid="reset-confirm-input"
         autocomplete="off"
         spellcheck={false}
+        onkeydown={(e) => {
+          if (e.key === "Enter" && resetConfirmValid) {
+            e.preventDefault();
+            void handleConfirmReset();
+          }
+        }}
         class="w-full rounded-lg px-2.5 py-2 outline-none focus:ring-2"
         style:font-family="var(--f13-font-mono)"
         style:font-size="13px"
@@ -515,6 +521,16 @@
         style:border="1px solid var(--f13-border-strong)"
         style:color="var(--f13-text)"
       />
+      <p class="m-0 text-[10.5px] text-subtle">
+        Press
+        <kbd
+          class="px-1 py-[1px] rounded border text-[10px]"
+          style:font-family="var(--f13-font-mono)"
+          style:border-color="var(--f13-border)"
+          style:background="var(--f13-surface-raised)"
+        >Enter</kbd>
+        to confirm.
+      </p>
     </div>
     <div class="flex justify-end gap-2 pt-1">
       <Button variant="secondary" size="sm" onclick={handleCloseResetModal}>
