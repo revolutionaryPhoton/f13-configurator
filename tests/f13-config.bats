@@ -275,6 +275,19 @@ _run_mock_dry() {
   [ -f "${TMPDIR_WORK}/gen/docker-compose.yml" ]
 }
 
+@test "re-run with edit preserves feedback_db.secret (postgres volume stays in sync)" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  local _orig
+  _orig="$(< "${TMPDIR_WORK}/gen/secrets/feedback_db.secret")"
+  [ -n "${_orig}" ]
+
+  env "${NI_ENV[@]}" F13_STATE_ACTION=edit "${BIN}" --dry-run
+
+  local _after
+  _after="$(< "${TMPDIR_WORK}/gen/secrets/feedback_db.secret")"
+  [ "${_orig}" = "${_after}" ]
+}
+
 @test "re-run with reset action wipes and re-generates" {
   env "${NI_ENV[@]}" "${BIN}" --dry-run
   run env "${NI_ENV[@]}" F13_STATE_ACTION=reset "${BIN}" --dry-run
