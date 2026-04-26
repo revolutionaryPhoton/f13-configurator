@@ -43,6 +43,7 @@
   let toastCounter = 0;
 
   let stopping = $state(false);
+  let starting = $state(false);
   let resetting = $state(false);
 
   let resetConfirmOpen = $state(false);
@@ -119,12 +120,44 @@
       await eng.compose.down(generatedDir);
       removeToast(loadingId);
       addToast("success", "F13 stopped.", 3000);
-      goto("/");
+      // Stay on /status so the user sees the new stopped state and can
+      // click Start to bring it back up. Re-poll health immediately so
+      // the hero flips from healthy → stopped without waiting 5s.
+      healthStatus = "unhealthy";
     } catch (e) {
       removeToast(loadingId);
       addToast("error", `Stop failed: ${e instanceof Error ? e.message : "unknown error"}`, 6000);
     } finally {
       stopping = false;
+    }
+  }
+
+  async function handleStart() {
+    const eng = injectedEngine ?? getEngine();
+    if (!eng || starting) return;
+    starting = true;
+    const loadingId = addToast("info", "Starting F13…", 0);
+    try {
+      await eng.compose.up(generatedDir);
+      removeToast(loadingId);
+      addToast("success", "F13 started.", 3000);
+      healthStatus = "checking";
+      // Force one immediate health probe so the hero flips quickly.
+      try {
+        for await (const evt of eng.compose.health(generatedDir)) {
+          if (evt.type === "health") {
+            healthStatus = evt.status === "healthy" ? "healthy" : "unhealthy";
+            break;
+          }
+        }
+      } catch {
+        // ignore — the 5s poll will catch up
+      }
+    } catch (e) {
+      removeToast(loadingId);
+      addToast("error", `Start failed: ${e instanceof Error ? e.message : "unknown error"}`, 6000);
+    } finally {
+      starting = false;
     }
   }
 
@@ -276,10 +309,10 @@
         >
           {#if isHealthy}
             F13 is up
-          {:else if healthStatus === "unhealthy"}
-            F13 has issues
+          {:else if healthStatus === "checking"}
+            Checking F13…
           {:else}
-            F13 status
+            F13 is stopped
           {/if}
         </div>
         <div
@@ -301,26 +334,48 @@
           </div>
         {/if}
 
-        <!-- Open in browser button (white, on dark) -->
-        <button
-          type="button"
-          onclick={handleOpenBrowser}
-          class="relative w-full inline-flex items-center justify-center gap-2 font-semibold cursor-pointer"
-          style:padding="11px 14px"
-          style:background="#fff"
-          style:color="#000"
-          style:border="none"
-          style:border-radius="10px"
-          style:font-size="13px"
-          style:font-family="var(--f13-font)"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="2" y1="12" x2="22" y2="12" />
-            <path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z" />
-          </svg>
-          Open F13 in browser
-        </button>
+        <!-- Contextual hero CTA: Start when stopped, Open browser when healthy -->
+        {#if isHealthy}
+          <button
+            type="button"
+            onclick={handleOpenBrowser}
+            class="relative w-full inline-flex items-center justify-center gap-2 font-semibold cursor-pointer"
+            style:padding="11px 14px"
+            style:background="#fff"
+            style:color="#000"
+            style:border="none"
+            style:border-radius="10px"
+            style:font-size="13px"
+            style:font-family="var(--f13-font)"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z" />
+            </svg>
+            Open F13 in browser
+          </button>
+        {:else}
+          <button
+            type="button"
+            onclick={handleStart}
+            disabled={starting || healthStatus === "checking"}
+            class="relative w-full inline-flex items-center justify-center gap-2 font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+            style:padding="11px 14px"
+            style:background="#fff"
+            style:color="#000"
+            style:border="none"
+            style:border-radius="10px"
+            style:font-size="13px"
+            style:font-family="var(--f13-font)"
+            data-testid="status-start-btn"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <polygon points="6 4 20 12 6 20 6 4" />
+            </svg>
+            {starting ? "Starting…" : healthStatus === "checking" ? "Checking…" : "Start F13"}
+          </button>
+        {/if}
       </div>
 
       <!-- Service grid -->
@@ -378,7 +433,7 @@
           <Button
             variant="secondary"
             size="sm"
-            disabled={stopping}
+            disabled={stopping || !isHealthy}
             onclick={handleStop}
           >
             {stopping ? "Stopping…" : "Stop F13"}
