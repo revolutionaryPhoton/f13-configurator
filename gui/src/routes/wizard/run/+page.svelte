@@ -137,12 +137,27 @@
 
     async function run(engine: Engine) {
       try {
+        // HF4: when state already exists on disk we're reconfiguring a
+        // running stack — the wizard's default "keep" branch would skip
+        // secrets/render/build/pull and never write the new selections.
+        // Force the "edit" path so the user's choices actually land.
+        let stateAction: "keep" | "edit" | "reset" | undefined;
+        try {
+          const state = await engine.detectState(generatedDir);
+          if (state.exists) stateAction = "edit";
+        } catch {
+          // detectState failure is not fatal — fall through with undefined
+          // and let the wizard's own state::check handle it.
+        }
+        if (cancelToken.cancelled) return;
+
         for await (const evt of engine.runWizardNonInteractive({
           backend,
           ...(ollamaModel !== undefined ? { ollamaModel } : {}),
           frontendPort,
           corePort,
           generatedDir,
+          ...(stateAction !== undefined ? { stateAction } : {}),
         })) {
           if (cancelToken.cancelled) break;
           if (evt.type === "step") handleStepEvent(evt as StepEvent);

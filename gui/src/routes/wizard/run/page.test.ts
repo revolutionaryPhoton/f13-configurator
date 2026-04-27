@@ -54,7 +54,7 @@ describe("wizard/run/+page.svelte", () => {
     const { getByRole } = render(RunPage, { engine: makeNeverEngine(), backend: "mock" });
     // Heading reflects pipeline state — pre-events it reads "Setting up…"
     expect(getByRole("heading", { level: 1 }).textContent).toMatch(
-      /setting up|f13 is up|setup failed/i,
+      /setting up|f13 is up|setup failed/i
     );
   });
 
@@ -243,7 +243,7 @@ describe("wizard/run/+page.svelte", () => {
     const { getByRole } = render(RunPage, { engine: null, backend: "mock" });
     // Heading reflects pipeline state — pre-events it reads "Setting up…"
     expect(getByRole("heading", { level: 1 }).textContent).toMatch(
-      /setting up|f13 is up|setup failed/i,
+      /setting up|f13 is up|setup failed/i
     );
   });
 
@@ -307,5 +307,42 @@ describe("wizard/run/+page.svelte", () => {
     const { getByTestId } = render(RunPage, { engine, backend: "mock" });
     await waitFor(() => expect(getByTestId("step-secrets")).toHaveAttribute("data-status", "done"));
     expect(getByTestId("step-secrets")).not.toHaveAttribute("data-skipped");
+  });
+
+  // HF4: when state already exists, the wizard must run with
+  // stateAction:"edit" — otherwise the default "keep" branch silently
+  // no-ops and the user's new backend choice is never written.
+  it("passes stateAction:'edit' to the wizard when state exists (HF4)", async () => {
+    const engine = makeEngine([{ type: "done", status: "ok" } as DoneEvent]);
+    (engine.detectState as ReturnType<typeof vi.fn>).mockResolvedValue({
+      type: "state",
+      exists: true,
+      preset: "core+frontend+chat",
+      backend: "mock",
+      model: "",
+      frontendPort: 9999,
+      corePort: 8000,
+      timestamp: "2026-04-27T08:00:00Z",
+    });
+    render(RunPage, { engine, backend: "ollama" });
+    await waitFor(() => {
+      expect(engine.runWizardNonInteractive).toHaveBeenCalled();
+    });
+    const args = (engine.runWizardNonInteractive as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(args.stateAction).toBe("edit");
+  });
+
+  it("omits stateAction on a fresh init (HF4)", async () => {
+    const engine = makeEngine([{ type: "done", status: "ok" } as DoneEvent]);
+    (engine.detectState as ReturnType<typeof vi.fn>).mockResolvedValue({
+      type: "state",
+      exists: false,
+    });
+    render(RunPage, { engine, backend: "mock" });
+    await waitFor(() => {
+      expect(engine.runWizardNonInteractive).toHaveBeenCalled();
+    });
+    const args = (engine.runWizardNonInteractive as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(args.stateAction).toBeUndefined();
   });
 });
