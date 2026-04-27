@@ -168,6 +168,70 @@ teardown() {
   [ "$output" = "7777" ]
 }
 
+@test "state::read does not clobber env-set CHAT_BACKEND (HF4 regression)" {
+  # GUI reconfigure passes CHAT_BACKEND=ollama via env. state::read must
+  # not overwrite it with the previously-saved 'mock' from disk.
+  printf 'CHAT_BACKEND=mock\nOLLAMA_MODEL=\nFRONTEND_PORT=9999\nCORE_PORT=8000\n' \
+    > "${TMPDIR_TEST}/.state"
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/state.sh'
+    CHAT_BACKEND='ollama'
+    state::read '${TMPDIR_TEST}/.state'
+    printf '%s' \"\${CHAT_BACKEND}\"
+  "
+  [ "$status" -eq 0 ]
+  [ "$output" = "ollama" ]
+}
+
+@test "state::read does not clobber env-set OLLAMA_MODEL (HF4 regression)" {
+  printf 'CHAT_BACKEND=ollama\nOLLAMA_MODEL=llama3.2:3b\nFRONTEND_PORT=9999\nCORE_PORT=8000\n' \
+    > "${TMPDIR_TEST}/.state"
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/state.sh'
+    OLLAMA_MODEL='gemma4:31b-cloud'
+    state::read '${TMPDIR_TEST}/.state'
+    printf '%s' \"\${OLLAMA_MODEL}\"
+  "
+  [ "$status" -eq 0 ]
+  [ "$output" = "gemma4:31b-cloud" ]
+}
+
+@test "state::read does not clobber env-set FRONTEND_PORT (HF4 regression)" {
+  printf 'CHAT_BACKEND=mock\nOLLAMA_MODEL=\nFRONTEND_PORT=9999\nCORE_PORT=8000\n' \
+    > "${TMPDIR_TEST}/.state"
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/state.sh'
+    FRONTEND_PORT='7777'
+    state::read '${TMPDIR_TEST}/.state'
+    printf '%s' \"\${FRONTEND_PORT}\"
+  "
+  [ "$status" -eq 0 ]
+  [ "$output" = "7777" ]
+}
+
+@test "state::read still loads from disk when env var is empty" {
+  # Interactive `edit` flow: no env vars pre-set, state values must
+  # become the prompt defaults.
+  printf 'CHAT_BACKEND=ollama\nOLLAMA_MODEL=llama3.2:3b\nFRONTEND_PORT=8888\nCORE_PORT=8000\n' \
+    > "${TMPDIR_TEST}/.state"
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/state.sh'
+    CHAT_BACKEND=''
+    OLLAMA_MODEL=''
+    FRONTEND_PORT=''
+    state::read '${TMPDIR_TEST}/.state'
+    printf 'b=%s m=%s p=%s' \"\${CHAT_BACKEND}\" \"\${OLLAMA_MODEL}\" \"\${FRONTEND_PORT}\"
+  "
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"b=ollama"* ]]
+  [[ "$output" == *"m=llama3.2:3b"* ]]
+  [[ "$output" == *"p=8888"* ]]
+}
+
 @test "state::read round-trips with state::write" {
   run bash -c "
     source '${LIB_DIR}/ui.sh'
