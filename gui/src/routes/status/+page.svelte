@@ -44,6 +44,7 @@
 
   let stopping = $state(false);
   let starting = $state(false);
+  let reconfiguring = $state(false);
   let resetting = $state(false);
 
   let resetConfirmOpen = $state(false);
@@ -130,6 +131,34 @@
     } finally {
       stopping = false;
     }
+  }
+
+  // Reconfigure on a running stack must bring it down before the wizard
+  // re-enters port selection — otherwise the ports the user just chose
+  // are still bound by the previous run's containers (HF4). compose.down
+  // is idempotent so the call is safe even if the stack is already
+  // stopped or never started.
+  async function handleReconfigure() {
+    const eng = injectedEngine ?? getEngine();
+    if (!eng || reconfiguring) return;
+    reconfiguring = true;
+    const loadingId = addToast("info", "Stopping current stack…", 0);
+    try {
+      if (healthStatus !== "unhealthy") {
+        await eng.compose.down(generatedDir);
+      }
+      removeToast(loadingId);
+      goto("/wizard/preflight");
+    } catch (e) {
+      removeToast(loadingId);
+      addToast(
+        "error",
+        `Could not stop stack: ${e instanceof Error ? e.message : "unknown error"}`,
+        6000
+      );
+      reconfiguring = false;
+    }
+    // No finally-reset on success: navigation tears the page down.
   }
 
   async function handleStart() {
@@ -237,12 +266,13 @@
     </div>
     <button
       type="button"
-      onclick={() => goto("/wizard/preflight")}
-      class="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted hover:text-text hover:bg-surface-raised rounded-md transition-colors"
+      onclick={handleReconfigure}
+      disabled={reconfiguring}
+      class="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted hover:text-text hover:bg-surface-raised rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       aria-label="Reconfigure F13"
       data-testid="reconfigure-btn"
     >
-      Reconfigure
+      {reconfiguring ? "Stopping…" : "Reconfigure"}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="5" y1="12" x2="19" y2="12" />
         <polyline points="12 5 19 12 12 19" />

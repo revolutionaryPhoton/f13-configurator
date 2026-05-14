@@ -312,6 +312,31 @@ describe("status/+page.svelte", () => {
     await waitFor(() => expect(goto).toHaveBeenCalledWith("/wizard/preflight"));
   });
 
+  // HF4: clicking Reconfigure on a healthy stack must stop the
+  // containers first — otherwise the wizard's port check on the next
+  // screen sees the previous run's containers still bound to the ports.
+  it("Reconfigure stops a healthy stack before navigating (HF4)", async () => {
+    const engine = makeEngine([healthyEvent]);
+    const { getByTestId } = render(StatusPage, { engine });
+    await fireEvent.click(getByTestId("reconfigure-btn"));
+    await waitFor(() => expect(engine.compose.down).toHaveBeenCalledWith("./generated"));
+  });
+
+  it("Reconfigure does NOT call compose.down on an already-stopped stack (HF4)", async () => {
+    // healthStatus stays "checking" until health stream yields, but
+    // never-yield mimics the stopped case from the user's perspective.
+    // What we actually care about: if the stack is reported unhealthy,
+    // skip the down call to save a roundtrip.
+    const engine = makeEngine([unhealthyEvent]);
+    const { getByTestId } = render(StatusPage, { engine });
+    // Wait for the unhealthy health event to land
+    await waitFor(() => expect(getByTestId("health-badge").textContent).toContain("Stopped"));
+    await fireEvent.click(getByTestId("reconfigure-btn"));
+    const { goto } = await import("$app/navigation");
+    await waitFor(() => expect(goto).toHaveBeenCalledWith("/wizard/preflight"));
+    expect(engine.compose.down).not.toHaveBeenCalled();
+  });
+
   it("null engine renders without crashing", () => {
     const { getByTestId } = render(StatusPage, { engine: null });
     expect(getByTestId("page-heading")).toBeTruthy();

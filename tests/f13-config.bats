@@ -270,9 +270,14 @@ _run_mock_dry() {
 
 @test "re-run with edit action re-renders config" {
   env "${NI_ENV[@]}" "${BIN}" --dry-run
+  # Pre-existing test asserted the compose file exists — but that's
+  # true after the first run too, so it never actually checked the
+  # edit branch was entered. The "Editing configuration." banner
+  # is unique to the edit branch.
   run env "${NI_ENV[@]}" F13_STATE_ACTION=edit "${BIN}" --dry-run
   [ "$status" -eq 0 ]
   [ -f "${TMPDIR_WORK}/gen/docker-compose.yml" ]
+  [[ "$output" == *"Editing configuration"* ]]
 }
 
 @test "re-run with edit preserves feedback_db.secret (postgres volume stays in sync)" {
@@ -293,6 +298,39 @@ _run_mock_dry() {
   run env "${NI_ENV[@]}" F13_STATE_ACTION=reset "${BIN}" --dry-run
   [ "$status" -eq 0 ]
   [ -f "${TMPDIR_WORK}/gen/docker-compose.yml" ]
+}
+
+# HF4 neighbour: edit/reset must take the running stack down before
+# preflight. dry-run path emits the stop event as skipped so the GUI
+# can render the stage without actually touching Docker.
+
+@test "edit re-run emits stop step (skipped on dry-run)" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=edit "${BIN}" --emit-events --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"type":"step"'*'"name":"stop"'*'"status":"started"'* ]]
+  [[ "$output" == *'"type":"step"'*'"name":"stop"'*'"status":"done"'*'"skipped":"true"'* ]]
+}
+
+@test "reset re-run emits stop step (skipped on dry-run)" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=reset "${BIN}" --emit-events --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"type":"step"'*'"name":"stop"'*'"status":"started"'* ]]
+  [[ "$output" == *'"type":"step"'*'"name":"stop"'*'"status":"done"'*'"skipped":"true"'* ]]
+}
+
+@test "keep re-run does NOT emit a stop step" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=keep "${BIN}" --emit-events --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" != *'"name":"stop"'* ]]
+}
+
+@test "fresh init (no prior state) does NOT emit a stop step" {
+  run env "${NI_ENV[@]}" "${BIN}" --emit-events --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" != *'"name":"stop"'* ]]
 }
 
 # ---------------------------------------------------------------------------

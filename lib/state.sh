@@ -24,21 +24,26 @@ state::read() {
   local state_file="$1"
   [[ -f "${state_file}" ]] || return 1
 
+  # Env-set values win over on-disk state. The interactive `edit` flow
+  # invokes state::read with these vars unset, so state values become
+  # the prompt defaults; the GUI's reconfigure flow exports the user's
+  # new selections before running the wizard, and those must survive —
+  # otherwise HF4 (silent no-op on backend swap) reproduces.
   local _val
   _val="$(grep '^PRESET='        "${state_file}" 2>/dev/null | cut -d= -f2- || true)"
-  [[ -n "${_val}" ]] && PRESET="${_val}"
+  [[ -z "${PRESET:-}"        && -n "${_val}" ]] && PRESET="${_val}"
 
   _val="$(grep '^CHAT_BACKEND='  "${state_file}" 2>/dev/null | cut -d= -f2- || true)"
-  [[ -n "${_val}" ]] && CHAT_BACKEND="${_val}"
+  [[ -z "${CHAT_BACKEND:-}"  && -n "${_val}" ]] && CHAT_BACKEND="${_val}"
 
   _val="$(grep '^OLLAMA_MODEL='  "${state_file}" 2>/dev/null | cut -d= -f2- || true)"
-  OLLAMA_MODEL="${_val}"
+  [[ -z "${OLLAMA_MODEL:-}"  && -n "${_val}" ]] && OLLAMA_MODEL="${_val}"
 
   _val="$(grep '^FRONTEND_PORT=' "${state_file}" 2>/dev/null | cut -d= -f2- || true)"
-  [[ -n "${_val}" ]] && FRONTEND_PORT="${_val}"
+  [[ -z "${FRONTEND_PORT:-}" && -n "${_val}" ]] && FRONTEND_PORT="${_val}"
 
   _val="$(grep '^CORE_PORT='     "${state_file}" 2>/dev/null | cut -d= -f2- || true)"
-  [[ -n "${_val}" ]] && CORE_PORT="${_val}"
+  [[ -z "${CORE_PORT:-}"     && -n "${_val}" ]] && CORE_PORT="${_val}"
 
   _val="$(grep '^TIMESTAMP='     "${state_file}" 2>/dev/null | cut -d= -f2- || true)"
   export STATE_TIMESTAMP="${_val:-}"

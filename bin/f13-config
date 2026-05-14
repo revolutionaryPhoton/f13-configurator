@@ -86,6 +86,27 @@ _wizard_reset() {
   fi
 }
 
+# HF4 neighbour: edit/reset reconfigure flows must take down the
+# running stack before preflight, otherwise the new compose collides
+# with the previous run's containers on the same ports. No-op when
+# there is no rendered compose file to act on or when --dry-run was
+# requested (dry-run must not touch Docker).
+_wizard_stop_running_stack() {
+  local _dry_run="${1:-0}"
+  if [[ ! -f "${GEN_DIR}/docker-compose.yml" ]]; then
+    return 0
+  fi
+  events::emit step "name=stop" "status=started"
+  if [[ "${_dry_run}" -eq 1 ]]; then
+    events::emit step "name=stop" "status=done" "skipped=true"
+    return 0
+  fi
+  ui::step "Stopping running services..."
+  compose::down
+  events::emit step "name=stop" "status=done"
+  printf '\n'
+}
+
 _wizard_pick_inference() {
   if [[ -n "${F13_CONFIG_NONINTERACTIVE:-}" ]]; then
     CHAT_BACKEND="${CHAT_BACKEND:-mock}"
@@ -320,8 +341,13 @@ wizard() {
   ui::banner
   printf '\n'
 
-  # Idempotency check — if a previous run exists, ask how to proceed
-  F13_STATE_ACTION=""
+  # Idempotency check — if a previous run exists, ask how to proceed.
+  # Only blank F13_STATE_ACTION when the env did NOT set it; otherwise
+  # the GUI's reconfigure flow (which exports F13_STATE_ACTION=edit
+  # before invoking the wizard) would be silently downgraded to "keep"
+  # because state::check defaults the empty case to keep. Same class of
+  # bug as the state::read clobber fix in this branch.
+  F13_STATE_ACTION="${F13_STATE_ACTION:-}"
   if state::check "${GEN_DIR}"; then
     case "${F13_STATE_ACTION}" in
       keep)
@@ -345,11 +371,19 @@ wizard() {
         return 0
         ;;
       edit)
+        # HF4: bring the running stack down before preflight so the
+        # ports the user just configured (or kept) aren't blocked by
+        # the previous run's containers. Skipped on --dry-run.
+        _wizard_stop_running_stack "${_dry_run}"
         state::read "${GEN_DIR}/.state"
         ui::info "Editing configuration. Current values used as defaults."
         printf '\n'
         ;;
       reset)
+        # Same rationale as edit — kill the live stack before wiping
+        # generated/ and re-rendering. rm -rf would leave dangling
+        # containers attached to a now-missing compose file.
+        _wizard_stop_running_stack "${_dry_run}"
         rm -rf "${GEN_DIR}"
         ui::ok "generated/ wiped. Starting fresh."
         printf '\n'
