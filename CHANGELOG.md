@@ -7,6 +7,66 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-05-14
+
+> **Highlights:** HF4 fix — the GUI's Reconfigure flow now actually
+> swaps the chat backend (mock ↔ Ollama) on a running stack instead of
+> silently no-op'ing. Three compounding bugs found and fixed: env vars
+> clobbered by `state::read`, `F13_STATE_ACTION` shadowed before
+> `state::check` could read it, and containers left bound to the ports
+> the wizard was about to re-render onto.
+
+### Fixed — HF4: GUI reconfigure flow re-renders on backend swap
+
+- `lib/state.sh`: `state::read` lets env-set values win over on-disk
+  state for all five wizard vars (PRESET, CHAT_BACKEND, OLLAMA_MODEL,
+  FRONTEND_PORT, CORE_PORT). Previously the GUI's exported
+  `CHAT_BACKEND=ollama` was silently reverted to whatever the previous
+  run had saved. Also normalized `OLLAMA_MODEL` — was missing the
+  empty-state guard the other four had.
+- `bin/f13-config`: stopped unconditionally clearing `F13_STATE_ACTION`
+  before `state::check` reads it, so the GUI's exported
+  `F13_STATE_ACTION=edit` survives. Without this the idempotency check
+  defaulted to `keep` in non-interactive mode regardless of what the
+  GUI passed.
+- `bin/f13-config`: new `_wizard_stop_running_stack` helper called
+  from both `edit` and `reset` branches before preflight / `rm -rf`,
+  so the previous run's containers don't block the new compose from
+  claiming the chosen ports. Emits `step name=stop` events; skipped on
+  `--dry-run`.
+- `gui/src/routes/wizard/run/+page.svelte`: calls
+  `engine.detectState(generatedDir)` before `runWizardNonInteractive`
+  and passes `stateAction: "edit"` when state exists, so the wizard
+  takes the edit branch instead of the default keep branch.
+- `gui/src/routes/status/+page.svelte`: Reconfigure button now calls
+  `engine.compose.down(generatedDir)` before navigating to
+  `/wizard/preflight` (skipped if the stack is already
+  unhealthy/stopped). Without this early stop, the wizard's port check
+  at `/wizard/ports` reported both ports as in-use by the previous
+  run's containers and the user got stuck. Shows a "Stopping current
+  stack…" toast + "Stopping…" button label during the call.
+
+### Tests
+
+- 4 new bats regressions in `tests/state.bats` covering env-wins for
+  `CHAT_BACKEND`, `OLLAMA_MODEL`, `FRONTEND_PORT`, plus an empty-env
+  case to lock in the interactive-edit defaults.
+- 4 new bats assertions in `tests/f13-config.bats` covering stop event
+  emission on edit / reset and its absence on keep / fresh init.
+- Pre-existing `re-run with edit action re-renders config` tightened —
+  old form only checked `docker-compose.yml` existed (true after the
+  first run too); now asserts the unique `Editing configuration.`
+  banner so the edit branch was provably entered.
+- 4 new vitest assertions covering `stateAction:"edit"` plumbing in
+  the run page and `compose.down` invocation on the Reconfigure
+  button.
+
+### Drive-by
+
+- Fixed two trailing-comma format errors in
+  `gui/src/routes/wizard/run/page.test.ts` that were left by `d452fc3`
+  and were blocking `npm run check`.
+
 ## [0.3.0] — 2026-04-26
 
 > **Highlights:** Linux runtime parity for the GUI (WSL2 Ubuntu 22.04

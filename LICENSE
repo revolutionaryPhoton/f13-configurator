@@ -19,28 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-## Runtime dependencies
-
-This software invokes the following external tools as separate processes.
-Their licenses apply to those tools independently and do not affect the
-license of this software.
-
-| Tool         | License        | Notes                                      |
-|--------------|----------------|--------------------------------------------|
-| bash         | GPL-2.0+       | Interpreter; not incorporated as source    |
-| docker       | Apache-2.0     | Container runtime                          |
-| curl         | curl (MIT-like)| HTTP client                                |
-| awk          | GPL-3.0        | Text processing utility                    |
-| sed          | GPL-3.0        | Text processing utility                    |
-| envsubst     | GPL-3.0        | Part of gettext; template substitution     |
-| openssl      | Apache-2.0     | Secret generation fallback                 |
-| lsof / ss    | GPL / GPL-2.0  | Port availability probing                  |
-| bats-core    | MIT            | Test framework (dev dependency only)       |
-| shellcheck   | GPL-3.0        | Linter (dev dependency only)               |
-
-Invoking a GPL-licensed binary as an external process does not make this
-software a "derivative work" under the GPL. The MIT license of this software
-is therefore compatible with all tools listed above.
