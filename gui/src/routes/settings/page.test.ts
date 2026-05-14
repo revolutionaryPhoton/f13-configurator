@@ -11,9 +11,14 @@ vi.mock("$lib/theme.js", () => ({
 
 import { goto } from "$app/navigation";
 import { setTheme as persistTheme } from "$lib/theme.js";
+import { zoom } from "$lib/zoom.js";
 
 describe("settings/+page.svelte", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    zoom.reset();
+    localStorage.clear();
+  });
 
   it("renders the Settings heading", () => {
     const { getByRole } = render(SettingsPage);
@@ -157,5 +162,65 @@ describe("settings/+page.svelte", () => {
     const { getByRole } = render(SettingsPage);
     await fireEvent.click(getByRole("button", { name: /back to status/i }));
     expect(goto).toHaveBeenCalledWith("/status");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Zoom control
+  // ---------------------------------------------------------------------------
+
+  it("renders zoom control with zoom-in, zoom-out, and zoom-reset buttons", () => {
+    const { getByTestId } = render(SettingsPage);
+    expect(getByTestId("zoom-in")).toBeTruthy();
+    expect(getByTestId("zoom-out")).toBeTruthy();
+    expect(getByTestId("zoom-reset")).toBeTruthy();
+  });
+
+  it("displays 100% zoom level by default", async () => {
+    const { getByTestId } = render(SettingsPage);
+    await waitFor(() => expect(getByTestId("zoom-reset").textContent?.trim()).toBe("100%"));
+  });
+
+  it("zoom-out is disabled at minimum zoom", async () => {
+    zoom.setZoom(0.6);
+    const { getByTestId } = render(SettingsPage);
+    await waitFor(() => expect(getByTestId("zoom-out").hasAttribute("disabled")).toBe(true));
+  });
+
+  it("zoom-in is disabled at maximum zoom", async () => {
+    zoom.setZoom(2.0);
+    const { getByTestId } = render(SettingsPage);
+    await waitFor(() => expect(getByTestId("zoom-in").hasAttribute("disabled")).toBe(true));
+  });
+
+  it("clicking zoom-in updates display to 110%", async () => {
+    const { getByTestId } = render(SettingsPage);
+    await fireEvent.click(getByTestId("zoom-in"));
+    await waitFor(() => expect(getByTestId("zoom-reset").textContent?.trim()).toBe("110%"));
+  });
+
+  it("clicking zoom-out updates display to 90%", async () => {
+    const { getByTestId } = render(SettingsPage);
+    await fireEvent.click(getByTestId("zoom-out"));
+    await waitFor(() => expect(getByTestId("zoom-reset").textContent?.trim()).toBe("90%"));
+  });
+
+  it("clicking zoom-reset returns display to 100%", async () => {
+    zoom.setZoom(1.4);
+    const { getByTestId } = render(SettingsPage);
+    await fireEvent.click(getByTestId("zoom-reset"));
+    await waitFor(() => expect(getByTestId("zoom-reset").textContent?.trim()).toBe("100%"));
+  });
+
+  it("zoom control has accessible group label", () => {
+    const { getByRole } = render(SettingsPage);
+    expect(getByRole("group", { name: /zoom/i })).toBeTruthy();
+  });
+
+  // S42 spec: the locale picker is welcome-screen-only. Anywhere else
+  // would dilute its discoverability and add a per-screen language
+  // switcher we explicitly didn't want.
+  it("does NOT render a locale picker (welcome-only rule)", () => {
+    const { queryByRole } = render(SettingsPage);
+    expect(queryByRole("group", { name: /language/i })).toBeNull();
   });
 });

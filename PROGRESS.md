@@ -56,10 +56,10 @@ S42/S43/S44 can be meaningfully built.
 
 | Story | Description | Status |
 |-------|-------------|--------|
-| S41 | i18n infrastructure + English baseline catalog | pending |
-| S42 | Locale picker on welcome screen + localStorage persistence | pending |
-| S43 | German + French + Spanish translations of the English catalog | pending |
-| S44 | Zoom — Tauri 2 research + keyboard shortcuts + UI control | pending |
+| S41 | i18n infrastructure + English baseline catalog | complete ✅ |
+| S42 | Locale picker on welcome screen + localStorage persistence | complete ✅ |
+| S43 | German + French + Spanish translations of the English catalog | complete ✅ |
+| S44 | Zoom — Tauri 2 research + keyboard shortcuts + UI control | complete ✅ |
 
 Feature branch: `feat/phase9-i18n-zoom` (create on first iteration if
 absent; subsequent iterations commit onto it). A single Phase 9 PR
@@ -83,6 +83,15 @@ open per-story PRs.
 > Out-of-loop stories carried forward for context: S33, S35, S36 from
 > the original numbering were maintainer hand-fixes (HF1/HF2/HF3) and
 > shipped via interactive sessions, not the loop.
+
+- S44 completed: zoom feature implemented via CSS-zoom (document.documentElement.style.zoom).
+  Research notes: native Tauri/WKWebView/WebView2 shortcut pass-through is inconsistent
+  across platforms; CSS zoom requires no Rust code and works in all three webview backends.
+  zoom.ts writable store (0.6–2.0, step 0.1) with clampZoom, zoomKeyHandler (Ctrl/Cmd
+  +/=/−/0), localStorage persistence under f13.configurator.zoom. +layout.svelte subscribes
+  and applies zoom to html element; registers/removes keydown handler. Settings page adds
+  compact −/100%/+ stepper in Appearance section. i18n zoom keys added to all four locales.
+  26 new vitest tests; total 374/374 green. Phase 9 all four stories complete.
 
 ## Notes
 
@@ -404,6 +413,28 @@ open per-story PRs.
   (with `data-testid="build-progress"`). Tests: 3 new events.bats, 4 new f13-config.bats,
   4 new vitest. Shell: 273/273 bats ✅, shellcheck clean.
   GUI: npm run check ✅ biome ✅ vitest 265/287 ✅ (22 pre-existing) cargo check ✅.
+
+- S43 completed: German, French, and Spanish locale catalogs — `de.json`, `fr.json`, `es.json`
+  each containing all ~120 dot-namespaced keys from `en.json`. Brand terms (F13, Ollama, Docker,
+  mock, compose, cloud) kept in English; technical commands (`$ f13-config --start`, `model:tag`,
+  docker compose log command) kept verbatim. Tone: formal Sie/vous/usted or neutral infinitive
+  as appropriate. `locales.ts`: side-effect module that calls `registerCatalog` for de/fr/es;
+  imported in `+layout.svelte` at module level so all catalogs are registered before any `t()`
+  call. `locales.test.ts`: 12 vitest tests (4 per locale) — exhaustive key completeness (no
+  missing, no extras), non-empty values, and {var} placeholder parity against the English catalog.
+  GUI: npm run check ✅ biome ✅ vitest 339/339 ✅ cargo check ✅.
+
+- S41 completed: i18n infrastructure + English baseline catalog — hand-rolled TypeScript
+  module at `gui/src/lib/i18n/` (zero new npm deps). `en.json`: ~120 dot-namespaced keys
+  covering every user-visible string across all 8 route pages and 2 shared components.
+  `index.ts`: `t(key, vars?)` with `{var}` interpolation, `setLocale`/`getLocale`,
+  `registerCatalog` for future locale catalogs (S43); fallback chain: locale catalog →
+  English catalog → key itself. All 8 `+page.svelte` routes + `Tile.svelte` +
+  `StepHeader.svelte` migrated to `t()`. `index.test.ts`: 22 vitest tests covering
+  baseline English, locale switching, fallback chain, interpolation (single/multiple/
+  numeric), unreplaced placeholders, and non-destructive repeated calls.
+  Shell: 273/273 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
+  vitest 316/316 ✅ cargo check ✅.
 
 - S32 completed: Phase 7.5 bash/bats fix — `bin/f13-reset` and `bin/f13-stop` already used
   `${F13_GENERATED_DIR:-…}` but had no tests exercising the custom-path code path. Added

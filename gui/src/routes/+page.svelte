@@ -2,7 +2,9 @@
   import { goto } from "$app/navigation";
   import { getGeneratedDir } from "$lib/bootstrap.js";
   import Button from "$lib/components/Button.svelte";
+  import { t } from "$lib/i18n/index.js";
   import F13Logo from "$lib/components/F13Logo.svelte";
+  import LocalePicker from "$lib/components/LocalePicker.svelte";
   import type { Engine, StateEvent } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
 
@@ -100,13 +102,13 @@
         class="m-0 text-xl font-semibold text-text"
         style:letter-spacing="-0.2px"
       >
-        F13 Configurator
+        {t("welcome.title")}
       </h1>
       <p
         class="mt-1.5 mb-0 text-[12px] text-subtle"
         style:letter-spacing="0.3px"
       >
-        Minimal · Batteries included · One command
+        {t("welcome.tagline")}
       </p>
     </div>
 
@@ -132,7 +134,7 @@
       >
         <div class="flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-success" aria-hidden="true"></span>
-          <p class="text-sm font-medium text-success">F13 is already running</p>
+          <p class="text-sm font-medium text-success">{t("welcome.alreadyRunning.title")}</p>
         </div>
         <div class="flex flex-col gap-2">
           <Button
@@ -140,7 +142,7 @@
             size="sm"
             onclick={() => goto("/status")}
           >
-            Show status
+            {t("welcome.alreadyRunning.showStatus")}
           </Button>
           <Button
             variant="secondary"
@@ -148,7 +150,7 @@
             disabled={stopping}
             onclick={handleStopAndReconfigure}
           >
-            {stopping ? "Stopping…" : "Stop & reconfigure"}
+            {stopping ? t("welcome.alreadyRunning.stopping") : t("welcome.alreadyRunning.stopAndReconfigure")}
           </Button>
           {#if stopError}
             <p class="text-xs text-error" data-testid="stop-error">{stopError}</p>
@@ -163,7 +165,7 @@
           class="w-full"
           onclick={() => goto("/wizard/preflight")}
         >
-          Begin setup
+          {t("welcome.beginSetup")}
         </Button>
 
         {#if !loading && hasState}
@@ -173,7 +175,7 @@
             class="w-full"
             onclick={() => goto("/status")}
           >
-            Open existing setup
+            {t("welcome.openExisting")}
           </Button>
         {/if}
       </div>
@@ -183,15 +185,16 @@
     <p
       class="m-0 mt-1.5 text-[11px] text-subtle text-center leading-relaxed"
     >
-      Keycloak guest mode · No hand-editing required
+      {t("welcome.footer")}
     </p>
   </div>
 
-  <!-- Tiny absolute-bottom credit -->
+  <!-- Absolute bottom bar: copyright + locale picker -->
   <div
-    class="absolute bottom-3.5 left-0 right-0 text-center text-[10px] text-subtle"
+    class="absolute bottom-3.5 left-0 right-0 flex items-center justify-between px-6 text-[10px] text-subtle"
     style:font-family="var(--f13-font-mono)"
   >
-    MIT · © 2026 David Moch
+    <span>MIT · © 2026 David Moch</span>
+    <LocalePicker />
   </div>
 </div>

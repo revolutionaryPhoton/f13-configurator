@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { t } from "$lib/i18n/index.js";
 
   // Step indicator + optional Back button. Matches the design canvas spec.
   interface Props {
@@ -8,7 +9,8 @@
     onBack?: () => void;
     backLabel?: string;
   }
-  let { step, total, onBack, backLabel = "Back" }: Props = $props();
+  let { step, total, onBack, backLabel }: Props = $props();
+  const resolvedBackLabel = $derived(backLabel ?? t("common.back"));
 
   const dots = $derived(Array.from({ length: total }, (_, i) => i + 1));
 </script>
@@ -36,7 +38,7 @@
         <line x1="19" y1="12" x2="5" y2="12" />
         <polyline points="12 19 5 12 12 5" />
       </svg>
-      {backLabel}
+      {resolvedBackLabel}
     </button>
   {:else}
     <span></span>
@@ -44,7 +46,7 @@
 
   <div
     class="flex items-center gap-2 text-[11px] text-subtle font-sans"
-    aria-label={`Step ${step} of ${total}`}
+    aria-label={t("stepHeader.stepOf", { step, total })}
   >
     {#each dots as i (i)}
       <span
@@ -56,6 +58,6 @@
           : "var(--f13-border-strong)"}
       ></span>
     {/each}
-    <span class="ml-1.5">Step {step} of {total}</span>
+    <span class="ml-1.5">{t("stepHeader.stepOf", { step, total })}</span>
   </div>
 </div>

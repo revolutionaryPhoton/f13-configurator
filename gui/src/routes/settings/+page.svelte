@@ -5,7 +5,9 @@
   import Button from "$lib/components/Button.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import Toast from "$lib/components/Toast.svelte";
+  import { t } from "$lib/i18n/index.js";
   import { getTheme, setTheme as persistTheme, type Theme } from "$lib/theme.js";
+  import { zoom, ZOOM_MIN, ZOOM_MAX } from "$lib/zoom.js";
 
   interface Props {
     /** Injectable for tests and Tauri production (tauri-apps/plugin-fs). */
@@ -124,9 +126,9 @@
     try {
       const clip = clipProp ?? ((t: string) => navigator.clipboard.writeText(t));
       await clip(file.content);
-      pushToast("success", `${file.label} copied`);
+      pushToast("success", t("settings.config.toast.copied", { label: file.label }));
     } catch {
-      pushToast("error", "Failed to copy to clipboard");
+      pushToast("error", t("settings.config.toast.copyFailed"));
     } finally {
       file.copying = false;
     }
@@ -166,7 +168,7 @@
   <header class="flex items-center gap-2">
     <button
       type="button"
-      aria-label="Back to status"
+      aria-label={t("settings.back")}
       onclick={() => goto("/status")}
       class="rounded-full p-1.5 text-text-muted hover:bg-text/5 transition-colors duration-150
              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
@@ -186,7 +188,7 @@
         />
       </svg>
     </button>
-    <h1 class="text-lg font-semibold text-text">Settings</h1>
+    <h1 class="text-lg font-semibold text-text">{t("settings.title")}</h1>
   </header>
 
   <!-- Appearance -->
@@ -194,12 +196,12 @@
     aria-labelledby="appearance-heading"
     class="rounded-xl bg-surface shadow-sm p-4 space-y-3"
   >
-    <h2 id="appearance-heading" class="text-sm font-semibold text-text">Appearance</h2>
+    <h2 id="appearance-heading" class="text-sm font-semibold text-text">{t("settings.appearance.title")}</h2>
     <div class="flex items-center justify-between gap-4">
-      <span class="text-sm text-text-muted">Theme</span>
+      <span class="text-sm text-text-muted">{t("settings.appearance.theme")}</span>
       <div
         role="radiogroup"
-        aria-label="Theme"
+        aria-label={t("settings.appearance.theme")}
         class="flex gap-0.5 rounded-lg bg-surface-raised p-0.5"
       >
         {#each themeOptions as option}
@@ -221,6 +223,50 @@
         {/each}
       </div>
     </div>
+
+    <!-- Zoom control -->
+    <div class="flex items-center justify-between gap-4">
+      <span class="text-sm text-text-muted">{t("settings.appearance.zoom")}</span>
+      <div
+        role="group"
+        aria-label={t("settings.appearance.zoom")}
+        class="flex items-center gap-0.5 rounded-lg bg-surface-raised p-0.5"
+      >
+        <button
+          type="button"
+          aria-label={t("settings.appearance.zoomOut")}
+          data-testid="zoom-out"
+          disabled={$zoom <= ZOOM_MIN}
+          onclick={() => zoom.zoomOut()}
+          class="rounded-md w-7 h-7 flex items-center justify-center text-sm font-medium
+                 text-text-muted hover:text-text hover:bg-surface
+                 disabled:opacity-40 disabled:pointer-events-none
+                 transition-colors duration-150 focus-visible:outline-none
+                 focus-visible:ring-2 focus-visible:ring-primary/30"
+        >−</button>
+        <button
+          type="button"
+          aria-label={t("settings.appearance.zoomReset")}
+          data-testid="zoom-reset"
+          onclick={() => zoom.reset()}
+          class="rounded-md px-2.5 py-0.5 text-xs font-mono font-medium text-text
+                 hover:bg-surface transition-colors duration-150 min-w-[3.25rem] text-center
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        >{Math.round($zoom * 100)}%</button>
+        <button
+          type="button"
+          aria-label={t("settings.appearance.zoomIn")}
+          data-testid="zoom-in"
+          disabled={$zoom >= ZOOM_MAX}
+          onclick={() => zoom.zoomIn()}
+          class="rounded-md w-7 h-7 flex items-center justify-center text-sm font-medium
+                 text-text-muted hover:text-text hover:bg-surface
+                 disabled:opacity-40 disabled:pointer-events-none
+                 transition-colors duration-150 focus-visible:outline-none
+                 focus-visible:ring-2 focus-visible:ring-primary/30"
+        >+</button>
+      </div>
+    </div>
   </section>
 
   <!-- Generated config -->
@@ -229,10 +275,9 @@
     class="rounded-xl bg-surface shadow-sm p-4 space-y-3"
   >
     <div>
-      <h2 id="config-heading" class="text-sm font-semibold text-text">Generated config</h2>
+      <h2 id="config-heading" class="text-sm font-semibold text-text">{t("settings.config.title")}</h2>
       <p class="text-xs text-text-muted mt-0.5">
-        Read-only view of files in
-        <code class="rounded bg-surface-raised px-1 py-0.5 font-mono">{generatedDir}</code>.
+        {t("settings.config.subtitle", { dir: generatedDir })}
       </p>
     </div>
 
@@ -282,7 +327,7 @@
                        focus-visible:outline-none focus-visible:ring-2
                        focus-visible:ring-primary/30"
               >
-                {file.copying ? "Copying…" : "Copy"}
+                {file.copying ? t("settings.config.copying") : t("settings.config.copy")}
               </button>
             {/if}
           </div>
@@ -295,7 +340,7 @@
                   class="text-xs text-text-muted animate-pulse"
                   data-testid={`loading-${file.path}`}
                 >
-                  Loading…
+                  {t("settings.config.loading")}
                 </p>
               {:else if file.content !== null}
                 <pre
@@ -320,11 +365,11 @@
     class="rounded-xl bg-surface shadow-sm p-4 space-y-3"
   >
     <div>
-      <h2 id="prompts-heading" class="text-sm font-semibold text-text">System prompts</h2>
-      <p class="text-xs text-text-muted mt-0.5">Customise the AI's default instructions.</p>
+      <h2 id="prompts-heading" class="text-sm font-semibold text-text">{t("settings.prompts.title")}</h2>
+      <p class="text-xs text-text-muted mt-0.5">{t("settings.prompts.subtitle")}</p>
     </div>
     <div class="flex items-center justify-between gap-4">
-      <p class="text-xs text-text-subtle">Available in a future release.</p>
+      <p class="text-xs text-text-subtle">{t("settings.prompts.hint")}</p>
       <button
         type="button"
         aria-disabled="true"
@@ -337,7 +382,7 @@
                cursor-not-allowed hover:opacity-70 transition-opacity duration-150
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
       >
-        Edit system prompt
+        {t("settings.prompts.edit")}
       </button>
     </div>
   </section>
@@ -358,15 +403,14 @@
 
 <!-- Coming-soon modal -->
 <Modal
-  title="Custom system prompts"
+  title={t("settings.prompts.modal.title")}
   open={comingSoonOpen}
   onclose={() => {
     comingSoonOpen = false;
   }}
 >
   <p class="text-sm text-text-muted leading-relaxed">
-    Custom system prompts are on the F13 roadmap. In a future release you'll be able to
-    edit the default AI instructions without editing YAML files.
+    {t("settings.prompts.modal.body")}
   </p>
   <div class="pt-2 flex justify-end">
     <Button
@@ -376,7 +420,7 @@
         comingSoonOpen = false;
       }}
     >
-      Got it
+      {t("settings.prompts.modal.gotIt")}
     </Button>
   </div>
 </Modal>

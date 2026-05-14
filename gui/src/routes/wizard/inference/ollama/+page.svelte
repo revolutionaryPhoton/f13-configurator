@@ -3,6 +3,7 @@
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
   import Footer from "$lib/components/Footer.svelte";
+  import { t } from "$lib/i18n/index.js";
   import PageBody from "$lib/components/PageBody.svelte";
   import PageTitle from "$lib/components/PageTitle.svelte";
   import StepHeader from "$lib/components/StepHeader.svelte";
@@ -137,9 +138,9 @@
 
   <PageBody narrow>
     <PageTitle
-      kicker="Ollama"
-      title="Choose a model"
-      subtitle="Pick which Ollama model the chat service should use."
+      kicker={t("ollamaModel.kicker")}
+      title={t("ollamaModel.title")}
+      subtitle={t("ollamaModel.subtitle")}
     />
 
     <!-- GPU / cloud warning — colored left-border accent -->
@@ -156,39 +157,21 @@
         style:letter-spacing="0.5px"
         style:color="var(--f13-warning)"
       >
-        GPU recommended
+        {t("ollamaModel.gpuWarning.title")}
       </div>
-      Larger models need a capable GPU. Cloud-tagged models (e.g.
-      <code
-        class="px-1"
-        style:font-family="var(--f13-font-mono)"
-        style:font-size="11px"
-        style:background="var(--f13-surface)"
-      >gemma4:31b-cloud</code>) require a signed-in Ollama account
-      and won't appear in the list below — type the name into the
-      <em>Use any model name</em> field instead.
+      <!-- eslint-disable-next-line svelte/no-at-html-tags — variables are
+           hard-coded labels / examples, not user input -->
+      {@html t("ollamaModel.gpuWarning.body", {
+        cloudExample: "gemma4:31b-cloud",
+        fieldLabel: t("ollamaModel.customModel.label"),
+      })}
       <div class="mt-1.5">
-        <strong>Embedding models</strong> (e.g.
-        <code
-          class="px-1"
-          style:font-family="var(--f13-font-mono)"
-          style:font-size="11px"
-          style:background="var(--f13-surface)"
-        >nomic-embed-text</code>, anything matching
-        <code
-          class="px-1"
-          style:font-family="var(--f13-font-mono)"
-          style:font-size="11px"
-          style:background="var(--f13-surface)"
-        >*-embed-*</code> /
-        <code
-          class="px-1"
-          style:font-family="var(--f13-font-mono)"
-          style:font-size="11px"
-          style:background="var(--f13-surface)"
-        >*-embedding-*</code>) produce vector outputs, not chat
-        completions. They may appear in the list below — please
-        don't pick one for chat inference.
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html t("ollamaModel.gpuWarning.embeddingBody", {
+          example: "nomic-embed-text",
+          pattern1: "*-embed-*",
+          pattern2: "*-embedding-*",
+        })}
       </div>
     </div>
 
@@ -199,7 +182,7 @@
           style:animation="f13-spin 700ms linear infinite"
           aria-hidden="true"
         ></span>
-        Checking Ollama…
+        {t("ollamaModel.loading")}
       </div>
     {:else if loadState === "not-running"}
       <div
@@ -207,15 +190,15 @@
         data-testid="not-running"
       >
         <p class="m-0 text-[14px] font-medium text-text">
-          Ollama is not running
+          {t("ollamaModel.notRunning.title")}
         </p>
         <p class="m-0 text-[12px] text-muted">
-          Start Ollama, then click <strong>Retry</strong> to load your models.
+          {t("ollamaModel.notRunning.hint")}
         </p>
         <div class="rounded-lg bg-bg border border-border px-3 py-2">
           <p
             class="m-0 mb-1 text-[11px] text-subtle font-medium"
-          >Install &amp; start Ollama</p>
+          >{t("ollamaModel.notRunning.installTitle")}</p>
           <pre
             class="m-0 text-[11.5px] text-text leading-snug whitespace-pre"
             style:font-family="var(--f13-font-mono)"
@@ -223,32 +206,27 @@
 ollama serve</pre>
         </div>
         <div>
-          <Button onclick={refresh}>Retry</Button>
+          <Button onclick={refresh}>{t("common.retry")}</Button>
         </div>
       </div>
     {:else if models.length === 0}
       <p class="m-0 py-1.5 text-[13px] text-muted leading-relaxed">
-        No models pulled locally. Either pull one from a terminal —
-        <code
-          class="px-1 rounded"
-          style:font-family="var(--f13-font-mono)"
-          style:background="var(--f13-surface)"
-          style:font-size="11.5px"
-        >ollama pull modelname:tag</code>
-        (browse at
-        <button
+        <!-- Prose interleaved with an interactive button — split so each
+             half stays a translation-friendly fragment without the button
+             losing its onclick handler. -->
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html t("ollamaModel.noModels.hintBefore", { pullCmd: "ollama pull modelname:tag" })}<button
           type="button"
           onclick={() => openExternal("https://ollama.com/search")}
           class="underline decoration-dotted underline-offset-2 hover:text-text transition-colors cursor-pointer"
           style:color="var(--f13-text-muted)"
-        >ollama.com/search</button>) — or just type any model name in
-        the field below and Ollama will pull it on first request.
+        >ollama.com/search</button>{t("ollamaModel.noModels.hintAfter")}
       </p>
     {:else}
       <div
         class="flex flex-col gap-1"
         role="radiogroup"
-        aria-label="Ollama model"
+        aria-label={t("ollamaModel.kicker") + " model"}
       >
         {#each models as model (model)}
           {@const cloud = isCloud(model)}
@@ -306,7 +284,7 @@ ollama serve</pre>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
                 </svg>
-                cloud
+                {t("ollamaModel.cloud.badge")}
               </span>
             {/if}
           </label>
@@ -318,14 +296,14 @@ ollama serve</pre>
         type="button"
         class="mt-2.5 inline-flex items-center gap-1 px-2 py-1 text-[11px] text-muted hover:text-text hover:bg-surface-raised rounded-md transition-colors"
         onclick={refresh}
-        aria-label="Refresh model list"
+        aria-label={t("ollamaModel.refresh")}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="23 4 23 10 17 10" />
           <polyline points="1 20 1 14 7 14" />
           <path d="M3.5 9a9 9 0 0 1 14.8-3.4L23 10M1 14l4.7 4.4A9 9 0 0 0 20.5 15" />
         </svg>
-        Refresh list
+        {t("ollamaModel.refresh")}
       </button>
     {/if}
 
@@ -337,31 +315,23 @@ ollama serve</pre>
         for="ollama-custom-model"
         class="text-[12px] font-semibold text-text"
       >
-        Use any model name
+        {t("ollamaModel.customModel.label")}
       </label>
       <p class="m-0 text-[11px] text-muted leading-relaxed">
-        Type any model tag — e.g.
-        <code
-          class="px-1 rounded"
-          style:font-family="var(--f13-font-mono)"
-          style:background="var(--f13-surface-raised)"
-          style:font-size="11px"
-        >gemma4:31b-cloud</code>
-        for cloud-hosted models, or any name Ollama can pull on
-        first request. Browse models at
-        <button
+        <!-- Same split-around-button pattern as the no-models hint. -->
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html t("ollamaModel.customModel.helpBefore", { cloudExample: "gemma4:31b-cloud" })}<button
           type="button"
           onclick={() => openExternal("https://ollama.com/search")}
           class="underline decoration-dotted underline-offset-2 hover:text-text transition-colors cursor-pointer"
           style:color="var(--f13-text-muted)"
-        >ollama.com/search</button>.
-        Overrides the selection above when filled in.
+        >ollama.com/search</button>{t("ollamaModel.customModel.helpAfter")}
       </p>
       <input
         id="ollama-custom-model"
         type="text"
         bind:value={customModel}
-        placeholder="model:tag"
+        placeholder={t("ollamaModel.customModel.placeholder")}
         autocomplete="off"
         spellcheck={false}
         data-testid="ollama-custom-model"
@@ -374,9 +344,7 @@ ollama serve</pre>
       />
       {#if customModel.trim() && isCloud(customModel.trim())}
         <p class="m-0 text-[11px] text-muted">
-          ☁ cloud — requires
-          <code style:font-family="var(--f13-font-mono)">ollama signin</code>
-          on this machine.
+          ☁ {t("ollamaModel.cloud.signin")}
         </p>
       {/if}
     </div>
@@ -403,13 +371,10 @@ ollama serve</pre>
             <line x1="12" y1="9" x2="12" y2="13" />
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
-          Are you sure?
+          {t("ollamaModel.embeddingWarning.title")}
         </div>
         <span style:font-family="var(--f13-font-mono)">{effectiveModel}</span>
-        looks like an embedding model. Embedding models produce vector
-        outputs, not chat completions — picking one will leave the chat
-        backend silently broken. Choose a generative model instead, or
-        proceed if you know what you're doing.
+        {t("ollamaModel.embeddingWarning.body")}
       </div>
     {/if}
   </PageBody>
@@ -417,18 +382,18 @@ ollama serve</pre>
   <Footer>
     {#snippet status()}
       {#if effectiveModel}
-        <span style:font-family="var(--f13-font-mono)">{effectiveModel}</span> selected.
+        {t("ollamaModel.footer.selected", { model: effectiveModel })}
       {:else if loadState === "not-running"}
-        Start Ollama or type a model name.
+        {t("ollamaModel.footer.startOllama")}
       {:else if loadState === "loading"}
-        Loading models…
+        {t("ollamaModel.footer.loading")}
       {:else}
-        Select or type a model.
+        {t("ollamaModel.footer.select")}
       {/if}
     {/snippet}
     {#snippet action()}
       <Button disabled={!canContinue} onclick={handleContinue}>
-        Continue
+        {t("common.continue")}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="5" y1="12" x2="19" y2="12" />
           <polyline points="12 5 19 12 12 19" />

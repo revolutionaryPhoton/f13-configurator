@@ -5,11 +5,61 @@ click-through interface. Built with **Tauri 2 + Svelte 5 + Vite + Tailwind CSS 4
 shells out to `bin/f13-config` via a structured JSON-event protocol — no logic
 duplication between the GUI and the CLI.
 
-> **Status (v0.3.1):** mostly stable for daily local use on macOS and on
-> Linux (WSL2 Ubuntu 22.04 validated end-to-end in v0.3.0). The reconfigure
-> flow on a running stack (HF4) landed in v0.3.1. Phase 9 (signed
-> distributables — `.dmg`, `.AppImage`, `.deb` — and bundled-mode data
-> paths) is the next planned phase but unstarted.
+> **Status (v0.4.0):** mostly stable for daily local use on macOS and on
+> Linux (WSL2 Ubuntu 22.04 validated end-to-end in v0.3.0). Live
+> reconfigure of a running stack (HF4) landed in v0.3.1.
+> Localization (EN / DE / FR / ES) and zoom support (`Ctrl/Cmd + +/−/0`
+> or Settings → Appearance stepper) landed in v0.4.0 — see
+> [Localization](#localization) and [Zoom](#zoom) below. Phase 10
+> (signed distributables — `.dmg`, `.AppImage`, `.deb` — and
+> bundled-mode data paths) is the next planned phase but unstarted.
+
+---
+
+## Localization
+
+The GUI ships with four locales — **English** (default), **German**,
+**French**, **Spanish**. Catalog files live at `src/lib/i18n/<locale>.json`
+keyed by dotted message ids (e.g. `welcome.title`, `inference.mock.label`).
+English is the canonical source; missing keys in other locales fall back
+to the English string at runtime, and a vitest fixture asserts key parity
+across all four catalogs so missing translations fail CI rather than
+silently degrading.
+
+The locale picker is rendered **only** on the welcome screen — a small
+four-button row (EN / DE / FR / ES) in the footer. Picking a locale
+persists it to `localStorage` (`f13.configurator.locale`) and triggers
+a page reload so the new strings render everywhere. The picker is
+deliberately not surfaced in Settings or mid-flow.
+
+Brand terms (`F13`, `Ollama`, `Docker`, `docker compose`, `ollama serve`,
+`ollama pull`, `mock`) stay in English across all locales. The shell
+wizard's terminal output is **not** translated — that's the documented
+operator surface.
+
+## Zoom
+
+Webview-level zoom for users on high-DPI displays or anyone who finds
+the default density too cramped.
+
+| Action | Shortcut |
+|---|---|
+| Zoom in (max 2.0×) | `Ctrl/Cmd` + `+` (or `=`) |
+| Zoom out (min 0.6×) | `Ctrl/Cmd` + `−` |
+| Reset to 100% | `Ctrl/Cmd` + `0` |
+
+A compact `−` / `100%` / `+` stepper in **Settings → Appearance**
+provides the same controls. The current factor persists to
+`localStorage` (`f13.configurator.zoom`) and is restored on next
+launch.
+
+Implementation note: zoom uses the CSS `zoom` property on the
+document root rather than per-platform Tauri webview APIs. The
+trade-off is documented in the S44 commit body and the PRD — CSS
+`zoom` works identically across all three Tauri webview backends
+(WKWebView, WebView2, WebKitGTK) with no Rust code, at the cost of
+some accessibility nuances (screen readers may misreport, focus
+rings can blur at extreme factors).
 
 ---
 

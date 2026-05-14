@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from "$lib/i18n/index.js";
+
   interface Props {
     /** Emoji or short text icon shown next to the title */
     icon: string;
@@ -45,7 +47,7 @@
       style:background={selected ? "#fff" : "var(--f13-text)"}
       style:color={selected ? "#000" : "#fff"}
     >
-      Recommended
+      {t("tiles.recommended")}
     </span>
   {/if}
 

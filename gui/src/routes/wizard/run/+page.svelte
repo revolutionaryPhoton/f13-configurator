@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { getGeneratedDir } from "$lib/bootstrap.js";
   import Button from "$lib/components/Button.svelte";
+  import { t } from "$lib/i18n/index.js";
   import ProgressBar from "$lib/components/ProgressBar.svelte";
   import type { Engine, StepEvent, DoneEvent } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
@@ -252,20 +253,20 @@
         <button
           onclick={() => goto("/wizard/ports")}
           class="-ml-2 inline-flex items-center gap-1 px-2 py-1 text-xs text-muted hover:text-text hover:bg-surface-raised rounded-md transition-colors"
-          aria-label="Back to ports"
+          aria-label={t("run.backToPorts")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
-          Back
+          {t("run.back")}
         </button>
       {/if}
       <div
         class="text-[11px] text-subtle font-semibold uppercase"
         style:letter-spacing="1.5px"
       >
-        Launching F13
+        {t("run.kicker")}
       </div>
     </div>
     <div
@@ -286,17 +287,17 @@
           style:letter-spacing="-0.2px"
         >
           {pipelineDone
-            ? "F13 is up."
+            ? t("run.title.done")
             : errorMessage
-              ? "Setup failed"
-              : "Setting up your F13 instance…"}
+              ? t("run.title.failed")
+              : t("run.title.running")}
         </h1>
         <p class="m-0 mt-1.5 text-[13px] text-muted">
           {pipelineDone
-            ? "Redirecting to status…"
+            ? t("run.subtitle.done")
             : errorMessage
               ? errorMessage
-              : "Six stages will run in sequence. This usually takes about a minute."}
+              : t("run.subtitle.running")}
         </p>
       </div>
 
@@ -458,7 +459,7 @@
       <!-- Build indeterminate progress bar (best-effort; docker build output is not separately streamed) -->
       {#if buildRunning}
         <div class="mb-[14px]" data-testid="build-progress">
-          <ProgressBar label="Building frontend image…" />
+          <ProgressBar label={t("run.step.buildProgress")} />
         </div>
       {/if}
 
@@ -478,7 +479,7 @@
         aria-label="Pipeline log"
       >
         {#if allLogLines.length === 0}
-          <div style:color="#71717a">$ f13-config --start</div>
+          <div style:color="#71717a">{t("run.log.start")}</div>
         {:else}
           {#each allLogLines as l, i (i)}
             <div>
@@ -491,7 +492,7 @@
         {/if}
         {#if pipelineDone}
           <div style:color="#86efac" class="mt-1.5">
-            ✓ all services healthy — open http://localhost:{headerPort}
+            {t("run.log.allHealthy", { port: headerPort })}
           </div>
         {/if}
         {#if errorMessage}
@@ -509,23 +510,23 @@
   >
     <div class="text-[12px] text-muted">
       {#if errorMessage}
-        Setup did not complete.
+        {t("run.footer.failed")}
       {:else if pipelineDone}
-        All systems healthy.
+        {t("run.footer.done")}
       {:else if pipelineRunning}
-        Setting up…
+        {t("run.footer.running")}
       {:else}
-        Ready to start.
+        {t("run.footer.ready")}
       {/if}
     </div>
 
     {#if pipelineRunning}
       <Button variant="secondary" size="sm" disabled={cancelling} onclick={handleCancel}>
-        {cancelling ? "Cancelling…" : "Cancel"}
+        {cancelling ? t("run.cancelling") : t("run.cancel")}
       </Button>
     {:else if errorMessage}
       <Button variant="secondary" size="sm" onclick={() => goto("/wizard/ports")}>
-        Back to ports
+        {t("run.backToPorts")}
       </Button>
     {/if}
   </div>
