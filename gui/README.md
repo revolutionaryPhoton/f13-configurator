@@ -5,8 +5,11 @@ click-through interface. Built with **Tauri 2 + Svelte 5 + Vite + Tailwind CSS 4
 shells out to `bin/f13-config` via a structured JSON-event protocol — no logic
 duplication between the GUI and the CLI.
 
-> **Phase 7 (current):** macOS-only validated target. Linux runtime is deferred
-> to Phase 8. The `cargo check` compile path is verified on both architectures.
+> **Status (v0.3.1):** mostly stable for daily local use on macOS and on
+> Linux (WSL2 Ubuntu 22.04 validated end-to-end in v0.3.0). The reconfigure
+> flow on a running stack (HF4) landed in v0.3.1. Phase 9 (signed
+> distributables — `.dmg`, `.AppImage`, `.deb` — and bundled-mode data
+> paths) is the next planned phase but unstarted.
 
 ---
 
@@ -185,7 +188,8 @@ viewer with Copy, coming-soon system-prompt editor.
               Status screen
 ```
 
-> Real screenshots will be added once the macOS DMG is validated in Phase 8.
+> Real screenshots will be added once the macOS DMG is produced in Phase 9
+> (signed distributables — currently planned but unstarted).
 
 ---
 
@@ -211,10 +215,13 @@ npm run tauri dev
 
 No extra Homebrew packages required. Tauri uses the system WebKit on macOS.
 
-### Linux (compile-check path only, Phase 7)
+### Linux (WSL2 Ubuntu 22.04 validated, also fine for compile-check)
 
-Linux GUI runtime is deferred to Phase 8. To verify the Rust + TypeScript
-compile path:
+Linux GUI runtime parity shipped in v0.3.0 — first-time setup, Stop/Start,
+Reset, and reconfigure all work end-to-end on WSL2 + Docker Desktop. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the WSL2-specific apt packages
+(`fonts-noto-color-emoji`, `wslu`) beyond the build-toolchain deps below.
+Build prereqs:
 
 ```bash
 # Apt packages (one-time)

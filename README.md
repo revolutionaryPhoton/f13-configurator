@@ -30,7 +30,7 @@ The wizard walks you through every choice (chat inference, ports), generates all
 
 Two surfaces, one engine. The shell wizard is fully stable. The desktop GUI is mostly stable on macOS and Linux for daily local use.
 
-> ℹ️  The desktop GUI on macOS and Linux handles every documented flow — first-time setup, Stop/Start cycles, full reset, mock or host-Ollama (including cloud-tagged models). Linux runtime parity was validated on WSL2 Ubuntu 22.04 in v0.3.0. We have **not** exercised every combination of state transitions, error paths, and inputs yet, so a few loose ends and edge cases remain (notably the reconfigure flow on a running stack — see PRD HF4). For production-adjacent work, the shell wizard remains the recommended surface.
+> ℹ️  The desktop GUI on macOS and Linux handles every documented flow — first-time setup, Stop/Start cycles, full reset, mock or host-Ollama (including cloud-tagged models), and live reconfigure of a running stack. Linux runtime parity was validated on WSL2 Ubuntu 22.04 in v0.3.0; the reconfigure flow (HF4) landed in v0.3.1. We have **not** exercised every combination of state transitions, error paths, and inputs yet, so edge-case bugs may still surface. For production-adjacent work, the shell wizard remains the recommended surface.
 
 | | Shell wizard (`bin/f13-config`) | Desktop GUI (`gui/`) |
 |---|---|---|
@@ -268,7 +268,7 @@ Secrets are never committed — `generated/` is in `.gitignore`.
 
 **User experience**
 
-- 🖥️ **Desktop GUI — _mostly stable on macOS + Linux (v0.3.0)_** — a Tauri 2 + Svelte 5 desktop app alongside the shell wizard, for users who'd rather click than type. Same engine: shells out to `bin/f13-config` via a JSON-event protocol, no logic duplication. Every documented flow works on both surfaces — first-time setup, Stop/Start, Reset, mock or host-Ollama with cloud-tagged models. Edge-case combinations of state and error paths haven't been exhaustively exercised; the most notable known loose end is the reconfigure flow on a running stack (changing chat backend mid-flight currently no-ops — see PRD HF4 in the [ralph loop repo](https://github.com/revolutionaryPhoton/f13-configurator-ralph)). See [`gui/README.md`](gui/README.md) for the GUI's own docs.
+- 🖥️ **Desktop GUI — _mostly stable on macOS + Linux (v0.3.0+)_** — a Tauri 2 + Svelte 5 desktop app alongside the shell wizard, for users who'd rather click than type. Same engine: shells out to `bin/f13-config` via a JSON-event protocol, no logic duplication. Every documented flow works on both surfaces — first-time setup, Stop/Start, Reset, mock or host-Ollama with cloud-tagged models, and live reconfigure of a running stack (the last shipped in v0.3.1). Edge-case combinations of state and error paths haven't been exhaustively exercised. See [`gui/README.md`](gui/README.md) for the GUI's own docs.
 
 ---
 

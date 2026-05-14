@@ -4,7 +4,7 @@
 
 Tauri 2.x · Svelte 5 · SvelteKit · Vite · Tailwind CSS 4 · TypeScript strict · Vitest · Biome
 
-## macOS Setup (validated target for Phase 7)
+## macOS Setup
 
 ```bash
 # 1. Install Xcode Command Line Tools
@@ -25,12 +25,14 @@ npm run tauri dev
 
 No extra Homebrew packages are required. Tauri uses the system WebKit framework on macOS.
 
-## Linux Setup (compile-check path only, Phase 7)
+## Linux Setup
 
-Linux GUI *runtime* is deferred to Phase 8. The Ralph loop only exercises
-`cargo check` on Linux (aarch64/x86_64), not `tauri dev` or `tauri build`.
+Linux GUI runtime parity shipped in v0.3.0 (WSL2 Ubuntu 22.04 validated
+end-to-end). The Ralph loop only exercises `cargo check` on Linux
+(aarch64/x86_64), not `tauri dev` or `tauri build` — those need a real
+display.
 
-### WSL2 / headless-Linux runtime quirks (Phase 8)
+### WSL2 / headless-Linux runtime quirks
 
 Three things macOS gives you for free that have to be installed
 explicitly on WSL2 + Ubuntu:
