@@ -56,6 +56,10 @@
   let cancelling = $state(false);
 
   const cancelToken = { cancelled: false };
+  // HF2: AbortController whose signal is passed into the wizard call so
+  // calling controller.abort() kills the underlying bash subprocess (not
+  // just bypasses the rest of the event loop).
+  let abortController: AbortController | null = null;
 
   // Header data — pulled from wizard state for display.
   const wizState = $derived.by(() => getWizardState());
@@ -131,6 +135,7 @@
     const corePort = corePortProp ?? ws.corePort;
 
     cancelToken.cancelled = false;
+    abortController = new AbortController();
     pipelineRunning = true;
     pipelineDone = false;
     errorMessage = null;
@@ -151,14 +156,17 @@
         }
         if (cancelToken.cancelled) return;
 
-        for await (const evt of engine.runWizardNonInteractive({
-          backend,
-          ...(ollamaModel !== undefined ? { ollamaModel } : {}),
-          frontendPort,
-          corePort,
-          generatedDir,
-          ...(stateAction !== undefined ? { stateAction } : {}),
-        })) {
+        for await (const evt of engine.runWizardNonInteractive(
+          {
+            backend,
+            ...(ollamaModel !== undefined ? { ollamaModel } : {}),
+            frontendPort,
+            corePort,
+            generatedDir,
+            ...(stateAction !== undefined ? { stateAction } : {}),
+          },
+          abortController?.signal,
+        )) {
           if (cancelToken.cancelled) break;
           if (evt.type === "step") handleStepEvent(evt as StepEvent);
           else if (evt.type === "done") handleDoneEvent(evt as DoneEvent);
@@ -181,6 +189,10 @@
   async function handleCancel() {
     cancelling = true;
     cancelToken.cancelled = true;
+    // HF2: kill the running bash subprocess. Without this, the wizard
+    // keeps running in the background until natural completion (or hangs
+    // forever on a stuck step) and any cleanup we issue races with it.
+    abortController?.abort();
     pipelineRunning = false;
 
     const eng = injectedEngine ?? getEngine();

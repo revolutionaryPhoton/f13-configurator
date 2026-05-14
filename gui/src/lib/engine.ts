@@ -77,7 +77,16 @@ export type EngineEvent =
 // ---------------------------------------------------------------------------
 
 export interface ProcessRunner {
-  run(cmd: string, args: string[], env?: Record<string, string>): AsyncIterable<string>;
+  /**
+   * Run a command and yield stdout lines. If `signal` is provided and gets
+   * aborted, the underlying subprocess is killed and the iterable terminates.
+   */
+  run(
+    cmd: string,
+    args: string[],
+    env?: Record<string, string>,
+    signal?: AbortSignal
+  ): AsyncIterable<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -215,8 +224,14 @@ export interface Engine {
   listOllamaModels(): Promise<string[] | "not-running">;
   /** Check whether a TCP port is free on the host. */
   checkPort(port: number): Promise<"free" | { inUseBy: number; name: string }>;
-  /** Run the full wizard non-interactively; stream step and done events. */
-  runWizardNonInteractive(opts: WizardOptions): AsyncIterable<StepEvent | DoneEvent>;
+  /**
+   * Run the full wizard non-interactively; stream step and done events.
+   * Pass an AbortSignal to allow cancelling the underlying bash subprocess.
+   */
+  runWizardNonInteractive(
+    opts: WizardOptions,
+    signal?: AbortSignal
+  ): AsyncIterable<StepEvent | DoneEvent>;
   compose: {
     up(generatedDir: string): Promise<void>;
     down(generatedDir: string): Promise<void>;
@@ -297,7 +312,7 @@ export function createEngine(runner: ProcessRunner, bins: BinPaths = DEFAULT_BIN
       return "free";
     },
 
-    async *runWizardNonInteractive(opts: WizardOptions) {
+    async *runWizardNonInteractive(opts: WizardOptions, signal?: AbortSignal) {
       const env: Record<string, string> = {
         F13_CONFIG_NONINTERACTIVE: "1",
         CHAT_BACKEND: opts.backend,
@@ -312,7 +327,7 @@ export function createEngine(runner: ProcessRunner, bins: BinPaths = DEFAULT_BIN
       const args = ["--non-interactive", "--emit-events"];
       if (opts.dryRun) args.push("--dry-run");
 
-      const stream = runner.run(bins.config, args, env);
+      const stream = runner.run(bins.config, args, env, signal);
       for await (const evt of readEvents(stream)) {
         if (evt.type === "step" || evt.type === "done") {
           yield evt as StepEvent | DoneEvent;

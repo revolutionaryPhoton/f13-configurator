@@ -227,6 +227,41 @@ describe("wizard/run/+page.svelte", () => {
     await waitFor(() => expect(goto).toHaveBeenCalledWith("/wizard/ports"));
   });
 
+  // HF2: Cancel must abort the AbortSignal we pass into the engine so
+  // the underlying bash subprocess dies, not just the JS-side loop.
+  it("Cancel aborts the AbortSignal handed to runWizardNonInteractive (HF2)", async () => {
+    // Capture the signal the page passes to the engine.
+    let capturedSignal: AbortSignal | undefined;
+    const engine = {
+      detectState: vi.fn().mockResolvedValue({ type: "state", exists: false }),
+      preflight: vi.fn(),
+      listOllamaModels: vi.fn(),
+      checkPort: vi.fn(),
+      runWizardNonInteractive: vi
+        .fn()
+        .mockImplementation((_opts: unknown, signal?: AbortSignal) => {
+          capturedSignal = signal;
+          return {
+            [Symbol.asyncIterator]() {
+              return { next: () => new Promise<never>(() => {}) };
+            },
+          };
+        }),
+      compose: {
+        up: vi.fn().mockResolvedValue(undefined),
+        down: vi.fn().mockResolvedValue(undefined),
+        reset: vi.fn().mockResolvedValue(undefined),
+        health: vi.fn(),
+      },
+    } as unknown as Engine;
+    const { getByRole } = render(RunPage, { engine, backend: "mock" });
+    const cancelBtn = await waitFor(() => getByRole("button", { name: /cancel/i }));
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+    expect(capturedSignal?.aborted).toBe(false);
+    await fireEvent.click(cancelBtn);
+    await waitFor(() => expect(capturedSignal?.aborted).toBe(true));
+  });
+
   it("error state shows 'Back to ports' button", async () => {
     const engine = makeEngine([{ type: "done", status: "error", message: "oops" } as DoneEvent]);
     const { getByRole } = render(RunPage, { engine, backend: "mock" });
@@ -257,7 +292,8 @@ describe("wizard/run/+page.svelte", () => {
     render(RunPage, { engine, backend: "ollama", ollamaModel: "llama3:8b" });
     await waitFor(() =>
       expect(engine.runWizardNonInteractive).toHaveBeenCalledWith(
-        expect.objectContaining({ backend: "ollama", ollamaModel: "llama3:8b" })
+        expect.objectContaining({ backend: "ollama", ollamaModel: "llama3:8b" }),
+        expect.anything() // HF2: second arg is the AbortSignal
       )
     );
   });

@@ -340,6 +340,24 @@ describe("engine.runWizardNonInteractive()", () => {
     expect(types).toContain("step");
     expect(types).toContain("done");
   });
+
+  // HF2: AbortSignal is plumbed through to the ProcessRunner so the
+  // run page's Cancel button can kill the bash subprocess.
+  it("passes the AbortSignal through to the runner (HF2)", async () => {
+    let receivedSignal: AbortSignal | undefined;
+    const runner: ProcessRunner = {
+      run(_cmd, _args, _env, signal) {
+        receivedSignal = signal;
+        return (async function* () {
+          yield '{"type":"done","status":"ok"}';
+        })();
+      },
+    };
+    const engine = createEngine(runner, TEST_BINS);
+    const controller = new AbortController();
+    await collect(engine.runWizardNonInteractive({ backend: "mock" }, controller.signal));
+    expect(receivedSignal).toBe(controller.signal);
+  });
 });
 
 describe("engine.compose", () => {
