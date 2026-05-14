@@ -1,14 +1,14 @@
 # Security Notes — F13 Configurator
 
 This configurator (both the shell wizard and the desktop GUI) is designed
-for **local development use only**. As of v0.3.1 the desktop GUI is
-mostly stable on macOS and Linux (WSL2 Ubuntu 22.04 validated in
-v0.3.0; live reconfigure of a running stack landed in v0.3.1) for
-daily local use — every documented flow works, but not every
-combination of state transitions and error paths has been exercised,
-so edge-case bugs may still surface. Prefer the shell wizard for any
-production-adjacent work. The stack it generates is not hardened for
-production or internet-facing deployment.
+for **local development use only**. As of v0.4.0 the desktop GUI is
+mostly stable on macOS and Linux (WSL2 Ubuntu 22.04 validated in v0.3.0;
+live reconfigure on a running stack in v0.3.1; localization to DE / FR /
+ES and webview zoom in v0.4.0) for daily local use — every documented
+flow works, but not every combination of state transitions and error
+paths has been exercised, so edge-case bugs may still surface. Prefer
+the shell wizard for any production-adjacent work. The stack it
+generates is not hardened for production or internet-facing deployment.
 
 ---
 

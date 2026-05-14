@@ -34,7 +34,7 @@ Two surfaces, one engine. The shell wizard is fully stable. The desktop GUI is m
 
 | | Shell wizard (`bin/f13-config`) | Desktop GUI (`gui/`) |
 |---|---|---|
-| **Status** | ✅ stable (v0.1.0) | 🟢 mostly stable on macOS + Linux (v0.3.0) |
+| **Status** | ✅ stable (v0.1.0) | 🟢 mostly stable on macOS + Linux (v0.3.0+); EN/DE/FR/ES + zoom in v0.4.0 |
 | **Launch** | `./bin/f13-config` in any terminal | `npm run tauri dev` (dev) or open the `.app` (packaged) |
 | **Platform** | macOS, Linux, WSL2 | macOS, Linux, WSL2 (mostly stable) |
 | **Requirements** | Bash 4+, Docker | Node 20+, Rust stable, Docker |

@@ -47,38 +47,32 @@
 | HF4 | GUI reconfigure flow re-renders on backend swap | f342a1f | maintainer, v0.3.1 ✅ |
 | HF2 | Cancel button kills wizard subprocess | 69f9bff | maintainer, v0.3.2 ✅ |
 | HF3 | Frontend image precondition + `pull_policy: never` | 69f9bff | maintainer, v0.3.2 ✅ |
+| S41 | i18n infrastructure + English baseline catalog (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
+| S42 | Locale picker on welcome screen + localStorage persistence (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
+| S43 | German, French, Spanish translations (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
+| S44 | Zoom — keyboard shortcuts + Settings stepper (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
 
-## Pending Stories — Phase 9 (i18n + zoom, target v0.4.0)
+## Pending Stories
 
-These are the **ONLY** stories the loop should work on right now.
-Pick the first incomplete row each iteration; S41 must land before
-S42/S43/S44 can be meaningfully built.
+*(none — Phase 9 shipped as v0.4.0; no loop work currently queued)*
 
-| Story | Description | Status |
-|-------|-------------|--------|
-| S41 | i18n infrastructure + English baseline catalog | complete ✅ |
-| S42 | Locale picker on welcome screen + localStorage persistence | complete ✅ |
-| S43 | German + French + Spanish translations of the English catalog | complete ✅ |
-| S44 | Zoom — Tauri 2 research + keyboard shortcuts + UI control | complete ✅ |
-
-Feature branch: `feat/phase9-i18n-zoom` (create on first iteration if
-absent; subsequent iterations commit onto it). A single Phase 9 PR
-rolls up all four stories for maintainer review at the end — do **not**
-open per-story PRs.
-
-> **Out of scope for this loop — do NOT touch these in any iteration:**
+> **Out of scope until further notice — do NOT pick these up in any
+> loop iteration:**
 >
 > - **HF5** (auto-regenerate broken stack on Start) — open in `/PRD.md`
->   but deferred to a v0.4.x patch after Phase 9 ships; needs
->   maintainer judgement on UX shape.
+>   but deferred to a v0.4.x patch; needs maintainer judgement on the
+>   UX shape (button placement, "needs rebuild" detection).
 > - **Phase 10 / S51–S57** (signed distributables + `appLocalDataDir`)
->   — open in `/PRD.md` and explicitly targeted at v0.5.0 after Phase 9
->   ships. The Phase 10 section header says so.
-> - Anything outside `gui/` (the shell wizard, `bin/*`, `lib/*.sh`,
->   `templates/*`, `tests/*.bats`) unless the story explicitly requires
->   it. Phase 9 is GUI-only.
-> - Linux GUI runtime tests — Phase 8 already validated WSL2 parity;
->   no further Linux-runtime stories until Phase 10's `.AppImage` / `.deb`.
+>   — open in `/PRD.md` and explicitly targeted at v0.5.0. Requires
+>   signing certificates, GitHub release secrets, and Linux-distro
+>   packaging tooling that the headless loop container doesn't have.
+> - Anything outside `gui/` unless a future Phase 9 follow-up
+>   explicitly requires it.
+>
+> If a Pending Stories table is added back here pointing at a specific
+> phase, that's the new loop target. Until then the loop should emit
+> `<promise>COMPLETE</promise>` on first iteration per ralph.sh's
+> stop rule.
 
 > Out-of-loop stories carried forward for context: S33, S35, S36 from
 > the original numbering were maintainer hand-fixes (HF1/HF2/HF3) and
