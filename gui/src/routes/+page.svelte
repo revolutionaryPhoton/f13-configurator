@@ -4,6 +4,7 @@
   import Button from "$lib/components/Button.svelte";
   import { t } from "$lib/i18n/index.js";
   import F13Logo from "$lib/components/F13Logo.svelte";
+  import LocalePicker from "$lib/components/LocalePicker.svelte";
   import type { Engine, StateEvent } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
 
@@ -188,11 +189,12 @@
     </p>
   </div>
 
-  <!-- Tiny absolute-bottom credit -->
+  <!-- Absolute bottom bar: copyright + locale picker -->
   <div
-    class="absolute bottom-3.5 left-0 right-0 text-center text-[10px] text-subtle"
+    class="absolute bottom-3.5 left-0 right-0 flex items-center justify-between px-6 text-[10px] text-subtle"
     style:font-family="var(--f13-font-mono)"
   >
-    MIT · © 2026 David Moch
+    <span>MIT · © 2026 David Moch</span>
+    <LocalePicker />
   </div>
 </div>

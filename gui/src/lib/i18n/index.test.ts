@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { getLocale, registerCatalog, setLocale, t } from "./index.js";
+import { getLocale, registerCatalog, SUPPORTED_LOCALES, setLocale, t } from "./index.js";
 
 describe("i18n module", () => {
   afterEach(() => {
-    // Reset to English after each test so state doesn't leak.
+    // Reset to English and clear localStorage after each test so state doesn't leak.
     setLocale("en");
+    localStorage.clear();
   });
 
   // ── Baseline English ────────────────────────────────────────────────────────
@@ -121,5 +122,30 @@ describe("i18n module", () => {
     expect(t("settings.config.toast.copied", { label: "docker-compose.yml" })).toBe(
       "docker-compose.yml copied"
     );
+  });
+
+  // ── SUPPORTED_LOCALES ───────────────────────────────────────────────────────
+
+  it("SUPPORTED_LOCALES contains exactly en, de, fr, es", () => {
+    expect(SUPPORTED_LOCALES).toEqual(["en", "de", "fr", "es"]);
+  });
+
+  // ── localStorage persistence ────────────────────────────────────────────────
+
+  it("setLocale writes the locale to localStorage", () => {
+    setLocale("de");
+    expect(localStorage.getItem("f13_locale")).toBe("de");
+  });
+
+  it("setLocale('en') writes 'en' to localStorage", () => {
+    setLocale("en");
+    expect(localStorage.getItem("f13_locale")).toBe("en");
+  });
+
+  it("setLocale('fr') persists 'fr' and is readable back", () => {
+    setLocale("fr");
+    expect(localStorage.getItem("f13_locale")).toBe("fr");
+    // getLocale() must reflect the in-memory change immediately
+    expect(getLocale()).toBe("fr");
   });
 });
