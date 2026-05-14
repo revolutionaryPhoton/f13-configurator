@@ -7,6 +7,7 @@
   import Toast from "$lib/components/Toast.svelte";
   import type { Engine } from "$lib/engine.js";
   import { getEngine } from "$lib/engineContext.js";
+  import { t } from "$lib/i18n/index.js";
   import { getWizardState } from "$lib/wizardState.js";
 
   interface Props {
@@ -116,18 +117,18 @@
     const eng = injectedEngine ?? getEngine();
     if (!eng || stopping) return;
     stopping = true;
-    const loadingId = addToast("info", "Stopping F13…", 0);
+    const loadingId = addToast("info", t("status.toast.stopping"), 0);
     try {
       await eng.compose.down(generatedDir);
       removeToast(loadingId);
-      addToast("success", "F13 stopped.", 3000);
+      addToast("success", t("status.toast.stopped"), 3000);
       // Stay on /status so the user sees the new stopped state and can
       // click Start to bring it back up. Re-poll health immediately so
       // the hero flips from healthy → stopped without waiting 5s.
       healthStatus = "unhealthy";
     } catch (e) {
       removeToast(loadingId);
-      addToast("error", `Stop failed: ${e instanceof Error ? e.message : "unknown error"}`, 6000);
+      addToast("error", t("status.toast.stopFailed", { error: e instanceof Error ? e.message : "unknown error" }), 6000);
     } finally {
       stopping = false;
     }
@@ -142,7 +143,7 @@
     const eng = injectedEngine ?? getEngine();
     if (!eng || reconfiguring) return;
     reconfiguring = true;
-    const loadingId = addToast("info", "Stopping current stack…", 0);
+    const loadingId = addToast("info", t("status.toast.stoppingForReconfig"), 0);
     try {
       if (healthStatus !== "unhealthy") {
         await eng.compose.down(generatedDir);
@@ -153,7 +154,7 @@
       removeToast(loadingId);
       addToast(
         "error",
-        `Could not stop stack: ${e instanceof Error ? e.message : "unknown error"}`,
+        t("status.toast.stopForReconfigFailed", { error: e instanceof Error ? e.message : "unknown error" }),
         6000
       );
       reconfiguring = false;
@@ -165,11 +166,11 @@
     const eng = injectedEngine ?? getEngine();
     if (!eng || starting) return;
     starting = true;
-    const loadingId = addToast("info", "Starting F13…", 0);
+    const loadingId = addToast("info", t("status.toast.starting"), 0);
     try {
       await eng.compose.up(generatedDir);
       removeToast(loadingId);
-      addToast("success", "F13 started.", 3000);
+      addToast("success", t("status.toast.started"), 3000);
       healthStatus = "checking";
       // Force one immediate health probe so the hero flips quickly.
       try {
@@ -184,7 +185,7 @@
       }
     } catch (e) {
       removeToast(loadingId);
-      addToast("error", `Start failed: ${e instanceof Error ? e.message : "unknown error"}`, 6000);
+      addToast("error", t("status.toast.startFailed", { error: e instanceof Error ? e.message : "unknown error" }), 6000);
     } finally {
       starting = false;
     }
@@ -206,26 +207,22 @@
     if (!eng || resetting || !resetConfirmValid) return;
     resetConfirmOpen = false;
     resetting = true;
-    const loadingId = addToast("warning", "Resetting F13…", 0);
+    const loadingId = addToast("warning", t("status.toast.resetting"), 0);
     try {
       await eng.compose.reset(generatedDir);
       removeToast(loadingId);
-      addToast("success", "Reset complete. Starting fresh.", 3000);
+      addToast("success", t("status.toast.resetDone"), 3000);
       goto("/");
     } catch (e) {
       removeToast(loadingId);
-      addToast("error", `Reset failed: ${e instanceof Error ? e.message : "unknown error"}`, 6000);
+      addToast("error", t("status.toast.resetFailed", { error: e instanceof Error ? e.message : "unknown error" }), 6000);
     } finally {
       resetting = false;
     }
   }
 
   function handleViewLogs() {
-    addToast(
-      "info",
-      "In your terminal: docker compose -f generated/docker-compose.yml logs -f",
-      8000,
-    );
+    addToast("info", t("status.toast.viewLogs"), 8000);
   }
 
   // Service grid data
@@ -262,17 +259,17 @@
         class="text-[13px] font-semibold"
         style:letter-spacing="-0.1px"
         data-testid="page-heading"
-      >Status</span>
+      >{t("status.heading")}</span>
     </div>
     <button
       type="button"
       onclick={handleReconfigure}
       disabled={reconfiguring}
       class="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted hover:text-text hover:bg-surface-raised rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      aria-label="Reconfigure F13"
+      aria-label={t("status.reconfigure") + " F13"}
       data-testid="reconfigure-btn"
     >
-      {reconfiguring ? "Stopping…" : "Reconfigure"}
+      {reconfiguring ? t("status.reconfiguring") : t("status.reconfigure")}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="5" y1="12" x2="19" y2="12" />
         <polyline points="12 5 19 12 12 19" />
@@ -329,11 +326,11 @@
             aria-hidden="true"
           ></span>
           {#if healthStatus === "healthy"}
-            Running · Healthy
+            {t("status.badge.healthy")}
           {:else if healthStatus === "checking"}
-            Checking…
+            {t("status.badge.checking")}
           {:else}
-            Stopped
+            {t("status.badge.stopped")}
           {/if}
         </div>
 
@@ -344,11 +341,11 @@
           style:letter-spacing="-0.3px"
         >
           {#if isHealthy}
-            F13 is up
+            {t("status.hero.healthy")}
           {:else if healthStatus === "checking"}
-            Checking F13…
+            {t("status.hero.checking")}
           {:else}
-            F13 is stopped
+            {t("status.hero.stopped")}
           {/if}
         </div>
         <div
@@ -389,7 +386,7 @@
               <line x1="2" y1="12" x2="22" y2="12" />
               <path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z" />
             </svg>
-            Open F13 in browser
+            {t("status.openBrowser")}
           </button>
         {:else}
           <button
@@ -409,7 +406,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <polygon points="6 4 20 12 6 20 6 4" />
             </svg>
-            {starting ? "Starting…" : healthStatus === "checking" ? "Checking…" : "Start F13"}
+            {starting ? t("status.starting") : healthStatus === "checking" ? t("status.checking") : t("status.start")}
           </button>
         {/if}
       </div>
@@ -460,11 +457,11 @@
           class="text-[10px] font-bold text-subtle uppercase mb-2.5"
           style:letter-spacing="1px"
         >
-          Actions
+          {t("status.actions.title")}
         </div>
         <div class="flex flex-wrap gap-1.5">
           <Button variant="secondary" size="sm" onclick={handleViewLogs}>
-            View logs
+            {t("status.actions.viewLogs")}
           </Button>
           <Button
             variant="secondary"
@@ -472,7 +469,7 @@
             disabled={stopping || !isHealthy}
             onclick={handleStop}
           >
-            {stopping ? "Stopping…" : "Stop F13"}
+            {stopping ? t("status.actions.stopping") : t("status.actions.stop")}
           </Button>
           <button
             type="button"
@@ -481,7 +478,7 @@
             class="inline-flex items-center gap-1 px-2.5 py-1 text-[12px] cursor-pointer rounded-md hover:bg-error/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             style:color="var(--f13-error)"
           >
-            {resetting ? "Resetting…" : "Full reset"}
+            {resetting ? t("status.actions.resetting") : t("status.actions.reset")}
           </button>
         </div>
       </div>
@@ -490,7 +487,7 @@
       <p
         class="m-0 text-center text-[10.5px] text-subtle leading-relaxed"
       >
-        F13 uses AI models and those can make mistakes. Verify results before relying on them.
+        {t("status.disclaimer")}
       </p>
     </div>
   </div>
@@ -519,22 +516,19 @@
 <!-- Reset confirmation modal -->
 <Modal
   open={resetConfirmOpen}
-  title="Confirm full reset"
+  title={t("status.reset.modal.title")}
   onclose={handleCloseResetModal}
 >
   <div class="flex flex-col gap-3">
     <p class="m-0 text-[13px] text-text leading-snug">
-      This will stop all containers and delete all generated config files.
-      <strong>This cannot be undone.</strong>
+      {t("status.reset.modal.body")}
     </p>
     <div class="flex flex-col gap-1.5">
       <label
         for="reset-confirm-input"
         class="block text-[11px] font-semibold text-text"
       >
-        Type
-        <span style:font-family="var(--f13-font-mono)">RESET</span>
-        to confirm
+        {t("status.reset.modal.inputLabel")}
       </label>
       <input
         id="reset-confirm-input"
@@ -570,7 +564,7 @@
     </div>
     <div class="flex justify-end gap-2 pt-1">
       <Button variant="secondary" size="sm" onclick={handleCloseResetModal}>
-        Cancel
+        {t("status.reset.modal.cancel")}
       </Button>
       <Button
         variant="primary"
@@ -578,7 +572,7 @@
         disabled={!resetConfirmValid}
         onclick={handleConfirmReset}
       >
-        Confirm reset
+        {t("status.reset.modal.confirm")}
       </Button>
     </div>
   </div>

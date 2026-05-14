@@ -56,7 +56,7 @@ S42/S43/S44 can be meaningfully built.
 
 | Story | Description | Status |
 |-------|-------------|--------|
-| S41 | i18n infrastructure + English baseline catalog | pending |
+| S41 | i18n infrastructure + English baseline catalog | complete ✅ |
 | S42 | Locale picker on welcome screen + localStorage persistence | pending |
 | S43 | German + French + Spanish translations of the English catalog | pending |
 | S44 | Zoom — Tauri 2 research + keyboard shortcuts + UI control | pending |
@@ -404,6 +404,18 @@ open per-story PRs.
   (with `data-testid="build-progress"`). Tests: 3 new events.bats, 4 new f13-config.bats,
   4 new vitest. Shell: 273/273 bats ✅, shellcheck clean.
   GUI: npm run check ✅ biome ✅ vitest 265/287 ✅ (22 pre-existing) cargo check ✅.
+
+- S41 completed: i18n infrastructure + English baseline catalog — hand-rolled TypeScript
+  module at `gui/src/lib/i18n/` (zero new npm deps). `en.json`: ~120 dot-namespaced keys
+  covering every user-visible string across all 8 route pages and 2 shared components.
+  `index.ts`: `t(key, vars?)` with `{var}` interpolation, `setLocale`/`getLocale`,
+  `registerCatalog` for future locale catalogs (S43); fallback chain: locale catalog →
+  English catalog → key itself. All 8 `+page.svelte` routes + `Tile.svelte` +
+  `StepHeader.svelte` migrated to `t()`. `index.test.ts`: 22 vitest tests covering
+  baseline English, locale switching, fallback chain, interpolation (single/multiple/
+  numeric), unreplaced placeholders, and non-destructive repeated calls.
+  Shell: 273/273 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
+  vitest 316/316 ✅ cargo check ✅.
 
 - S32 completed: Phase 7.5 bash/bats fix — `bin/f13-reset` and `bin/f13-stop` already used
   `${F13_GENERATED_DIR:-…}` but had no tests exercising the custom-path code path. Added

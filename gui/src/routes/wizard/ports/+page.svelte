@@ -3,6 +3,7 @@
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
   import Disclosure from "$lib/components/Disclosure.svelte";
+  import { t } from "$lib/i18n/index.js";
   import Footer from "$lib/components/Footer.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import PageBody from "$lib/components/PageBody.svelte";
@@ -147,9 +148,9 @@
 
   <PageBody narrow>
     <PageTitle
-      kicker="Ports"
-      title="Configure ports"
-      subtitle="Which TCP ports F13 services will listen on. We probed your machine."
+      kicker={t("ports.kicker")}
+      title={t("ports.title")}
+      subtitle={t("ports.subtitle")}
     />
 
     <!-- Frontend port field -->
@@ -158,7 +159,7 @@
         for="frontend-port"
         class="block text-[12px] font-semibold text-text mb-1.5"
       >
-        Frontend port
+        {t("ports.frontend.label")}
       </label>
       <div class="flex items-center gap-2">
         <input
@@ -188,7 +189,7 @@
               class="inline-flex"
               style:color="#16a34a"
               data-testid="frontend-status-free"
-              aria-label="Free"
+              aria-label={t("preflight.check.passed")}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="20 6 9 17 4 12" />
@@ -199,7 +200,7 @@
               class="inline-flex"
               style:color="var(--f13-error)"
               data-testid="frontend-status-taken"
-              aria-label="In use"
+              aria-label={t("preflight.check.failed")}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -218,10 +219,10 @@
       >
         {#if typeof frontendStatus === "object"}
           <span data-testid="frontend-port-taken">
-            Port {frontendPort} in use by PID {frontendStatus.pid} ({frontendStatus.name}).
+            {t("ports.frontend.inUse", { port: frontendPort, pid: frontendStatus.pid, name: frontendStatus.name })}
           </span>
         {:else}
-          The F13 web interface — default 9999.
+          {t("ports.frontend.hint")}
         {/if}
       </p>
     </div>
@@ -232,7 +233,7 @@
         for="core-port"
         class="block text-[12px] font-semibold text-text mb-1.5"
       >
-        Core API port
+        {t("ports.core.label")}
       </label>
       <div class="flex items-center gap-2">
         <input
@@ -262,7 +263,7 @@
               class="inline-flex"
               style:color="#16a34a"
               data-testid="core-status-free"
-              aria-label="Free"
+              aria-label={t("preflight.check.passed")}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="20 6 9 17 4 12" />
@@ -273,7 +274,7 @@
               class="inline-flex"
               style:color="var(--f13-error)"
               data-testid="core-status-taken"
-              aria-label="In use"
+              aria-label={t("preflight.check.failed")}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -292,20 +293,20 @@
       >
         {#if typeof coreStatus === "object"}
           <span data-testid="core-port-taken">
-            Port {corePort} in use by PID {coreStatus.pid} ({coreStatus.name}).
+            {t("ports.core.inUse", { port: corePort, pid: coreStatus.pid, name: coreStatus.name })}
           </span>
         {:else}
-          The backend API service — default 8000.
+          {t("ports.core.hint")}
         {/if}
       </p>
     </div>
 
     <!-- Advanced disclosure -->
-    <Disclosure title="Advanced">
+    <Disclosure title={t("ports.advanced.title")}>
       <div class="pt-1 flex flex-col gap-3">
         <div>
           <p class="m-0 mb-1.5 text-[11px] font-medium text-text">
-            Secret file locations
+            {t("ports.advanced.secretFiles")}
           </p>
           <div
             class="rounded-md bg-surface-raised px-3 py-2 text-[11px]"
@@ -323,14 +324,14 @@
           <button
             disabled
             aria-disabled="true"
-            aria-label="Edit system prompt (coming soon)"
+            aria-label={t("ports.advanced.editSystemPrompt") + " (coming soon)"}
             data-testid="edit-system-prompt"
             class="rounded-md border border-border px-3 py-1.5 text-[11px] text-muted cursor-not-allowed opacity-50"
           >
-            Edit system prompt
+            {t("ports.advanced.editSystemPrompt")}
           </button>
           <p class="m-0 mt-1 text-[11px] text-subtle">
-            Available in a future release.
+            {t("ports.advanced.editSystemPromptHint")}
           </p>
         </div>
       </div>
@@ -340,14 +341,14 @@
   <Footer>
     {#snippet status()}
       {#if canContinue}
-        Ports {frontendPort} and {corePort} are available.
+        {t("ports.footer.available", { frontend: frontendPort, core: corePort })}
       {:else}
-        Both ports must be free to continue.
+        {t("ports.footer.bothFree")}
       {/if}
     {/snippet}
     {#snippet action()}
       <Button disabled={!canContinue} onclick={handleContinue}>
-        Launch
+        {t("common.launch")}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="5" y1="12" x2="19" y2="12" />
           <polyline points="12 5 19 12 12 19" />
@@ -360,27 +361,19 @@
 <!-- Port-collision modal -->
 <Modal
   open={collisionModal.open}
-  title="Port in use"
+  title={t("ports.modal.title")}
   onclose={() => { collisionModal = { ...collisionModal, open: false }; }}
 >
   <div class="flex flex-col gap-3" data-testid="port-collision-modal">
     <p class="m-0 text-[13px] text-text leading-snug">
-      Port
-      <span class="font-semibold" style:font-family="var(--f13-font-mono)">{collisionModal.port}</span>
       {#if collisionModal.name}
-        is in use by <strong>{collisionModal.name}</strong> (PID {collisionModal.pid}).
+        {t("ports.modal.inUseByName", { port: collisionModal.port, name: collisionModal.name, pid: collisionModal.pid })}
       {:else}
-        is in use by PID {collisionModal.pid}.
+        {t("ports.modal.inUseByPid", { port: collisionModal.port, pid: collisionModal.pid })}
       {/if}
     </p>
-    <p class="m-0 text-[12px] text-muted">
-      Try port
-      <span
-        class="font-semibold"
-        style:font-family="var(--f13-font-mono)"
-        data-testid="collision-suggested-port"
-      >{collisionModal.suggested}</span>
-      instead?
+    <p class="m-0 text-[12px] text-muted" data-testid="collision-suggested-port">
+      {t("ports.modal.try", { port: collisionModal.suggested })}
     </p>
     <div class="flex justify-end gap-2 pt-1">
       <Button
@@ -388,10 +381,10 @@
         size="sm"
         onclick={() => { collisionModal = { ...collisionModal, open: false }; }}
       >
-        Keep this port
+        {t("ports.modal.keep")}
       </Button>
       <Button variant="primary" size="sm" onclick={handlePickAnotherPort}>
-        Pick another port
+        {t("ports.modal.pick")}
       </Button>
     </div>
   </div>

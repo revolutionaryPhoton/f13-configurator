@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
   import Footer from "$lib/components/Footer.svelte";
+  import { t } from "$lib/i18n/index.js";
   import PageBody from "$lib/components/PageBody.svelte";
   import PageTitle from "$lib/components/PageTitle.svelte";
   import StepHeader from "$lib/components/StepHeader.svelte";
@@ -36,22 +37,22 @@
 
   <PageBody>
     <PageTitle
-      kicker="Inference"
-      title="Where should chat run?"
-      subtitle="Pick how the chat service generates responses. You can change this later."
+      kicker={t("inference.kicker")}
+      title={t("inference.title")}
+      subtitle={t("inference.subtitle")}
     />
 
     <div
       role="radiogroup"
-      aria-label="Inference backend"
+      aria-label={t("inference.radioLabel")}
       class="grid grid-cols-2 gap-3"
     >
       <Tile
         icon="🧪"
-        title="Mock"
-        description="Built-in stub — deterministic responses, no GPU."
-        pros={["Zero config", "Works offline", "Fast"]}
-        cons={["Fake responses"]}
+        title={t("inference.mock.title")}
+        description={t("inference.mock.description")}
+        pros={[t("inference.mock.pro1"), t("inference.mock.pro2"), t("inference.mock.pro3")]}
+        cons={[t("inference.mock.con1")]}
         selected={selected === "mock"}
         recommended={true}
         onclick={() => select("mock")}
@@ -59,10 +60,10 @@
 
       <Tile
         icon="🦙"
-        title="Ollama"
-        description="Connect to your local ollama serve."
-        pros={["Real model output", "Full control"]}
-        cons={["Needs Ollama running", "GPU recommended"]}
+        title={t("inference.ollama.title")}
+        description={t("inference.ollama.description")}
+        pros={[t("inference.ollama.pro1"), t("inference.ollama.pro2")]}
+        cons={[t("inference.ollama.con1"), t("inference.ollama.con2")]}
         selected={selected === "ollama"}
         onclick={() => select("ollama")}
       />
@@ -72,16 +73,16 @@
   <Footer>
     {#snippet status()}
       {#if selected === null}
-        Select an option.
+        {t("inference.footer.none")}
       {:else if selected === "mock"}
-        Mock selected — skipping model picker.
+        {t("inference.footer.mock")}
       {:else}
-        Ollama selected — pick a model next.
+        {t("inference.footer.ollama")}
       {/if}
     {/snippet}
     {#snippet action()}
       <Button disabled={!canContinue} onclick={handleContinue}>
-        Continue
+        {t("common.continue")}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="5" y1="12" x2="19" y2="12" />
           <polyline points="12 5 19 12 12 19" />

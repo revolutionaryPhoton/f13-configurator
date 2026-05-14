@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import Button from "$lib/components/Button.svelte";
   import Footer from "$lib/components/Footer.svelte";
+  import { t } from "$lib/i18n/index.js";
   import PageBody from "$lib/components/PageBody.svelte";
   import PageTitle from "$lib/components/PageTitle.svelte";
   import StepHeader from "$lib/components/StepHeader.svelte";
@@ -102,13 +103,13 @@
 
   <PageBody narrow>
     <PageTitle
-      kicker="Preflight"
+      kicker={t("preflight.kicker")}
       title={streaming
-        ? "Scanning environment…"
+        ? t("preflight.title.scanning")
         : hasFailure
-          ? "Some requirements missing"
-          : "Environment ready"}
-      subtitle="Checking Docker, system tools, and disk space."
+          ? t("preflight.title.missingReqs")
+          : t("preflight.title.ready")}
+      subtitle={t("preflight.subtitle")}
     />
 
     <!-- Scan progress bar with shimmer overlay while streaming -->
@@ -161,10 +162,10 @@
                   ? "var(--f13-error)"
                   : "var(--f13-text-muted)"}
               aria-label={check.status === "ok"
-                ? "Passed"
+                ? t("preflight.check.passed")
                 : check.status === "fail"
-                  ? "Failed"
-                  : "Info"}
+                  ? t("preflight.check.failed")
+                  : t("preflight.check.info")}
             >
               {#if check.status === "ok"}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -211,7 +212,7 @@
                 >
                   <path d="M3 1.5l5 3.5-5 3.5V1.5z" />
                 </svg>
-                Fix this
+                {t("preflight.fix.label")}
               </summary>
               <div class="mt-1.5 space-y-1.5">
                 <pre
@@ -231,7 +232,7 @@
               class="ml-6 mt-1 px-3 py-2 rounded-md bg-surface-raised text-[11px] text-muted"
             >
               {#if ollamaModels.length > 0}
-                <div class="mb-1">{ollamaModels.length} models available</div>
+                <div class="mb-1">{t("preflight.ollama.modelsAvailable", { count: ollamaModels.length })}</div>
                 <div class="flex flex-wrap gap-1">
                   {#each ollamaModels.slice(0, 4) as model (model)}
                     <span
@@ -248,7 +249,7 @@
                   {/if}
                 </div>
               {:else}
-                <span>No models installed — <code style:font-family="var(--f13-font-mono)">ollama pull &lt;model&gt;</code></span>
+                <span>{t("preflight.ollama.noModels")}</span>
               {/if}
             </div>
           {/if}
@@ -262,7 +263,7 @@
             style:animation="f13-spin 700ms linear infinite"
             aria-hidden="true"
           ></span>
-          Checking…
+          {t("preflight.checking")}
         </div>
       {/if}
     </div>
@@ -271,11 +272,11 @@
   <Footer>
     {#snippet status()}
       {#if streaming}
-        Running checks…
+        {t("preflight.footer.checking")}
       {:else if hasFailure}
-        Resolve issues to continue.
+        {t("preflight.footer.failure")}
       {:else}
-        All checks passed.
+        {t("preflight.footer.success")}
       {/if}
     {/snippet}
     {#snippet action()}
@@ -283,7 +284,7 @@
         disabled={!canContinue}
         onclick={() => goto("/wizard/inference")}
       >
-        Continue
+        {t("common.continue")}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="5" y1="12" x2="19" y2="12" />
           <polyline points="12 5 19 12 12 19" />
