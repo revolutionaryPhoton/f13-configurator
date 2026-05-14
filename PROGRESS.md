@@ -59,7 +59,7 @@ S42/S43/S44 can be meaningfully built.
 | S41 | i18n infrastructure + English baseline catalog | complete ✅ |
 | S42 | Locale picker on welcome screen + localStorage persistence | complete ✅ |
 | S43 | German + French + Spanish translations of the English catalog | complete ✅ |
-| S44 | Zoom — Tauri 2 research + keyboard shortcuts + UI control | pending |
+| S44 | Zoom — Tauri 2 research + keyboard shortcuts + UI control | complete ✅ |
 
 Feature branch: `feat/phase9-i18n-zoom` (create on first iteration if
 absent; subsequent iterations commit onto it). A single Phase 9 PR
@@ -83,6 +83,15 @@ open per-story PRs.
 > Out-of-loop stories carried forward for context: S33, S35, S36 from
 > the original numbering were maintainer hand-fixes (HF1/HF2/HF3) and
 > shipped via interactive sessions, not the loop.
+
+- S44 completed: zoom feature implemented via CSS-zoom (document.documentElement.style.zoom).
+  Research notes: native Tauri/WKWebView/WebView2 shortcut pass-through is inconsistent
+  across platforms; CSS zoom requires no Rust code and works in all three webview backends.
+  zoom.ts writable store (0.6–2.0, step 0.1) with clampZoom, zoomKeyHandler (Ctrl/Cmd
+  +/=/−/0), localStorage persistence under f13.configurator.zoom. +layout.svelte subscribes
+  and applies zoom to html element; registers/removes keydown handler. Settings page adds
+  compact −/100%/+ stepper in Appearance section. i18n zoom keys added to all four locales.
+  26 new vitest tests; total 374/374 green. Phase 9 all four stories complete.
 
 ## Notes
 
