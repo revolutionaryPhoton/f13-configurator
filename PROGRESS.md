@@ -58,7 +58,7 @@ S42/S43/S44 can be meaningfully built.
 |-------|-------------|--------|
 | S41 | i18n infrastructure + English baseline catalog | complete ✅ |
 | S42 | Locale picker on welcome screen + localStorage persistence | complete ✅ |
-| S43 | German + French + Spanish translations of the English catalog | pending |
+| S43 | German + French + Spanish translations of the English catalog | complete ✅ |
 | S44 | Zoom — Tauri 2 research + keyboard shortcuts + UI control | pending |
 
 Feature branch: `feat/phase9-i18n-zoom` (create on first iteration if
@@ -404,6 +404,16 @@ open per-story PRs.
   (with `data-testid="build-progress"`). Tests: 3 new events.bats, 4 new f13-config.bats,
   4 new vitest. Shell: 273/273 bats ✅, shellcheck clean.
   GUI: npm run check ✅ biome ✅ vitest 265/287 ✅ (22 pre-existing) cargo check ✅.
+
+- S43 completed: German, French, and Spanish locale catalogs — `de.json`, `fr.json`, `es.json`
+  each containing all ~120 dot-namespaced keys from `en.json`. Brand terms (F13, Ollama, Docker,
+  mock, compose, cloud) kept in English; technical commands (`$ f13-config --start`, `model:tag`,
+  docker compose log command) kept verbatim. Tone: formal Sie/vous/usted or neutral infinitive
+  as appropriate. `locales.ts`: side-effect module that calls `registerCatalog` for de/fr/es;
+  imported in `+layout.svelte` at module level so all catalogs are registered before any `t()`
+  call. `locales.test.ts`: 12 vitest tests (4 per locale) — exhaustive key completeness (no
+  missing, no extras), non-empty values, and {var} placeholder parity against the English catalog.
+  GUI: npm run check ✅ biome ✅ vitest 339/339 ✅ cargo check ✅.
 
 - S41 completed: i18n infrastructure + English baseline catalog — hand-rolled TypeScript
   module at `gui/src/lib/i18n/` (zero new npm deps). `en.json`: ~120 dot-namespaced keys
