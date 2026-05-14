@@ -38,6 +38,11 @@ compose::up() {
   frontend_image="$(grep '^FRONTEND_IMAGE=' "${gen_dir}/.env" 2>/dev/null | cut -d= -f2- || true)"
   if [[ -n "${frontend_image}" ]] \
       && ! compose::_docker_image_inspect "${frontend_image}"; then
+    # HF3: stash the specific reason so the --compose-up handler can
+    # surface it in the done event message — otherwise the GUI toast
+    # would just say "compose up failed".
+    # shellcheck disable=SC2034  # consumed by bin/f13-config compose-up handler
+    COMPOSE_ERROR_MESSAGE="Frontend image '${frontend_image}' is missing locally — re-run the wizard so it can rebuild."
     ui::err "Frontend image '${frontend_image}' is missing locally."
     ui::info "It's built by this configurator and never pushed to a registry."
     ui::info "Re-run the wizard so it can rebuild the image."

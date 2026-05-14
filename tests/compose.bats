@@ -237,6 +237,28 @@ LIB_DIR="${BATS_TEST_DIRNAME}/../lib"
   [[ "$output" == *"REACHED=1"* ]]
 }
 
+@test "compose::up sets COMPOSE_ERROR_MESSAGE when image is missing (HF3)" {
+  # The bin/f13-config --compose-up handler reads COMPOSE_ERROR_MESSAGE
+  # to surface the specific reason in the done event the GUI consumes.
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/compose.sh'
+    set +e
+    compose::_docker_compose()      { :; }
+    compose::wait_healthy()         { return 0; }
+    compose::_docker_image_inspect() { return 1; }
+    export GEN_DIR='/tmp/fake-hf3-msg'
+    export NO_COLOR=1
+    mkdir -p /tmp/fake-hf3-msg
+    touch /tmp/fake-hf3-msg/docker-compose.yml
+    printf 'FRONTEND_IMAGE=f13-frontend:v2.0.0_based\n' > /tmp/fake-hf3-msg/.env
+    compose::up >/dev/null 2>&1
+    printf 'MSG=%s' \"\${COMPOSE_ERROR_MESSAGE:-}\"
+    rm -rf /tmp/fake-hf3-msg
+  "
+  [[ "$output" == *"MSG=Frontend image 'f13-frontend:v2.0.0_based' is missing locally"* ]]
+}
+
 @test "compose::up skips precondition when FRONTEND_IMAGE not in .env" {
   # Defensive: if someone hand-edits the env file and removes the var,
   # don't block them — let compose handle the resulting error.
