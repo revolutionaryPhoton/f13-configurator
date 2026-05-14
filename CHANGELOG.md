@@ -7,6 +7,68 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-05-14
+
+> **Highlights:** Two backlog hand-fixes — Cancel actually stops the
+> wizard, and a missing locally-built frontend image surfaces a clear
+> precondition error instead of a confusing `pull access denied`.
+> Tauri bumped 2.10.3 → 2.11.1 via Dependabot.
+
+### Fixed — HF2: Cancel button kills the wizard subprocess
+
+- `ProcessRunner.run` gains an optional `signal: AbortSignal` parameter.
+  `tauriRunner` stores the spawned Tauri `Child` and listens for the
+  abort event; on abort it calls `child.kill()`.
+- `engine.runWizardNonInteractive` forwards the signal to `runner.run`.
+- `/wizard/run/+page.svelte` creates an `AbortController` per pipeline
+  run; `handleCancel()` calls `controller.abort()` before tearing down
+  state, so the kill fires before the cancel-button-navigates-away
+  path begins.
+- Killing the bash leader does NOT kill its `docker compose up`
+  grandchild (reparented to PID 1). `handleCancel` therefore tears
+  down twice with a 1.5 s gap so the second pass catches containers
+  the orphaned `compose up` might have brought up during the first.
+  The proper kernel-level fix (kill the process group, not just the
+  leader) needs a Rust-side change to tauri-plugin-shell and is
+  deferred.
+
+### Fixed — HF3: clear "frontend image missing" error instead of pull-access-denied
+
+- `templates/docker-compose.yml.tmpl`: pinned `pull_policy: never` on
+  the frontend service. The image is built locally by this configurator
+  and never pushed to any registry, so a registry pull is always wrong
+  for it.
+- `lib/compose.sh`: precondition check in `compose::up` runs
+  `docker image inspect ${FRONTEND_IMAGE}` (via a testable
+  `compose::_docker_image_inspect` helper) before invoking
+  `docker compose up`. On miss, returns 1 with a clear "frontend image
+  is missing locally — re-run the wizard so it can rebuild" message.
+  `FRONTEND_IMAGE` is read straight from the rendered `.env` so the
+  check works for any wizard-driven invocation.
+- `bin/f13-config` `--compose-up` handler propagates the specific
+  failure reason into the `done` event message via
+  `COMPOSE_ERROR_MESSAGE`, so the GUI's error toast surfaces the
+  friendly text instead of a generic "compose up failed".
+
+### Changed — Dependencies
+
+- `tauri` 2.10.3 → 2.11.1 (Dependabot #2). Cargo.lock only; no API
+  changes required in our Rust glue. Backpressure (`cargo check`,
+  full GUI test suite) green against the new version.
+
+### Tests
+
+- 4 new bats assertions covering the HF3 precondition (errors when
+  image missing, proceeds when present, skips precondition when
+  `FRONTEND_IMAGE` not in `.env`, sets `COMPOSE_ERROR_MESSAGE`).
+- 1 new bats assertion: rendered `docker-compose.yml` pins
+  `pull_policy: never`.
+- 3 new vitest assertions covering HF2 (AbortSignal plumbed through
+  to the runner, Cancel aborts the signal handed to the engine,
+  Cancel tears down twice for the orphan-up race).
+- Existing `calls runWizardNonInteractive with the provided backend`
+  updated for the new two-arg signature.
+
 ## [0.3.1] — 2026-05-14
 
 > **Highlights:** HF4 fix — the GUI's Reconfigure flow now actually
