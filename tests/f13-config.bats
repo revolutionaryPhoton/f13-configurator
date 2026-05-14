@@ -137,6 +137,12 @@ _run_mock_dry() {
   [ "$status" -eq 0 ]
 }
 
+@test "docker-compose.yml pins frontend pull_policy: never (HF3)" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run grep 'pull_policy: never' "${TMPDIR_WORK}/gen/docker-compose.yml"
+  [ "$status" -eq 0 ]
+}
+
 @test ".env contains FRONTEND_PORT=9999" {
   env "${NI_ENV[@]}" "${BIN}" --dry-run
   run grep 'FRONTEND_PORT=9999' "${TMPDIR_WORK}/gen/.env"

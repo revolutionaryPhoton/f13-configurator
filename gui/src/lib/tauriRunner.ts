@@ -5,12 +5,17 @@
 // allow-list to: `bash <args>`. We pass the absolute script path as the first
 // arg, so the actual invocation is `bash <script-path> [...userArgs]`.
 
-import { Command } from "@tauri-apps/plugin-shell";
+import { type Child, Command } from "@tauri-apps/plugin-shell";
 import type { ProcessRunner } from "./engine.js";
 
 export function createTauriRunner(): ProcessRunner {
   return {
-    run(cmd: string, args: string[], env?: Record<string, string>): AsyncIterable<string> {
+    run(
+      cmd: string,
+      args: string[],
+      env?: Record<string, string>,
+      signal?: AbortSignal
+    ): AsyncIterable<string> {
       // Backpressure-aware queue: lines accumulate, the iterator drains them.
       const queue: string[] = [];
       let resolveNext: ((v: IteratorResult<string>) => void) | null = null;
@@ -77,12 +82,56 @@ export function createTauriRunner(): ProcessRunner {
         finish();
       });
 
+      // HF2: track the spawned Child so an AbortSignal can kill it. We
+      // can't kill before the spawn promise resolves, so any abort that
+      // fires during that window is recorded and applied on resolution.
+      let child: Child | null = null;
+      let killed = false;
+
+      function tryKill(): void {
+        killed = true;
+        if (child) {
+          // Tauri's child.kill() returns a promise; we don't await it.
+          // The on('close') handler will fire and call finish().
+          void child.kill().catch((err) => {
+            // eslint-disable-next-line no-console
+            console.error("[f13-script:kill]", err);
+          });
+        }
+      }
+
+      if (signal) {
+        if (signal.aborted) {
+          // Caller already aborted before we even got here — never start.
+          finish();
+          return {
+            [Symbol.asyncIterator]() {
+              return {
+                next(): Promise<IteratorResult<string>> {
+                  return Promise.resolve({
+                    value: undefined as unknown as string,
+                    done: true,
+                  });
+                },
+              };
+            },
+          };
+        }
+        signal.addEventListener("abort", tryKill, { once: true });
+      }
+
       // Spawn — fire-and-forget; close handler drives termination.
-      command.spawn().catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error("[f13-script:spawn]", err);
-        finish();
-      });
+      command
+        .spawn()
+        .then((c) => {
+          child = c;
+          if (killed) tryKill(); // abort fired before spawn resolved
+        })
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error("[f13-script:spawn]", err);
+          finish();
+        });
 
       return {
         [Symbol.asyncIterator]() {

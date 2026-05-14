@@ -1,6 +1,11 @@
 services:
   frontend:
     image: ${FRONTEND_IMAGE}
+    # HF3: the frontend image is built locally by this configurator
+    # (frontend::patch_and_build) and is never pushed to any registry,
+    # so a missing image must surface as a clear precondition error,
+    # not a confusing "pull access denied" against registry.opencode.de.
+    pull_policy: never
     environment:
       KEYCLOAK_DISABLED: "true"
       ENABLED_FEATURES: "${ENABLED_FEATURES}"

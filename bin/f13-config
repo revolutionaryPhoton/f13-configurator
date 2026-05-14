@@ -605,13 +605,18 @@ main() {
       FRONTEND_PORT="${FRONTEND_PORT:-9999}"
       events::emit compose "action=up" "status=started"
       local _cu_failed=0
+      COMPOSE_ERROR_MESSAGE=""
       compose::up || _cu_failed=1
       if [[ "${_cu_failed}" -eq 0 ]]; then
         events::emit compose "action=up" "status=healthy"
         events::emit 'done' "status=ok"
       else
+        # HF3: surface the specific failure reason if compose::up stashed
+        # one (e.g. the frontend-image-missing precondition). Falls back
+        # to the generic message otherwise.
+        local _msg="${COMPOSE_ERROR_MESSAGE:-compose up failed}"
         events::emit compose "action=up" "status=error"
-        events::emit 'done' "status=error" "message=compose up failed"
+        events::emit 'done' "status=error" "message=${_msg}"
         exit 1
       fi
       ;;
