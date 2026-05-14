@@ -185,6 +185,84 @@ LIB_DIR="${BATS_TEST_DIRNAME}/../lib"
 }
 
 # ---------------------------------------------------------------------------
+# HF3: compose::up frontend-image precondition
+# ---------------------------------------------------------------------------
+
+@test "compose::up errors out if frontend image is missing locally" {
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/compose.sh'
+    set +e   # AFTER sourcing — compose.sh's top-level 'set -e' would
+             # otherwise re-enable itself and abort on the return 1.
+    compose::_docker_compose()      { echo 'should not reach compose'; exit 99; }
+    compose::wait_healthy()         { return 0; }
+    compose::_docker_image_inspect() { return 1; }  # image missing
+    export GEN_DIR='/tmp/fake-hf3-missing'
+    export NO_COLOR=1
+    mkdir -p /tmp/fake-hf3-missing
+    touch /tmp/fake-hf3-missing/docker-compose.yml
+    printf 'FRONTEND_IMAGE=f13-frontend:v2.0.0_based\n' \
+      > /tmp/fake-hf3-missing/.env
+    compose::up 2>&1
+    echo \"STATUS=\$?\"
+    rm -rf /tmp/fake-hf3-missing
+  "
+  [[ "$output" == *"Frontend image"* ]]
+  [[ "$output" == *"missing locally"* ]]
+  [[ "$output" == *"STATUS=1"* ]]
+  [[ "$output" != *"should not reach compose"* ]]
+}
+
+@test "compose::up proceeds when frontend image is present" {
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/compose.sh'
+    REACHED_COMPOSE=0
+    compose::_docker_compose()      { REACHED_COMPOSE=1; }
+    compose::wait_healthy()         { return 0; }
+    compose::_docker_image_inspect() { return 0; }  # image present
+    export GEN_DIR='/tmp/fake-hf3-present'
+    export CORE_PORT=8000
+    export FRONTEND_PORT=9999
+    export NO_COLOR=1
+    mkdir -p /tmp/fake-hf3-present
+    touch /tmp/fake-hf3-present/docker-compose.yml
+    printf 'FRONTEND_IMAGE=f13-frontend:v2.0.0_based\n' \
+      > /tmp/fake-hf3-present/.env
+    compose::up
+    echo \"REACHED=\${REACHED_COMPOSE}\"
+    rm -rf /tmp/fake-hf3-present
+  "
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"REACHED=1"* ]]
+}
+
+@test "compose::up skips precondition when FRONTEND_IMAGE not in .env" {
+  # Defensive: if someone hand-edits the env file and removes the var,
+  # don't block them — let compose handle the resulting error.
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/compose.sh'
+    REACHED_COMPOSE=0
+    compose::_docker_compose()      { REACHED_COMPOSE=1; }
+    compose::wait_healthy()         { return 0; }
+    compose::_docker_image_inspect() { return 1; }  # would say missing
+    export GEN_DIR='/tmp/fake-hf3-noenv'
+    export CORE_PORT=8000
+    export FRONTEND_PORT=9999
+    export NO_COLOR=1
+    mkdir -p /tmp/fake-hf3-noenv
+    touch /tmp/fake-hf3-noenv/docker-compose.yml
+    : > /tmp/fake-hf3-noenv/.env
+    compose::up
+    echo \"REACHED=\${REACHED_COMPOSE}\"
+    rm -rf /tmp/fake-hf3-noenv
+  "
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"REACHED=1"* ]]
+}
+
+# ---------------------------------------------------------------------------
 # compose::down — mocked
 # ---------------------------------------------------------------------------
 
