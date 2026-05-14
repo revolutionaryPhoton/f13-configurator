@@ -7,6 +7,59 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-14
+
+> **Highlights:** GUI localization to German, French, and Spanish (English
+> remains the canonical source) and webview-level zoom. Phase 9 of the PRD
+> ships here. Shell wizard terminal output stays English by design.
+
+### Added — Localization (S41 + S42 + S43)
+
+- `gui/src/lib/i18n/` module providing a typed `t()` translation function
+  with three-tier fallback (current locale → English → raw key) and
+  `{var}` interpolation. JSON catalogs at `gui/src/lib/i18n/<locale>.json`,
+  167 keys each, dotted namespaces (`welcome.*`, `inference.*`,
+  `status.*`, etc.).
+- Full catalogs for English (canonical), German, French, and Spanish.
+  Brand terms (`F13`, `Ollama`, `Docker`, `docker compose`,
+  `ollama serve`, `ollama pull`, `mock`) intentionally left untranslated.
+  Key parity across all four catalogs is enforced by a vitest fixture.
+- `LocalePicker.svelte` rendered on the welcome screen footer only — a
+  four-button row (EN / DE / FR / ES). Selection persists to
+  `localStorage` under `f13.configurator.locale` (with a one-shot
+  migration from the pre-v0.4.0 `f13_locale` key). The picker is
+  deliberately **not** present in Settings or anywhere mid-flow; users
+  pick once on first run.
+- All hardcoded strings in route pages (`welcome`, `preflight`,
+  `inference`, `inference/ollama`, `ports`, `run`, `status`, `settings`)
+  replaced with `t()` calls.
+
+### Added — Zoom (S44)
+
+- `gui/src/lib/zoom.ts` writable store with clamp (0.6×–2.0×, 0.1 step)
+  and localStorage persistence under `f13.configurator.zoom`.
+- Keyboard shortcuts registered at the layout level: `Ctrl/Cmd + +/=`
+  zooms in, `Ctrl/Cmd + −` zooms out, `Ctrl/Cmd + 0` resets to 100%.
+- Compact `−` / `100%` / `+` stepper in Settings → Appearance.
+- Implementation uses the CSS `zoom` property on `document.documentElement`
+  (not per-platform Tauri webview APIs). Works identically across
+  WKWebView / WebView2 / WebKitGTK with no Rust code; trade-off
+  documented in the S44 commit body.
+
+### Tests
+
+- 21 new vitest tests for the i18n module covering `t()` fallbacks,
+  `{var}` interpolation, `setLocale`/`getLocale` persistence, and the
+  pre-v0.4.0 → v0.4.0 localStorage key migration.
+- 4 new vitest tests for catalog key parity (every English key exists
+  in de/fr/es; no extras).
+- 7 new vitest tests for `LocalePicker` (rendering, ARIA, click → persist
+  + reload, click-active → no reload, group-role label).
+- 27 new vitest tests for the zoom store and keyboard handler.
+- 1 absence test on the Settings page confirming the locale picker is
+  **not** rendered there (welcome-only rule).
+- vitest total: **378/378 green** (up from 299 in v0.3.2).
+
 ## [0.3.2] — 2026-05-14
 
 > **Highlights:** Two backlog hand-fixes — Cancel actually stops the

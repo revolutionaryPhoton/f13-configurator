@@ -4,18 +4,31 @@ export type Locale = "en" | "de" | "fr" | "es";
 
 export const SUPPORTED_LOCALES: readonly Locale[] = ["en", "de", "fr", "es"] as const;
 
-const LS_KEY = "f13_locale";
+export const LS_KEY = "f13.configurator.locale";
+const LEGACY_LS_KEY = "f13_locale"; // pre-v0.4.0 key — migrate on read, then delete
 
 // Catalog registry — de/fr/es are populated by registerCatalog() in S43.
 const catalogs: Partial<Record<Locale, Record<string, string>>> = {
   en: enMessages as Record<string, string>,
 };
 
+function isValidLocale(value: string | null): value is Locale {
+  return value !== null && (SUPPORTED_LOCALES as readonly string[]).includes(value);
+}
+
 function readStoredLocale(): Locale {
   try {
     const stored = localStorage.getItem(LS_KEY);
-    if (stored && (SUPPORTED_LOCALES as readonly string[]).includes(stored)) {
-      return stored as Locale;
+    if (isValidLocale(stored)) return stored;
+
+    // Migrate from the pre-v0.4.0 key if present, then delete it so
+    // future reads use the new key directly. New writes always land
+    // under LS_KEY via setLocale().
+    const legacy = localStorage.getItem(LEGACY_LS_KEY);
+    if (isValidLocale(legacy)) {
+      localStorage.setItem(LS_KEY, legacy);
+      localStorage.removeItem(LEGACY_LS_KEY);
+      return legacy;
     }
   } catch {
     // localStorage unavailable (test isolation, SSR)

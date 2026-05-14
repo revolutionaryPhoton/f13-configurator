@@ -215,4 +215,12 @@ describe("settings/+page.svelte", () => {
     const { getByRole } = render(SettingsPage);
     expect(getByRole("group", { name: /zoom/i })).toBeTruthy();
   });
+
+  // S42 spec: the locale picker is welcome-screen-only. Anywhere else
+  // would dilute its discoverability and add a per-screen language
+  // switcher we explicitly didn't want.
+  it("does NOT render a locale picker (welcome-only rule)", () => {
+    const { queryByRole } = render(SettingsPage);
+    expect(queryByRole("group", { name: /language/i })).toBeNull();
+  });
 });

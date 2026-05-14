@@ -269,6 +269,8 @@ Secrets are never committed — `generated/` is in `.gitignore`.
 **User experience**
 
 - 🖥️ **Desktop GUI — _mostly stable on macOS + Linux (v0.3.0+)_** — a Tauri 2 + Svelte 5 desktop app alongside the shell wizard, for users who'd rather click than type. Same engine: shells out to `bin/f13-config` via a JSON-event protocol, no logic duplication. Every documented flow works on both surfaces — first-time setup, Stop/Start, Reset, mock or host-Ollama with cloud-tagged models, and live reconfigure of a running stack (the last shipped in v0.3.1). Edge-case combinations of state and error paths haven't been exhaustively exercised. See [`gui/README.md`](gui/README.md) for the GUI's own docs.
+- 🌐 **Four GUI languages (v0.4.0)** — English (default), German, French, Spanish. Picker lives in the welcome-screen footer; choice persists across restarts. Brand terms (`F13`, `Ollama`, `Docker`, `mock`, `compose`) stay untranslated. The shell wizard's terminal output stays English — that's the operator surface.
+- 🔍 **Zoom (v0.4.0)** — `Ctrl/Cmd + +/−/0` to zoom in / out / reset, or use the `−` / `100%` / `+` stepper in Settings → Appearance. Factor (0.6×–2.0×) is preserved across restart.
 
 ---
 

@@ -50,7 +50,7 @@ describe("LocalePicker", () => {
   it("clicking an inactive locale persists it to localStorage", async () => {
     const { getByRole } = render(LocalePicker);
     await fireEvent.click(getByRole("button", { name: /^french$/i }));
-    expect(localStorage.getItem("f13_locale")).toBe("fr");
+    expect(localStorage.getItem("f13.configurator.locale")).toBe("fr");
   });
 
   it("clicking the active locale does NOT reload", async () => {

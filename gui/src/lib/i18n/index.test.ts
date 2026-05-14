@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getLocale, registerCatalog, SUPPORTED_LOCALES, setLocale, t } from "./index.js";
 
 describe("i18n module", () => {
@@ -134,18 +134,55 @@ describe("i18n module", () => {
 
   it("setLocale writes the locale to localStorage", () => {
     setLocale("de");
-    expect(localStorage.getItem("f13_locale")).toBe("de");
+    expect(localStorage.getItem("f13.configurator.locale")).toBe("de");
   });
 
   it("setLocale('en') writes 'en' to localStorage", () => {
     setLocale("en");
-    expect(localStorage.getItem("f13_locale")).toBe("en");
+    expect(localStorage.getItem("f13.configurator.locale")).toBe("en");
   });
 
   it("setLocale('fr') persists 'fr' and is readable back", () => {
     setLocale("fr");
-    expect(localStorage.getItem("f13_locale")).toBe("fr");
+    expect(localStorage.getItem("f13.configurator.locale")).toBe("fr");
     // getLocale() must reflect the in-memory change immediately
     expect(getLocale()).toBe("fr");
+  });
+});
+
+// Migration is a one-shot read at module init, so we need a fresh
+// import to exercise it. Each test in this block resets modules,
+// seeds localStorage, then dynamically re-imports.
+describe("i18n module — pre-v0.4.0 key migration", () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it("migrates legacy 'f13_locale' to 'f13.configurator.locale' and deletes the legacy key", async () => {
+    localStorage.setItem("f13_locale", "de");
+    vi.resetModules();
+    const { getLocale: getLocaleFresh } = await import("./index.js");
+    expect(getLocaleFresh()).toBe("de");
+    expect(localStorage.getItem("f13.configurator.locale")).toBe("de");
+    expect(localStorage.getItem("f13_locale")).toBeNull();
+  });
+
+  it("prefers the new key over the legacy key when both are present", async () => {
+    localStorage.setItem("f13_locale", "de");
+    localStorage.setItem("f13.configurator.locale", "fr");
+    vi.resetModules();
+    const { getLocale: getLocaleFresh } = await import("./index.js");
+    expect(getLocaleFresh()).toBe("fr");
+    // Legacy key is not touched in this case (new key won, no migration ran).
+    expect(localStorage.getItem("f13_locale")).toBe("de");
+  });
+
+  it("ignores invalid legacy values and falls back to English", async () => {
+    localStorage.setItem("f13_locale", "klingon");
+    vi.resetModules();
+    const { getLocale: getLocaleFresh } = await import("./index.js");
+    expect(getLocaleFresh()).toBe("en");
+    expect(localStorage.getItem("f13.configurator.locale")).toBeNull();
   });
 });
