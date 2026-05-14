@@ -218,13 +218,29 @@ describe("wizard/run/+page.svelte", () => {
     await waitFor(() => expect(engine.compose.down).toHaveBeenCalled());
   });
 
+  // HF2: compose.down is called twice with a gap, to catch containers
+  // that the orphaned `docker compose up` grandchild brings up after
+  // we kill bash.
+  it("Cancel button tears down twice to catch orphaned compose-up race (HF2)", async () => {
+    const engine = makeNeverEngine();
+    const { getByRole } = render(RunPage, { engine, backend: "mock" });
+    const cancelBtn = await waitFor(() => getByRole("button", { name: /cancel/i }));
+    await fireEvent.click(cancelBtn);
+    await waitFor(
+      () => expect((engine.compose.down as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2),
+      { timeout: 3000 }
+    );
+  });
+
   it("Cancel button navigates to /wizard/ports", async () => {
     const { goto } = await import("$app/navigation");
     const engine = makeNeverEngine();
     const { getByRole } = render(RunPage, { engine, backend: "mock" });
     const cancelBtn = await waitFor(() => getByRole("button", { name: /cancel/i }));
     await fireEvent.click(cancelBtn);
-    await waitFor(() => expect(goto).toHaveBeenCalledWith("/wizard/ports"));
+    // Cancel does compose.down twice with a 1.5s gap (HF2 orphan race),
+    // so navigation lands a bit after the default 1s waitFor budget.
+    await waitFor(() => expect(goto).toHaveBeenCalledWith("/wizard/ports"), { timeout: 3000 });
   });
 
   // HF2: Cancel must abort the AbortSignal we pass into the engine so

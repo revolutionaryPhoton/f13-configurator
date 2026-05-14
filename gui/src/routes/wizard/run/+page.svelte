@@ -197,10 +197,19 @@
 
     const eng = injectedEngine ?? getEngine();
     if (eng) {
-      try {
-        await eng.compose.down(generatedDir);
-      } catch {
-        // ignore cleanup errors
+      // HF2: killing the bash subprocess does NOT kill its `docker
+      // compose up` grandchild — that's reparented to PID 1 and keeps
+      // running. A single `compose down` here can race with the orphan
+      // and miss containers it brings up afterwards. Tear down twice
+      // with a brief gap so the second pass catches anything that
+      // came up during the first.
+      for (let i = 0; i < 2; i++) {
+        try {
+          await eng.compose.down(generatedDir);
+        } catch {
+          // ignore cleanup errors — best effort
+        }
+        if (i === 0) await new Promise((r) => setTimeout(r, 1500));
       }
     }
 
