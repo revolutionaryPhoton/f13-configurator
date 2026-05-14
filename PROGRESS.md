@@ -39,14 +39,50 @@
 | S31 | End-to-end smoke test (maintainer-only) | 41595e4 | 256/256 shell + 277/277 vitest ✅ |
 | S32 | `f13-reset` honours `F13_GENERATED_DIR` (Phase 7.5) | bba394d | 266/266 shell + 250/283 vitest ✅ |
 | S34 | Wizard's `keep` path emits per-stage `skipped:true` events (Phase 7.5) | b192f98 | 273/273 shell + 265/287 vitest ✅ |
+| HF1 | GUI absolute `generatedDir` resolution | 18cbacf | maintainer, v0.2.2 ✅ |
+| S37 | WSL2 / libEGL / GPU runtime defaults (Phase 8) | 3791a9b | maintainer, v0.3.0 ✅ |
+| S38 | `host.docker.internal` on Linux (Phase 8) | 3791a9b | maintainer, v0.3.0 ✅ |
+| S39 | Secret-file mode 0644 for Linux bind-mounts (Phase 8) | f341072 | maintainer, v0.3.0 ✅ |
+| S40 | Linux smoke pass (Phase 8) | maintainer | manual, v0.3.0 ✅ |
+| HF4 | GUI reconfigure flow re-renders on backend swap | f342a1f | maintainer, v0.3.1 ✅ |
+| HF2 | Cancel button kills wizard subprocess | 69f9bff | maintainer, v0.3.2 ✅ |
+| HF3 | Frontend image precondition + `pull_policy: never` | 69f9bff | maintainer, v0.3.2 ✅ |
 
-## Pending Stories
+## Pending Stories — Phase 9 (i18n + zoom, target v0.4.0)
 
-*(none — all loop-verifiable stories complete)*
+These are the **ONLY** stories the loop should work on right now.
+Pick the first incomplete row each iteration; S41 must land before
+S42/S43/S44 can be meaningfully built.
 
-> Phase 7.5 spec: see `/PRD.md` Phase 7.5 section. S33, S35, S36 are
-> intentionally not in the loop — they're maintainer hand-fixes (HF1,
-> HF2, HF3) since their acceptance requires running the actual app.
+| Story | Description | Status |
+|-------|-------------|--------|
+| S41 | i18n infrastructure + English baseline catalog | pending |
+| S42 | Locale picker on welcome screen + localStorage persistence | pending |
+| S43 | German + French + Spanish translations of the English catalog | pending |
+| S44 | Zoom — Tauri 2 research + keyboard shortcuts + UI control | pending |
+
+Feature branch: `feat/phase9-i18n-zoom` (create on first iteration if
+absent; subsequent iterations commit onto it). A single Phase 9 PR
+rolls up all four stories for maintainer review at the end — do **not**
+open per-story PRs.
+
+> **Out of scope for this loop — do NOT touch these in any iteration:**
+>
+> - **HF5** (auto-regenerate broken stack on Start) — open in `/PRD.md`
+>   but deferred to a future v0.3.x patch; needs maintainer judgement
+>   on UX shape.
+> - **Phase 10 / S51–S57** (signed distributables + `appLocalDataDir`)
+>   — open in `/PRD.md` and explicitly targeted at v0.5.0 after Phase 9
+>   ships. The Phase 10 section header says so.
+> - Anything outside `gui/` (the shell wizard, `bin/*`, `lib/*.sh`,
+>   `templates/*`, `tests/*.bats`) unless the story explicitly requires
+>   it. Phase 9 is GUI-only.
+> - Linux GUI runtime tests — Phase 8 already validated WSL2 parity;
+>   no further Linux-runtime stories until Phase 10's `.AppImage` / `.deb`.
+
+> Out-of-loop stories carried forward for context: S33, S35, S36 from
+> the original numbering were maintainer hand-fixes (HF1/HF2/HF3) and
+> shipped via interactive sessions, not the loop.
 
 ## Notes
 
