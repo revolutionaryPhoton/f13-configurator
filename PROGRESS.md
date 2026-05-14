@@ -52,27 +52,47 @@
 | S43 | German, French, Spanish translations (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
 | S44 | Zoom — keyboard shortcuts + Settings stepper (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
 
-## Pending Stories
+## Pending Stories — Phase 10 (loop-runnable subset)
 
-*(none — Phase 9 shipped as v0.4.0; no loop work currently queued)*
+Phase 10 (signed distributables + bundled-mode data paths) is the
+next phase. Stories S53–S56 need maintainer Apple-Developer + repo
+secrets that the headless loop container doesn't have, so they are
+deliberately **not** in this table. The two pure-code stories below
+ARE loop-runnable and should be picked up while the maintainer
+finishes Apple enrollment:
 
-> **Out of scope until further notice — do NOT pick these up in any
-> loop iteration:**
+| Story | Description | Status |
+|-------|-------------|--------|
+| S51 | `appLocalDataDir` for bundled installs (Rust `get_generated_dir()` + `get_bin_dir()` switch bundled branch to `app.path().app_local_data_dir().join("generated")` etc.) | pending |
+| S52 | Discovery in `f13-stop` / `f13-reset` — auto-find generated/ across F13_GENERATED_DIR env, dev SCRIPT_DIR-relative, and bundled appLocalDataDir locations | pending |
+
+S51 lands first; S52 builds on it (shell scripts learn to find the
+new path). Both ship in v0.5.0 alongside the maintainer-driven
+S53–S56 once the cert/secrets are in place.
+
+Feature branch: `feat/phase10-distributables` (create on first
+iteration if absent). Single Phase 10 PR rolls up all stories
+(both loop-driven S51/S52 and maintainer-driven S53/S54/S55/S56)
+for review before merging to `main` and tagging v0.5.0.
+
+> **Out of scope for this loop — do NOT touch these:**
 >
-> - **HF5** (auto-regenerate broken stack on Start) — open in `/PRD.md`
->   but deferred to a v0.4.x patch; needs maintainer judgement on the
->   UX shape (button placement, "needs rebuild" detection).
-> - **Phase 10 / S51–S57** (signed distributables + `appLocalDataDir`)
->   — open in `/PRD.md` and explicitly targeted at v0.5.0. Requires
->   signing certificates, GitHub release secrets, and Linux-distro
->   packaging tooling that the headless loop container doesn't have.
-> - Anything outside `gui/` unless a future Phase 9 follow-up
->   explicitly requires it.
->
-> If a Pending Stories table is added back here pointing at a specific
-> phase, that's the new loop target. Until then the loop should emit
-> `<promise>COMPLETE</promise>` on first iteration per ralph.sh's
-> stop rule.
+> - **S53, S54, S55, S56** in `/PRD.md` — explicit "maintainer-
+>   driven" markers in their story bodies. The loop must not
+>   attempt signing certs, GitHub release secrets, or `.dmg` /
+>   `.AppImage` / `.deb` builds. Drafting the
+>   `.github/workflows/release.yml` skeleton is allowed since
+>   it's just YAML; signing/notarization wiring needs the
+>   maintainer-set secrets to validate.
+> - **HF5** (auto-regenerate broken stack on Start) — promoted
+>   to S61 in Phase 11 (`/PRD.md`). Don't pick up until Phase 10
+>   has shipped and the maintainer queues Phase 11.
+> - **Phase 12 / S71–S73** (Homebrew) — needs a separate tap
+>   repo and is targeted at v0.7.0.
+> - **Phases 13–16 / S81–S115** — full preset, adjustable
+>   services, chat tuning, branding. Long-horizon, not active.
+> - Anything outside `gui/` (for S51) or `bin/*` + `lib/*.sh`
+>   (for S52). No unrelated drive-by changes.
 
 > Out-of-loop stories carried forward for context: S33, S35, S36 from
 > the original numbering were maintainer hand-fixes (HF1/HF2/HF3) and
