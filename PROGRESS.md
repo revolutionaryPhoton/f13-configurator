@@ -57,7 +57,7 @@ S42/S43/S44 can be meaningfully built.
 | Story | Description | Status |
 |-------|-------------|--------|
 | S41 | i18n infrastructure + English baseline catalog | complete ✅ |
-| S42 | Locale picker on welcome screen + localStorage persistence | pending |
+| S42 | Locale picker on welcome screen + localStorage persistence | complete ✅ |
 | S43 | German + French + Spanish translations of the English catalog | pending |
 | S44 | Zoom — Tauri 2 research + keyboard shortcuts + UI control | pending |
 
