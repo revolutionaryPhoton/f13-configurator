@@ -69,8 +69,8 @@ open per-story PRs.
 > **Out of scope for this loop — do NOT touch these in any iteration:**
 >
 > - **HF5** (auto-regenerate broken stack on Start) — open in `/PRD.md`
->   but deferred to a future v0.3.x patch; needs maintainer judgement
->   on UX shape.
+>   but deferred to a v0.4.x patch after Phase 9 ships; needs
+>   maintainer judgement on UX shape.
 > - **Phase 10 / S51–S57** (signed distributables + `appLocalDataDir`)
 >   — open in `/PRD.md` and explicitly targeted at v0.5.0 after Phase 9
 >   ships. The Phase 10 section header says so.
