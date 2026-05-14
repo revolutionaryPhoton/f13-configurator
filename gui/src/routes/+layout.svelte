@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css";
+  import "$lib/i18n/locales.js";
   import { onMount } from "svelte";
   import type { Snippet } from "svelte";
   import { applyTheme, getTheme } from "$lib/theme.js";
