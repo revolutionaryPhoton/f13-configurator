@@ -7,6 +7,7 @@
   import Toast from "$lib/components/Toast.svelte";
   import { t } from "$lib/i18n/index.js";
   import { getTheme, setTheme as persistTheme, type Theme } from "$lib/theme.js";
+  import { zoom, ZOOM_MIN, ZOOM_MAX } from "$lib/zoom.js";
 
   interface Props {
     /** Injectable for tests and Tauri production (tauri-apps/plugin-fs). */
@@ -220,6 +221,50 @@
             {option}
           </button>
         {/each}
+      </div>
+    </div>
+
+    <!-- Zoom control -->
+    <div class="flex items-center justify-between gap-4">
+      <span class="text-sm text-text-muted">{t("settings.appearance.zoom")}</span>
+      <div
+        role="group"
+        aria-label={t("settings.appearance.zoom")}
+        class="flex items-center gap-0.5 rounded-lg bg-surface-raised p-0.5"
+      >
+        <button
+          type="button"
+          aria-label={t("settings.appearance.zoomOut")}
+          data-testid="zoom-out"
+          disabled={$zoom <= ZOOM_MIN}
+          onclick={() => zoom.zoomOut()}
+          class="rounded-md w-7 h-7 flex items-center justify-center text-sm font-medium
+                 text-text-muted hover:text-text hover:bg-surface
+                 disabled:opacity-40 disabled:pointer-events-none
+                 transition-colors duration-150 focus-visible:outline-none
+                 focus-visible:ring-2 focus-visible:ring-primary/30"
+        >−</button>
+        <button
+          type="button"
+          aria-label={t("settings.appearance.zoomReset")}
+          data-testid="zoom-reset"
+          onclick={() => zoom.reset()}
+          class="rounded-md px-2.5 py-0.5 text-xs font-mono font-medium text-text
+                 hover:bg-surface transition-colors duration-150 min-w-[3.25rem] text-center
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        >{Math.round($zoom * 100)}%</button>
+        <button
+          type="button"
+          aria-label={t("settings.appearance.zoomIn")}
+          data-testid="zoom-in"
+          disabled={$zoom >= ZOOM_MAX}
+          onclick={() => zoom.zoomIn()}
+          class="rounded-md w-7 h-7 flex items-center justify-center text-sm font-medium
+                 text-text-muted hover:text-text hover:bg-surface
+                 disabled:opacity-40 disabled:pointer-events-none
+                 transition-colors duration-150 focus-visible:outline-none
+                 focus-visible:ring-2 focus-visible:ring-primary/30"
+        >+</button>
       </div>
     </div>
   </section>
