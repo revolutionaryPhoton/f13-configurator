@@ -317,7 +317,7 @@
             <div>~/.f13/generated/chat_api.secret</div>
           </div>
           <p class="m-0 mt-1.5 text-[11px] text-muted">
-            Generated on first run; never committed to git.
+            {t("ports.advanced.secretFilesNote")}
           </p>
         </div>
         <div>

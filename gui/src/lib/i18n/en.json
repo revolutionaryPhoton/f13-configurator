@@ -5,11 +5,8 @@
   "common.launch": "Launch",
   "common.retry": "Retry",
   "common.gotIt": "Got it",
-
   "tiles.recommended": "Recommended",
-
   "stepHeader.stepOf": "Step {step} of {total}",
-
   "welcome.title": "F13 Configurator",
   "welcome.tagline": "Minimal · Batteries included · One command",
   "welcome.alreadyRunning.title": "F13 is already running",
@@ -19,7 +16,6 @@
   "welcome.beginSetup": "Begin setup",
   "welcome.openExisting": "Open existing setup",
   "welcome.footer": "Keycloak guest mode · No hand-editing required",
-
   "preflight.kicker": "Preflight",
   "preflight.title.scanning": "Scanning environment…",
   "preflight.title.missingReqs": "Some requirements missing",
@@ -35,7 +31,6 @@
   "preflight.footer.checking": "Running checks…",
   "preflight.footer.failure": "Resolve issues to continue.",
   "preflight.footer.success": "All checks passed.",
-
   "inference.kicker": "Inference",
   "inference.title": "Where should chat run?",
   "inference.subtitle": "Pick how the chat service generates responses. You can change this later.",
@@ -55,7 +50,6 @@
   "inference.footer.none": "Select an option.",
   "inference.footer.mock": "Mock selected — skipping model picker.",
   "inference.footer.ollama": "Ollama selected — pick a model next.",
-
   "ollamaModel.kicker": "Ollama",
   "ollamaModel.title": "Choose a model",
   "ollamaModel.subtitle": "Pick which Ollama model the chat service should use.",
@@ -75,7 +69,6 @@
   "ollamaModel.footer.startOllama": "Start Ollama or type a model name.",
   "ollamaModel.footer.loading": "Loading models…",
   "ollamaModel.footer.select": "Select or type a model.",
-
   "ports.kicker": "Ports",
   "ports.title": "Configure ports",
   "ports.subtitle": "Which TCP ports F13 services will listen on. We probed your machine.",
@@ -97,7 +90,6 @@
   "ports.modal.try": "Try port {port} instead?",
   "ports.modal.keep": "Keep this port",
   "ports.modal.pick": "Pick another port",
-
   "run.kicker": "Launching F13",
   "run.title.running": "Setting up your F13 instance…",
   "run.title.done": "F13 is up.",
@@ -115,7 +107,6 @@
   "run.footer.done": "All systems healthy.",
   "run.footer.running": "Setting up…",
   "run.footer.ready": "Ready to start.",
-
   "status.heading": "Status",
   "status.reconfigure": "Reconfigure",
   "status.reconfiguring": "Stopping…",
@@ -153,7 +144,6 @@
   "status.reset.modal.inputLabel": "Type RESET to confirm",
   "status.reset.modal.cancel": "Cancel",
   "status.reset.modal.confirm": "Confirm reset",
-
   "settings.title": "Settings",
   "settings.back": "Back to status",
   "settings.appearance.title": "Appearance",
@@ -175,5 +165,14 @@
   "settings.prompts.edit": "Edit system prompt",
   "settings.prompts.modal.title": "Custom system prompts",
   "settings.prompts.modal.body": "Custom system prompts are on the F13 roadmap. In a future release you'll be able to edit the default AI instructions without editing YAML files.",
-  "settings.prompts.modal.gotIt": "Got it"
+  "settings.prompts.modal.gotIt": "Got it",
+  "ports.advanced.secretFilesNote": "Generated on first run; never committed to git.",
+  "status.reset.modal.enterHintBefore": "Press ",
+  "status.reset.modal.enterHintAfter": " to confirm.",
+  "ollamaModel.gpuWarning.body": "Larger models need a capable GPU. Cloud-tagged models (e.g. <code class=\"f13-code-inline\">{cloudExample}</code>) require a signed-in Ollama account and won't appear in the list below — type the name into the <em>{fieldLabel}</em> field instead.",
+  "ollamaModel.gpuWarning.embeddingBody": "<strong>Embedding models</strong> (e.g. <code class=\"f13-code-inline\">{example}</code>, anything matching <code class=\"f13-code-inline\">{pattern1}</code> / <code class=\"f13-code-inline\">{pattern2}</code>) produce vector outputs, not chat completions. They may appear in the list below — please don't pick one for chat inference.",
+  "ollamaModel.noModels.hintBefore": "No models pulled locally. Either pull one from a terminal — <code class=\"f13-code-inline\">{pullCmd}</code> (browse at ",
+  "ollamaModel.noModels.hintAfter": ") — or just type any model name in the field below and Ollama will pull it on first request.",
+  "ollamaModel.customModel.helpBefore": "Type any model tag — e.g. <code class=\"f13-code-inline\">{cloudExample}</code> for cloud-hosted models, or any name Ollama can pull on first request. Browse models at ",
+  "ollamaModel.customModel.helpAfter": ". Overrides the selection above when filled in."
 }

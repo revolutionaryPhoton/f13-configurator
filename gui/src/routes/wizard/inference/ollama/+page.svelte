@@ -159,37 +159,19 @@
       >
         {t("ollamaModel.gpuWarning.title")}
       </div>
-      Larger models need a capable GPU. Cloud-tagged models (e.g.
-      <code
-        class="px-1"
-        style:font-family="var(--f13-font-mono)"
-        style:font-size="11px"
-        style:background="var(--f13-surface)"
-      >gemma4:31b-cloud</code>) require a signed-in Ollama account
-      and won't appear in the list below — type the name into the
-      <em>Use any model name</em> field instead.
+      <!-- eslint-disable-next-line svelte/no-at-html-tags — variables are
+           hard-coded labels / examples, not user input -->
+      {@html t("ollamaModel.gpuWarning.body", {
+        cloudExample: "gemma4:31b-cloud",
+        fieldLabel: t("ollamaModel.customModel.label"),
+      })}
       <div class="mt-1.5">
-        <strong>Embedding models</strong> (e.g.
-        <code
-          class="px-1"
-          style:font-family="var(--f13-font-mono)"
-          style:font-size="11px"
-          style:background="var(--f13-surface)"
-        >nomic-embed-text</code>, anything matching
-        <code
-          class="px-1"
-          style:font-family="var(--f13-font-mono)"
-          style:font-size="11px"
-          style:background="var(--f13-surface)"
-        >*-embed-*</code> /
-        <code
-          class="px-1"
-          style:font-family="var(--f13-font-mono)"
-          style:font-size="11px"
-          style:background="var(--f13-surface)"
-        >*-embedding-*</code>) produce vector outputs, not chat
-        completions. They may appear in the list below — please
-        don't pick one for chat inference.
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html t("ollamaModel.gpuWarning.embeddingBody", {
+          example: "nomic-embed-text",
+          pattern1: "*-embed-*",
+          pattern2: "*-embedding-*",
+        })}
       </div>
     </div>
 
@@ -229,21 +211,16 @@ ollama serve</pre>
       </div>
     {:else if models.length === 0}
       <p class="m-0 py-1.5 text-[13px] text-muted leading-relaxed">
-        No models pulled locally. Either pull one from a terminal —
-        <code
-          class="px-1 rounded"
-          style:font-family="var(--f13-font-mono)"
-          style:background="var(--f13-surface)"
-          style:font-size="11.5px"
-        >ollama pull modelname:tag</code>
-        (browse at
-        <button
+        <!-- Prose interleaved with an interactive button — split so each
+             half stays a translation-friendly fragment without the button
+             losing its onclick handler. -->
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html t("ollamaModel.noModels.hintBefore", { pullCmd: "ollama pull modelname:tag" })}<button
           type="button"
           onclick={() => openExternal("https://ollama.com/search")}
           class="underline decoration-dotted underline-offset-2 hover:text-text transition-colors cursor-pointer"
           style:color="var(--f13-text-muted)"
-        >ollama.com/search</button>) — or just type any model name in
-        the field below and Ollama will pull it on first request.
+        >ollama.com/search</button>{t("ollamaModel.noModels.hintAfter")}
       </p>
     {:else}
       <div
@@ -341,22 +318,14 @@ ollama serve</pre>
         {t("ollamaModel.customModel.label")}
       </label>
       <p class="m-0 text-[11px] text-muted leading-relaxed">
-        Type any model tag — e.g.
-        <code
-          class="px-1 rounded"
-          style:font-family="var(--f13-font-mono)"
-          style:background="var(--f13-surface-raised)"
-          style:font-size="11px"
-        >gemma4:31b-cloud</code>
-        for cloud-hosted models, or any name Ollama can pull on
-        first request. Browse models at
-        <button
+        <!-- Same split-around-button pattern as the no-models hint. -->
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html t("ollamaModel.customModel.helpBefore", { cloudExample: "gemma4:31b-cloud" })}<button
           type="button"
           onclick={() => openExternal("https://ollama.com/search")}
           class="underline decoration-dotted underline-offset-2 hover:text-text transition-colors cursor-pointer"
           style:color="var(--f13-text-muted)"
-        >ollama.com/search</button>.
-        Overrides the selection above when filled in.
+        >ollama.com/search</button>{t("ollamaModel.customModel.helpAfter")}
       </p>
       <input
         id="ollama-custom-model"

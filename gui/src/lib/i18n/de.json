@@ -5,11 +5,8 @@
   "common.launch": "Starten",
   "common.retry": "Wiederholen",
   "common.gotIt": "Verstanden",
-
   "tiles.recommended": "Empfohlen",
-
   "stepHeader.stepOf": "Schritt {step} von {total}",
-
   "welcome.title": "F13 Konfigurator",
   "welcome.tagline": "Minimal · Komplett ausgestattet · Ein Befehl",
   "welcome.alreadyRunning.title": "F13 läuft bereits",
@@ -19,7 +16,6 @@
   "welcome.beginSetup": "Einrichtung starten",
   "welcome.openExisting": "Bestehende Konfiguration öffnen",
   "welcome.footer": "Keycloak-Gastmodus · Keine manuelle Bearbeitung erforderlich",
-
   "preflight.kicker": "Vorabprüfung",
   "preflight.title.scanning": "Umgebung wird geprüft…",
   "preflight.title.missingReqs": "Einige Anforderungen fehlen",
@@ -35,7 +31,6 @@
   "preflight.footer.checking": "Prüfungen laufen…",
   "preflight.footer.failure": "Probleme beheben, um fortzufahren.",
   "preflight.footer.success": "Alle Prüfungen bestanden.",
-
   "inference.kicker": "Inferenz",
   "inference.title": "Wo soll der Chat ausgeführt werden?",
   "inference.subtitle": "Wählen Sie aus, wie der Chat-Dienst Antworten generiert. Sie können dies später ändern.",
@@ -55,7 +50,6 @@
   "inference.footer.none": "Option auswählen.",
   "inference.footer.mock": "Mock ausgewählt — Modellauswahl wird übersprungen.",
   "inference.footer.ollama": "Ollama ausgewählt — Modell als Nächstes auswählen.",
-
   "ollamaModel.kicker": "Ollama",
   "ollamaModel.title": "Modell auswählen",
   "ollamaModel.subtitle": "Wählen Sie, welches Ollama-Modell der Chat-Dienst verwenden soll.",
@@ -75,7 +69,6 @@
   "ollamaModel.footer.startOllama": "Starten Sie Ollama oder geben Sie einen Modellnamen ein.",
   "ollamaModel.footer.loading": "Modelle werden geladen…",
   "ollamaModel.footer.select": "Modell auswählen oder eingeben.",
-
   "ports.kicker": "Ports",
   "ports.title": "Ports konfigurieren",
   "ports.subtitle": "Auf welchen TCP-Ports die F13-Dienste lauschen. Wir haben Ihr Gerät geprüft.",
@@ -86,7 +79,7 @@
   "ports.core.hint": "Der Backend-API-Dienst — Standard 8000.",
   "ports.core.inUse": "Port {port} wird von PID {pid} ({name}) verwendet.",
   "ports.advanced.title": "Erweitert",
-  "ports.advanced.secretFiles": "Speicherorte für geheime Dateien",
+  "ports.advanced.secretFiles": "Speicherort für Zugangsdaten",
   "ports.advanced.editSystemPrompt": "Systemanweisung bearbeiten",
   "ports.advanced.editSystemPromptHint": "In einer zukünftigen Version verfügbar.",
   "ports.footer.available": "Ports {frontend} und {core} sind verfügbar.",
@@ -97,7 +90,6 @@
   "ports.modal.try": "Stattdessen Port {port} verwenden?",
   "ports.modal.keep": "Diesen Port behalten",
   "ports.modal.pick": "Anderen Port auswählen",
-
   "run.kicker": "F13 wird gestartet",
   "run.title.running": "Ihre F13-Instanz wird eingerichtet…",
   "run.title.done": "F13 läuft.",
@@ -115,7 +107,6 @@
   "run.footer.done": "Alle Systeme fehlerfrei.",
   "run.footer.running": "Wird eingerichtet…",
   "run.footer.ready": "Startbereit.",
-
   "status.heading": "Status",
   "status.reconfigure": "Neu konfigurieren",
   "status.reconfiguring": "Wird gestoppt…",
@@ -153,7 +144,6 @@
   "status.reset.modal.inputLabel": "RESET eingeben zur Bestätigung",
   "status.reset.modal.cancel": "Abbrechen",
   "status.reset.modal.confirm": "Reset bestätigen",
-
   "settings.title": "Einstellungen",
   "settings.back": "Zurück zum Status",
   "settings.appearance.title": "Erscheinungsbild",
@@ -175,5 +165,14 @@
   "settings.prompts.edit": "Systemanweisung bearbeiten",
   "settings.prompts.modal.title": "Benutzerdefinierte Systemanweisungen",
   "settings.prompts.modal.body": "Benutzerdefinierte Systemanweisungen stehen auf der F13-Roadmap. In einer zukünftigen Version können Sie die Standard-KI-Anweisungen bearbeiten, ohne YAML-Dateien zu editieren.",
-  "settings.prompts.modal.gotIt": "Verstanden"
+  "settings.prompts.modal.gotIt": "Verstanden",
+  "ports.advanced.secretFilesNote": "Bei der ersten Ausführung erzeugt; niemals in Git eingecheckt.",
+  "status.reset.modal.enterHintBefore": "Mit ",
+  "status.reset.modal.enterHintAfter": " bestätigen.",
+  "ollamaModel.gpuWarning.body": "Größere Modelle benötigen eine leistungsfähige GPU. Cloud-getaggte Modelle (z.B. <code class=\"f13-code-inline\">{cloudExample}</code>) erfordern ein angemeldetes Ollama-Konto und erscheinen nicht in der Liste unten — geben Sie den Namen stattdessen in das Feld <em>{fieldLabel}</em> ein.",
+  "ollamaModel.gpuWarning.embeddingBody": "<strong>Einbettungsmodelle</strong> (z.B. <code class=\"f13-code-inline\">{example}</code>, alles was auf <code class=\"f13-code-inline\">{pattern1}</code> / <code class=\"f13-code-inline\">{pattern2}</code> passt) erzeugen Vektorausgaben, keine Chat-Antworten. Sie können in der Liste unten erscheinen — bitte wählen Sie keines für die Chat-Inferenz.",
+  "ollamaModel.noModels.hintBefore": "Keine Modelle lokal vorhanden. Entweder eines im Terminal abrufen — <code class=\"f13-code-inline\">{pullCmd}</code> (Suche unter ",
+  "ollamaModel.noModels.hintAfter": ") — oder geben Sie einfach einen beliebigen Modellnamen in das Feld unten ein; Ollama lädt ihn beim ersten Aufruf herunter.",
+  "ollamaModel.customModel.helpBefore": "Geben Sie einen beliebigen Modell-Tag ein — z.B. <code class=\"f13-code-inline\">{cloudExample}</code> für Cloud-gehostete Modelle oder einen beliebigen Namen, den Ollama beim ersten Aufruf laden kann. Modelle durchsuchen unter ",
+  "ollamaModel.customModel.helpAfter": ". Überschreibt die Auswahl oben, wenn ausgefüllt."
 }

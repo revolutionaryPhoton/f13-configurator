@@ -5,11 +5,8 @@
   "common.launch": "Iniciar",
   "common.retry": "Reintentar",
   "common.gotIt": "Entendido",
-
   "tiles.recommended": "Recomendado",
-
   "stepHeader.stepOf": "Paso {step} de {total}",
-
   "welcome.title": "F13 Configurador",
   "welcome.tagline": "Minimal · Listo para usar · Un comando",
   "welcome.alreadyRunning.title": "F13 ya está en ejecución",
@@ -19,7 +16,6 @@
   "welcome.beginSetup": "Iniciar configuración",
   "welcome.openExisting": "Abrir configuración existente",
   "welcome.footer": "Modo invitado Keycloak · Sin edición manual requerida",
-
   "preflight.kicker": "Verificación previa",
   "preflight.title.scanning": "Analizando entorno…",
   "preflight.title.missingReqs": "Algunos requisitos faltantes",
@@ -35,7 +31,6 @@
   "preflight.footer.checking": "Ejecutando comprobaciones…",
   "preflight.footer.failure": "Resuelva los problemas para continuar.",
   "preflight.footer.success": "Todas las comprobaciones superadas.",
-
   "inference.kicker": "Inferencia",
   "inference.title": "¿Dónde debe ejecutarse el chat?",
   "inference.subtitle": "Seleccione cómo el servicio de chat genera respuestas. Puede cambiarlo más adelante.",
@@ -55,7 +50,6 @@
   "inference.footer.none": "Seleccione una opción.",
   "inference.footer.mock": "Mock seleccionado — se omite el selector de modelos.",
   "inference.footer.ollama": "Ollama seleccionado — elija un modelo a continuación.",
-
   "ollamaModel.kicker": "Ollama",
   "ollamaModel.title": "Elegir un modelo",
   "ollamaModel.subtitle": "Elija qué modelo Ollama debe usar el servicio de chat.",
@@ -75,7 +69,6 @@
   "ollamaModel.footer.startOllama": "Inicie Ollama o escriba un nombre de modelo.",
   "ollamaModel.footer.loading": "Cargando modelos…",
   "ollamaModel.footer.select": "Seleccione o escriba un modelo.",
-
   "ports.kicker": "Ports",
   "ports.title": "Configurar puertos",
   "ports.subtitle": "Los puertos TCP en los que escucharán los servicios F13. Hemos analizado su máquina.",
@@ -97,7 +90,6 @@
   "ports.modal.try": "¿Probar el puerto {port} en su lugar?",
   "ports.modal.keep": "Conservar este puerto",
   "ports.modal.pick": "Elegir otro puerto",
-
   "run.kicker": "Iniciando F13",
   "run.title.running": "Configurando su instancia F13…",
   "run.title.done": "F13 está en ejecución.",
@@ -115,7 +107,6 @@
   "run.footer.done": "Todos los sistemas en buen estado.",
   "run.footer.running": "Configurando…",
   "run.footer.ready": "Listo para iniciar.",
-
   "status.heading": "Estado",
   "status.reconfigure": "Reconfigurar",
   "status.reconfiguring": "Deteniendo…",
@@ -153,7 +144,6 @@
   "status.reset.modal.inputLabel": "Escribir RESET para confirmar",
   "status.reset.modal.cancel": "Cancelar",
   "status.reset.modal.confirm": "Confirmar reinicio",
-
   "settings.title": "Ajustes",
   "settings.back": "Volver al estado",
   "settings.appearance.title": "Apariencia",
@@ -175,5 +165,14 @@
   "settings.prompts.edit": "Editar prompt del sistema",
   "settings.prompts.modal.title": "Prompts del sistema personalizados",
   "settings.prompts.modal.body": "Los prompts del sistema personalizados están en el roadmap de F13. En una versión futura podrá editar las instrucciones de IA predeterminadas sin editar archivos YAML.",
-  "settings.prompts.modal.gotIt": "Entendido"
+  "settings.prompts.modal.gotIt": "Entendido",
+  "ports.advanced.secretFilesNote": "Generados en la primera ejecución; nunca confirmados en git.",
+  "status.reset.modal.enterHintBefore": "Pulse ",
+  "status.reset.modal.enterHintAfter": " para confirmar.",
+  "ollamaModel.gpuWarning.body": "Los modelos más grandes requieren una GPU capaz. Los modelos cloud (p. ej. <code class=\"f13-code-inline\">{cloudExample}</code>) requieren una cuenta de Ollama con sesión iniciada y no aparecerán en la lista de abajo — escriba el nombre en el campo <em>{fieldLabel}</em> en su lugar.",
+  "ollamaModel.gpuWarning.embeddingBody": "Los <strong>modelos de embedding</strong> (p. ej. <code class=\"f13-code-inline\">{example}</code>, cualquier cosa que coincida con <code class=\"f13-code-inline\">{pattern1}</code> / <code class=\"f13-code-inline\">{pattern2}</code>) producen salidas vectoriales, no completaciones de chat. Pueden aparecer en la lista de abajo — por favor no elija uno para la inferencia de chat.",
+  "ollamaModel.noModels.hintBefore": "No hay modelos descargados localmente. O bien descargue uno desde una terminal — <code class=\"f13-code-inline\">{pullCmd}</code> (explore en ",
+  "ollamaModel.noModels.hintAfter": ") — o simplemente escriba cualquier nombre de modelo en el campo de abajo y Ollama lo descargará en la primera petición.",
+  "ollamaModel.customModel.helpBefore": "Escriba cualquier etiqueta de modelo — p. ej. <code class=\"f13-code-inline\">{cloudExample}</code> para modelos en la nube, o cualquier nombre que Ollama pueda descargar en la primera petición. Explore modelos en ",
+  "ollamaModel.customModel.helpAfter": ". Sobrescribe la selección de arriba cuando se rellena."
 }

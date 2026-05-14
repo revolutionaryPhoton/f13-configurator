@@ -118,6 +118,18 @@ html {
   100% { transform: translateX(400%); }
 }
 
+/* Inline-code styling for i18n prose rendered via Svelte's {@html}.
+   Catalog strings can't carry Svelte's `style:` directives, so this
+   class encapsulates the same look as the inline styles used in
+   svelte components. Used by the Ollama picker warning body etc. */
+.f13-code-inline {
+  font-family: var(--f13-font-mono);
+  font-size: 11px;
+  padding: 0 0.25rem;
+  background: var(--f13-surface);
+  border-radius: 0.25rem;
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,

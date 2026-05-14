@@ -552,14 +552,12 @@
         style:color="var(--f13-text)"
       />
       <p class="m-0 text-[10.5px] text-subtle">
-        Press
-        <kbd
+        {t("status.reset.modal.enterHintBefore")}<kbd
           class="px-1 py-[1px] rounded border text-[10px]"
           style:font-family="var(--f13-font-mono)"
           style:border-color="var(--f13-border)"
           style:background="var(--f13-surface-raised)"
-        >Enter</kbd>
-        to confirm.
+        >Enter</kbd>{t("status.reset.modal.enterHintAfter")}
       </p>
     </div>
     <div class="flex justify-end gap-2 pt-1">
