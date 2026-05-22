@@ -1,8 +1,23 @@
 # F13 Configurator
 
+![GitHub stars](https://img.shields.io/github/stars/revolutionaryPhoton/f13-configurator?style=social)
+![GitHub forks](https://img.shields.io/github/forks/revolutionaryPhoton/f13-configurator?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/revolutionaryPhoton/f13-configurator?style=social)
+
 [![CI](https://github.com/revolutionaryPhoton/f13-configurator/actions/workflows/gui-build.yml/badge.svg?branch=main)](https://github.com/revolutionaryPhoton/f13-configurator/actions/workflows/gui-build.yml)
 [![Latest release](https://img.shields.io/github/v/release/revolutionaryPhoton/f13-configurator?sort=semver)](https://github.com/revolutionaryPhoton/f13-configurator/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![GitHub repo size](https://img.shields.io/github/repo-size/revolutionaryPhoton/f13-configurator)
+![GitHub language count](https://img.shields.io/github/languages/count/revolutionaryPhoton/f13-configurator)
+![GitHub top language](https://img.shields.io/github/languages/top/revolutionaryPhoton/f13-configurator)
+![GitHub last commit](https://img.shields.io/github/last-commit/revolutionaryPhoton/f13-configurator?color=red)
+![GitHub open issues](https://img.shields.io/github/issues/revolutionaryPhoton/f13-configurator)
+![GitHub open PRs](https://img.shields.io/github/issues-pr/revolutionaryPhoton/f13-configurator)
+
+[![Tauri](https://img.shields.io/badge/Tauri-2.x-FFC131?logo=tauri&logoColor=white)](https://tauri.app)
+[![Svelte](https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Bash](https://img.shields.io/badge/Bash-4%2B-4EAA25?logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![Made with Claude Code](https://img.shields.io/badge/made_with-Claude_Code-d77757)](https://claude.com/claude-code)
 
 A setup wizard that brings up a minimal F13 deployment — `core + frontend + chat` — with a single command. The shell wizard (`bin/f13-config`) is the fully stable surface; the desktop GUI (`gui/`, Tauri 2 + Svelte 5) is **mostly stable on macOS and Linux for daily local use** — every documented flow works, but we haven't exercised every combination of state transitions, error paths, and inputs, so a few loose ends and edge cases remain. Both surfaces share one engine. No YAML hand-editing, no manual secret generation, no ops experience required.
