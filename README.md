@@ -1,5 +1,10 @@
 # F13 Configurator
 
+[![CI](https://github.com/revolutionaryPhoton/f13-configurator/actions/workflows/gui-build.yml/badge.svg?branch=main)](https://github.com/revolutionaryPhoton/f13-configurator/actions/workflows/gui-build.yml)
+[![Latest release](https://img.shields.io/github/v/release/revolutionaryPhoton/f13-configurator?sort=semver)](https://github.com/revolutionaryPhoton/f13-configurator/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Made with Claude Code](https://img.shields.io/badge/made_with-Claude_Code-d77757)](https://claude.com/claude-code)
+
 A setup wizard that brings up a minimal F13 deployment — `core + frontend + chat` — with a single command. The shell wizard (`bin/f13-config`) is the fully stable surface; the desktop GUI (`gui/`, Tauri 2 + Svelte 5) is **mostly stable on macOS and Linux for daily local use** — every documented flow works, but we haven't exercised every combination of state transitions, error paths, and inputs, so a few loose ends and edge cases remain. Both surfaces share one engine. No YAML hand-editing, no manual secret generation, no ops experience required.
 
 > ⚠️  **AI-generated code.** Almost all of this codebase was written by Claude Code running inside an automated [ralph loop](https://github.com/revolutionaryPhoton/f13-configurator-ralph) driven by a PRD. Human review has been spot-check level, not line-by-line. Read the diffs before using it for anything beyond local development, and treat the test suite as a smoke check rather than a guarantee. Issues and PRs are very welcome — see [SECURITY.md](SECURITY.md) for the implications.
