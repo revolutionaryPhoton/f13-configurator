@@ -10,10 +10,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [0.4.1] — 2026-05-22
 
 > **Highlights:** Maintenance release. CI-blocking Tauri JS/Rust version
-> mismatch fixed; svelte and SvelteKit bumped (svelte includes a
-> transitive XSS fix); explicit Dependabot grouping config added so the
-> mismatch can't reopen. No user-facing changes — same wizard, same GUI,
-> same flows.
+> mismatch fixed; build chain refreshed (TypeScript 5 → 6, vite 6 → 8
+> via `@sveltejs/vite-plugin-svelte` 5 → 7, svelte 5.55.5 → 5.55.9 with
+> a transitive XSS fix); Dependabot grouping config added so neither the
+> JS/Rust mismatch nor a vite/peer-dep deadlock can reopen silently.
+> **No user-facing changes** — same wizard, same GUI, same flows.
 
 ### Fixed
 
@@ -21,45 +22,107 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the cargo-side `tauri` crate 2.10.3 → 2.11.1 on 2026-05-08 (PR #2),
   but the JS-side `@tauri-apps/api` stayed at 2.10.1 in the lockfile.
   Tauri's startup version-mismatch guard tripped on every macOS CI run
-  for two weeks before anyone noticed. `gui/package.json` is now
-  `"@tauri-apps/api": "^2.11.0"` and the lockfile installs 2.11.0+.
+  for two weeks before anyone noticed. `gui/package.json` widened to
+  `"@tauri-apps/api": "^2.11.0"`; subsequently bumped to 2.11.2 via
+  the new `tauri-js` Dependabot group (PR #13).
+- **`gui/biome.json` `$schema` URL (PR #24, squash `37179ba`).** The
+  CLI was at 2.4.15 (post-#16) but the JSON schema URL still resolved
+  to `/2.4.13/`, causing an info-level deserialize warning on every
+  `biome check`. One-line fix.
 
 ### Security
 
-- **`svelte` 5.55.5 → 5.55.9 (Dependabot PR #8, squash `04dacc9`).**
-  Patch line. Notable: 5.55.7 fixes an XSS on `hydratable` from user
-  content. F13's GUI doesn't render arbitrary user content, so the
-  practical exposure is low, but the upstream fix lands here regardless.
-  Also includes SSR empty-attribute ban, regex hardening, runtime-property
-  symbol move (5.55.7); `svelte:body` print + keyframe percentage
-  double-printing fixes (5.55.8); `{#await}` batch + hydration fixes
-  and batch-invariant false-positive fix (5.55.9); stale-promise /
-  `$state.eager` / `bind:this` proxification fixes (5.55.6). Transitively
-  bumps `devalue` 5.7.1 → 5.8.1.
+- **`svelte` 5.55.5 → 5.55.9 (PR #8, squash `04dacc9`).** Patch line.
+  5.55.7 fixes an XSS on `hydratable` from user content. F13's GUI
+  doesn't render arbitrary user content, so practical exposure is low,
+  but the upstream fix lands here regardless. Also: SSR empty-attribute
+  ban, regex hardening, runtime-property symbol move (5.55.7);
+  `svelte:body` print + keyframe percentage double-printing fixes
+  (5.55.8); `{#await}` batch + hydration fixes and batch-invariant
+  false-positive fix (5.55.9); stale-promise / `$state.eager` /
+  `bind:this` proxification fixes (5.55.6). Transitively bumps
+  `devalue` 5.7.1 → 5.8.1.
 
-### Changed
+### Changed — build chain majors
 
-- **`@sveltejs/kit` 2.58.0 → 2.60.1 (Dependabot PR #9, squash `bb3e04c`).**
-  Minor bump. Adds form `submit`/`hidden` numbers + booleans, warns on
-  unread form remote-function validation, fixes `query.batch` cross-talk
-  and aborts navigation after async rendering if obsolete. F13 doesn't
-  use SvelteKit form actions (Tauri shell via `@sveltejs/adapter-static`),
-  so the new features are inert here; the navigation/cross-talk fixes
-  touch the static build path.
-- **`.github/dependabot.yml` (PR #10, squash `0714ebb`).** Groups
-  `@tauri-apps/*` (npm `/gui`) and `tauri` + `tauri-build` +
-  `tauri-plugin-*` + `wry` + `tao` (cargo `/gui/src-tauri`) into one
-  PR per ecosystem, same weekly cadence, so the JS/Rust pair surfaces
-  together. Previously there was no `dependabot.yml`; version updates
-  were running off the UI toggle, ungrouped — that's how the v0.4.0
-  cycle's mismatch slipped past review.
+- **`typescript` 5.6.3 → 6.0.3 (PR #14, squash `aeff244`).** TS 5 → 6.
+  Pin tightened from `~5.6.2` to `~6.0.3` so future Dependabot bumps
+  stay within 6.0.x patches. Full backpressure suite green under TS 6
+  (svelte-check + tsc + vitest + cargo).
+- **`vite-build` group: vite 6 → 8 + plugin-svelte 5 → 7 (PR #20,
+  squash `1c783df`).** Bundled by the new `vite-build` Dependabot
+  group (PR #19). `@sveltejs/vite-plugin-svelte` 7.1.2 widens its
+  peer to `vite ^8.0.0-beta.7 || ^8.0.0`, unblocking the vite major.
+  `@sveltejs/vite-plugin-svelte` 5.1.1 → 7.1.2; `vite` 6.0.3 →
+  8.0.14; `vitest` patch. A prior standalone vite-8 bump (PR #17)
+  was ERESOLVE'ing on the vite-plugin-svelte 5.x peer constraint —
+  the group config is what fixed it. PR #17 was auto-closed as
+  superseded.
+- **`tailwindcss` 4.2.4 → 4.3.0 (transitive via PR #20).** Minor.
+  New utilities (`@container-size`, `scrollbar-*`, `zoom-*`, `tab-*`,
+  more `@variant` flexibility) — none of which we use yet —
+  plus canonicalization fixes. Standalone PR #22 was auto-closed
+  as redundant after #20's lockfile churn lifted it.
+
+### Changed — SvelteKit + tooling
+
+- **`@sveltejs/kit` 2.58.0 → 2.60.1 (PR #9, squash `bb3e04c`).**
+  Minor. Form `submit`/`hidden` accept numbers + booleans; warns on
+  unread form remote-function validation; fixes `query.batch`
+  cross-talk and aborts navigation after async render. F13 is a
+  Tauri shell via `@sveltejs/adapter-static`, so the new features
+  are inert here; the navigation/cross-talk fixes touch the static
+  build path.
+- **`svelte-check` 4.4.6 → 4.4.8 (PR #15, squash `3193028`).** Patch.
+- **`@biomejs/biome` 2.4.13 → 2.4.15 (PR #16, squash `4ae036c`).**
+  Patch.
+
+### Changed — Tauri pair (matched JS+Rust via dependabot groups)
+
+- **`tauri-rust` group: 2.11.1 → 2.11.2 (PR #11, squash `29bd9ec`).**
+  Patch line across `tauri`, `tauri-build`, `tauri-codegen`,
+  `tauri-macros`, `tauri-plugin-opener`, `tauri-plugin-shell`,
+  `tauri-runtime`, `tauri-runtime-wry`.
+- **`tauri-js` group: api+cli 2.10.1 → 2.11.2 (PR #13, squash
+  `7e82d0c`).** `@tauri-apps/api` and `@tauri-apps/cli` bumped
+  together. JS/Rust now matched at 2.11.2 across both ecosystems —
+  the grouping config's first successful validation.
+- **`serde_json` 1.0.149 → 1.0.150 (PR #12, squash `4823d6d`).**
+  Cargo patch.
+
+### Changed — test-only dev dependencies
+
+- **`jsdom` 29.0.2 → 29.1.1 (PR #23, squash `c47db4c`).** vitest env;
+  `getComputedStyle()` fixes (border-radius serialization,
+  background-origin/clip, cache freshness), basic `ratio` CSS-type
+  support, perf optimization for initial calls.
+- **`axe-core` 4.11.3 → 4.11.4 (PR #21, squash `5a2bf9a`).** vitest
+  a11y tests; `aria-labelledby` + natively-hidden ancestor fix;
+  escape node names in `getAncestry`. Upstream: "unlikely to change
+  the number of issues found."
+
+### Added — Dependabot config
+
+- **`.github/dependabot.yml` (PR #10, squash `0714ebb`; extended in
+  PR #19, squash `386dc39`).** Previously there was no config —
+  version updates were running off the UI toggle, ungrouped, which
+  is how the v0.4.0 cycle's JS/Rust mismatch slipped past review.
+  Now two npm groups (`tauri-js`, `vite-build`) and one cargo group
+  (`tauri-rust`) bundle deps that must move together. The
+  `vite-build` group was validated end-to-end during this release
+  cycle: PR #17's standalone vite 8 bump was correctly superseded
+  by PR #20's grouped vite-plugin-svelte 7 + vite 8 bundle.
 
 ### Tests
 
 - No new tests. vitest stays 378/378 green; `cargo check` passes;
-  macOS CI green from PR #7 onwards. Maintainer smoke-tested the GUI
-  on macOS after the SvelteKit minor bump (the riskier of the three
-  dep changes) — no regressions on the static-adapter build path.
+  full backpressure suite (svelte-check + tsc + vitest + cargo +
+  shellcheck + bats 283/283) clean both at the initial release
+  cut and again after the build-chain bumps (TS 6, vite 8,
+  vite-plugin-svelte 7, tailwindcss 4.3, +eight smaller bumps).
+  Maintainer smoke-tested the GUI on macOS at multiple points — no
+  regressions on the static-adapter build path through SvelteKit
+  2.60.1, vite 8.0.14, or vite-plugin-svelte 7.1.2.
 
 ## [0.4.0] — 2026-05-14
 
