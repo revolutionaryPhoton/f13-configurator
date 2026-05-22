@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # GUI frontend (npm) — group all @tauri-apps/* into one PR so JS-side
+  # Tauri bumps land alongside the cargo-side bump and the JS/Rust
+  # version-mismatch guard can't silently drift between releases.
+  - package-ecosystem: "npm"
+    directory: "/gui"
+    schedule:
+      interval: "weekly"
+    groups:
+      tauri-js:
+        patterns:
+          - "@tauri-apps/*"
+
+  # Tauri shell (cargo) — group the tauri crate + its build/plugin/runtime
+  # siblings into one PR. Same scheduling as npm so the paired bumps
+  # surface together.
+  - package-ecosystem: "cargo"
+    directory: "/gui/src-tauri"
+    schedule:
+      interval: "weekly"
+    groups:
+      tauri-rust:
+        patterns:
+          - "tauri"
+          - "tauri-build"
+          - "tauri-plugin-*"
+          - "wry"
+          - "tao"
