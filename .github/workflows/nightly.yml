@@ -1,0 +1,70 @@
+name: Nightly backpressure
+
+# Runs the full backpressure suite on a schedule (when activated)
+# and on demand. Catches external regressions — a transitive npm
+# dep that ships a broken patch, apt-bats bumps, etc. — before they
+# bite a real PR the next morning.
+#
+# Currently activatable via workflow_dispatch only; the scheduled
+# trigger is intentionally commented out. Uncomment the `schedule:`
+# block when the maintainer is ready to receive nightly noise.
+#
+# Tip: enable email + GitHub-mobile notifications for workflow_run
+# failures on this workflow before activating — otherwise the
+# nightly catches things and nobody notices.
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '0 5 * * *'  # 05:00 UTC daily (= 06:00 Berlin in winter, 07:00 in summer)
+
+jobs:
+  build-macos:
+    name: tauri build --debug (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: gui/package-lock.json
+
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Apple Silicon target
+        run: rustup target add aarch64-apple-darwin
+
+      - name: Install frontend dependencies
+        working-directory: gui
+        run: npm ci
+
+      - name: Run headless checks
+        working-directory: gui
+        run: npm run check && npm run test:unit && cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: tauri build --debug
+        working-directory: gui
+        run: npm run tauri build -- --debug
+
+  shell-checks:
+    name: shellcheck + bats (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck and bats
+        run: sudo apt-get update && sudo apt-get install -y shellcheck bats
+
+      - name: shellcheck -S warning bin/* lib/*.sh
+        run: shellcheck -S warning bin/* lib/*.sh
+
+      - name: bats tests/
+        run: bats tests/
