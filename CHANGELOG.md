@@ -113,6 +113,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   cycle: PR #17's standalone vite 8 bump was correctly superseded
   by PR #20's grouped vite-plugin-svelte 7 + vite 8 bundle.
 
+### Added — CI
+
+- **`shellcheck + bats` job alongside the macOS Tauri build (PR #26,
+  squash `0482072`).** The existing workflow only covered three of
+  the five backpressure pieces (`npm run check`, `npm run test:unit`,
+  `cargo check`). The shell side (`shellcheck -S warning bin/* lib/*.sh`
+  and `bats tests/`) was previously enforced only locally + via the
+  ralph loop, so a shell-only regression could have landed via PR.
+  Closing that gap: new `shell-checks` job on `ubuntu-latest`, runs
+  in parallel with `build-macos` in ~1m on a cold cache. Paths filter
+  extended to include `tests/**` and `.github/workflows/**`. Workflow
+  display name renamed from "GUI build (macOS)" to "CI"; file path
+  kept as `gui-build.yml`.
+
 ### Tests
 
 - No new tests. vitest stays 378/378 green; `cargo check` passes;
