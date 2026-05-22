@@ -1,8 +1,10 @@
-name: GUI build (macOS)
+name: CI
 
-# Smoke-test that packaging config doesn't drift.
-# Produces a debug .app that the maintainer can launch on Apple Silicon.
-# Does NOT publish or upload any artifacts — that is Phase 8's job.
+# Two parallel jobs covering the ralph loop's backpressure suite:
+#   - tauri build --debug (macOS): GUI build + svelte-check + vitest + cargo
+#   - shellcheck + bats (Linux):   shell wizard suite (much faster on Linux,
+#                                  no Tauri/Xcode toolchain needed)
+# Does NOT publish or upload any artifacts — that is Phase 10's job.
 
 on:
   push:
@@ -12,12 +14,16 @@ on:
       - "bin/**"
       - "lib/**"
       - "templates/**"
+      - "tests/**"
+      - ".github/workflows/**"
   pull_request:
     paths:
       - "gui/**"
       - "bin/**"
       - "lib/**"
       - "templates/**"
+      - "tests/**"
+      - ".github/workflows/**"
 
 jobs:
   build-macos:
@@ -52,3 +58,20 @@ jobs:
       - name: tauri build --debug
         working-directory: gui
         run: npm run tauri build -- --debug
+
+  shell-checks:
+    name: shellcheck + bats (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck and bats
+        run: sudo apt-get update && sudo apt-get install -y shellcheck bats
+
+      - name: shellcheck -S warning bin/* lib/*.sh
+        run: shellcheck -S warning bin/* lib/*.sh
+
+      - name: bats tests/
+        run: bats tests/
