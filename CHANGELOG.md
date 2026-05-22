@@ -7,6 +7,60 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-05-22
+
+> **Highlights:** Maintenance release. CI-blocking Tauri JS/Rust version
+> mismatch fixed; svelte and SvelteKit bumped (svelte includes a
+> transitive XSS fix); explicit Dependabot grouping config added so the
+> mismatch can't reopen. No user-facing changes — same wizard, same GUI,
+> same flows.
+
+### Fixed
+
+- **`@tauri-apps/api` pin (PR #7, squash `5de58bd`).** Dependabot bumped
+  the cargo-side `tauri` crate 2.10.3 → 2.11.1 on 2026-05-08 (PR #2),
+  but the JS-side `@tauri-apps/api` stayed at 2.10.1 in the lockfile.
+  Tauri's startup version-mismatch guard tripped on every macOS CI run
+  for two weeks before anyone noticed. `gui/package.json` is now
+  `"@tauri-apps/api": "^2.11.0"` and the lockfile installs 2.11.0+.
+
+### Security
+
+- **`svelte` 5.55.5 → 5.55.9 (Dependabot PR #8, squash `04dacc9`).**
+  Patch line. Notable: 5.55.7 fixes an XSS on `hydratable` from user
+  content. F13's GUI doesn't render arbitrary user content, so the
+  practical exposure is low, but the upstream fix lands here regardless.
+  Also includes SSR empty-attribute ban, regex hardening, runtime-property
+  symbol move (5.55.7); `svelte:body` print + keyframe percentage
+  double-printing fixes (5.55.8); `{#await}` batch + hydration fixes
+  and batch-invariant false-positive fix (5.55.9); stale-promise /
+  `$state.eager` / `bind:this` proxification fixes (5.55.6). Transitively
+  bumps `devalue` 5.7.1 → 5.8.1.
+
+### Changed
+
+- **`@sveltejs/kit` 2.58.0 → 2.60.1 (Dependabot PR #9, squash `bb3e04c`).**
+  Minor bump. Adds form `submit`/`hidden` numbers + booleans, warns on
+  unread form remote-function validation, fixes `query.batch` cross-talk
+  and aborts navigation after async rendering if obsolete. F13 doesn't
+  use SvelteKit form actions (Tauri shell via `@sveltejs/adapter-static`),
+  so the new features are inert here; the navigation/cross-talk fixes
+  touch the static build path.
+- **`.github/dependabot.yml` (PR #10, squash `0714ebb`).** Groups
+  `@tauri-apps/*` (npm `/gui`) and `tauri` + `tauri-build` +
+  `tauri-plugin-*` + `wry` + `tao` (cargo `/gui/src-tauri`) into one
+  PR per ecosystem, same weekly cadence, so the JS/Rust pair surfaces
+  together. Previously there was no `dependabot.yml`; version updates
+  were running off the UI toggle, ungrouped — that's how the v0.4.0
+  cycle's mismatch slipped past review.
+
+### Tests
+
+- No new tests. vitest stays 378/378 green; `cargo check` passes;
+  macOS CI green from PR #7 onwards. Maintainer smoke-tested the GUI
+  on macOS after the SvelteKit minor bump (the riskier of the three
+  dep changes) — no regressions on the static-adapter build path.
+
 ## [0.4.0] — 2026-05-14
 
 > **Highlights:** GUI localization to German, French, and Spanish (English
