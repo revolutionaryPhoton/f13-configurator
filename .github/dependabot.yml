@@ -1,8 +1,21 @@
 version: 2
 updates:
-  # GUI frontend (npm) — group all @tauri-apps/* into one PR so JS-side
-  # Tauri bumps land alongside the cargo-side bump and the JS/Rust
-  # version-mismatch guard can't silently drift between releases.
+  # GUI frontend (npm).
+  #
+  # Two groups, both serving the same purpose: prevent the peer-dep
+  # mismatch we just spent a fix-PR on (#7) from happening on a
+  # different axis.
+  #
+  # - tauri-js: pairs @tauri-apps/* JS bumps with the cargo-side
+  #   tauri-rust group below — JS/Rust runtime version match.
+  #
+  # - vite-build: pairs vite with the plugins/test-runners that
+  #   declare it as a peer dep. Vite's major-cadence (~6mo) regularly
+  #   outpaces @sveltejs/vite-plugin-svelte's, so a standalone vite
+  #   bump tends to ERESOLVE at npm ci before CI even starts (see
+  #   blocked PR #17, vite 6 -> 8: vite-plugin-svelte 5.x still
+  #   peers at vite ^6). Bundling them means Dependabot will only
+  #   propose a vite major when its peers can accept it.
   - package-ecosystem: "npm"
     directory: "/gui"
     schedule:
@@ -11,6 +24,12 @@ updates:
       tauri-js:
         patterns:
           - "@tauri-apps/*"
+      vite-build:
+        patterns:
+          - "vite"
+          - "@sveltejs/vite-plugin-svelte"
+          - "@tailwindcss/vite"
+          - "vitest"
 
   # Tauri shell (cargo) — group the tauri crate + its build/plugin/runtime
   # siblings into one PR. Same scheduling as npm so the paired bumps
