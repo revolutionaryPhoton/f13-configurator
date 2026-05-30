@@ -47,6 +47,11 @@ jobs:
       - name: Add Apple Silicon target
         run: rustup target add aarch64-apple-darwin
 
+      - name: Cache Rust deps + target/
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "gui/src-tauri -> target"
+
       - name: Install frontend dependencies
         working-directory: gui
         run: npm ci
