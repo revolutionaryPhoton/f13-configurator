@@ -5,18 +5,16 @@ name: Nightly backpressure
 # dep that ships a broken patch, apt-bats bumps, etc. — before they
 # bite a real PR the next morning.
 #
-# Currently activatable via workflow_dispatch only; the scheduled
-# trigger is intentionally commented out. Uncomment the `schedule:`
-# block when the maintainer is ready to receive nightly noise.
+# Runs daily at 05:00 UTC plus on-demand via workflow_dispatch.
 #
 # Tip: enable email + GitHub-mobile notifications for workflow_run
-# failures on this workflow before activating — otherwise the
-# nightly catches things and nobody notices.
+# failures on this workflow — otherwise the nightly catches things
+# and nobody notices.
 
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: '0 5 * * *'  # 05:00 UTC daily (= 06:00 Berlin in winter, 07:00 in summer)
+  schedule:
+    - cron: '0 5 * * *'  # 05:00 UTC daily (= 06:00 Berlin in winter, 07:00 in summer)
 
 jobs:
   build-macos:
