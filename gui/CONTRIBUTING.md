@@ -17,7 +17,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 npm install
 
 # 4. Run headless checks
-npm run check && npm run test:unit && cargo check
+npm run check && npm run test:unit && cargo check --manifest-path src-tauri/Cargo.toml
 
 # 5. Run the app (maintainer only — do NOT run inside the Ralph loop)
 npm run tauri dev
@@ -108,7 +108,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-t
 ## Headless backpressure (CI and Ralph loop)
 
 ```bash
-cd gui && npm run check && npm run test:unit && cargo check
+cd gui && npm run check && npm run test:unit && cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
 All three must pass before committing. Never run `npm run tauri dev` or
