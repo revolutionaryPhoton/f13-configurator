@@ -83,6 +83,28 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run tauri build -- --target aarch64-apple-darwin --bundles dmg
 
+      # Tauri notarizes + staples the .app inside the bundle during the
+      # build above. Staple the .dmg wrapper too, so a downloaded dmg
+      # opens cleanly offline (Gatekeeper reads the staple instead of
+      # doing an online check). Notarizing the dmg is a second, faster
+      # round-trip — the contents are already known to Apple.
+      - name: Notarize and staple the .dmg
+        working-directory: gui/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG=$(ls *.dmg | head -1)
+          echo "Notarizing $DMG"
+          xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+
       - name: Upload .dmg artifact
         uses: actions/upload-artifact@v4
         with:
@@ -168,11 +190,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # download-artifact preserves each artifact's internal layout,
+          # so the bundles land at varying depths (e.g.
+          # linux-bundles/appimage/*.AppImage). Collect by name instead
+          # of assuming a flat tree.
+          mapfile -t FILES < <(find artifacts -type f \
+            \( -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \) | sort)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::no release artifacts found under artifacts/"
+            exit 1
+          fi
+          echo "Attaching ${#FILES[@]} artifact(s):"
+          printf '  %s\n' "${FILES[@]}"
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" \
             --draft \
             --title "${GITHUB_REF_NAME}" \
             --notes "Automated draft for ${GITHUB_REF_NAME}. Review the attached .dmg / .AppImage / .deb, replace these notes with the CHANGELOG section, then publish manually." \
-            artifacts/macos-dmg/*.dmg \
-            artifacts/linux-bundles/*.AppImage \
-            artifacts/linux-bundles/*.deb
+            "${FILES[@]}"
