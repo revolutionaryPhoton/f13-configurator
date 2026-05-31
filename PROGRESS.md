@@ -63,7 +63,7 @@ prerequisites are done — see "Maintainer progress" below):
 
 | Story | Description | Status |
 |-------|-------------|--------|
-| S51 | `appLocalDataDir` for bundled installs (Rust `get_generated_dir()` + `get_bin_dir()` switch bundled branch to `app.path().app_local_data_dir().join("generated")` etc.) | pending |
+| S51 | `appLocalDataDir` for bundled installs (Rust `get_generated_dir()` + `get_bin_dir()` switch bundled branch to `app.path().app_local_data_dir().join("generated")` etc.) | **done** 3ddfa05 |
 | S52 | Discovery in `f13-stop` / `f13-reset` — auto-find generated/ across F13_GENERATED_DIR env, dev SCRIPT_DIR-relative, and bundled appLocalDataDir locations | pending |
 
 S51 lands first; S52 builds on it (shell scripts learn to find the
@@ -492,3 +492,16 @@ for review before merging to `main` and tagging v0.5.0.
   failures (zinc polish UI-text mismatches) are not introduced by this commit.
   Shell: 266/266 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 250/283 ✅ (33 pre-existing) cargo check ✅.
+
+- S51 completed: `appLocalDataDir` for bundled installs — `get_generated_dir()` bundled branch
+  updated from `resource_dir().parent().join("generated")` (which landed inside the signed,
+  read-only .app bundle and was never writable) to `app.path().app_local_data_dir().join("generated")`:
+  macOS: `~/Library/Application Support/de.f13-os.configurator/generated`;
+  Linux: `~/.local/share/de.f13-os.configurator/generated`.
+  Dev-mode path (`<configurator_v1>/generated`) is unchanged; `get_bin_dir()` bundled path
+  (`resource_dir()/bin`) is also unchanged since bin/ is a read-only bundle resource.
+  New `gui/src/lib/bootstrap.test.ts`: 6 vitest tests covering `getGeneratedDir()` initial null,
+  resolved path after bootstrap, IPC rejection fallback, idempotency, bin-path wiring, and
+  retry-after-failure. `biome.json` schema bumped 2.4.15→2.4.16.
+  Shell: 283/283 bats ✅, shellcheck clean.
+  GUI: npm run check ✅ biome ✅ vitest 384/384 ✅ cargo check ✅.
