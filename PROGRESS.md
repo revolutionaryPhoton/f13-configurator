@@ -58,8 +58,8 @@ Phase 10 (signed distributables + bundled-mode data paths) is the
 next phase. Stories S53–S56 need maintainer Apple-Developer + repo
 secrets that the headless loop container doesn't have, so they are
 deliberately **not** in this table. The two pure-code stories below
-ARE loop-runnable and should be picked up while the maintainer
-finishes Apple enrollment:
+ARE loop-runnable and are ready to pick up now (the Apple-side
+prerequisites are done — see "Maintainer progress" below):
 
 | Story | Description | Status |
 |-------|-------------|--------|
@@ -68,7 +68,24 @@ finishes Apple enrollment:
 
 S51 lands first; S52 builds on it (shell scripts learn to find the
 new path). Both ship in v0.5.0 alongside the maintainer-driven
-S53–S56 once the cert/secrets are in place.
+S53–S56.
+
+### Maintainer progress (not loop work — context only)
+
+- **Apple blocker cleared 2026-05-31.** Developer ID Application cert
+  in keychain (`6DDFRR6F7B`); all 5 GitHub repo secrets set. S53–S56
+  are no longer blocked.
+- **S53 (signing config) scaffolded** on `feat/phase10-distributables`:
+  `gui/src-tauri/tauri.conf.json` → `bundle.macOS.signingIdentity` +
+  `minimumSystemVersion`; maintainer doc at `gui/SIGNING.md`
+  (gitignored).
+- **S56 (release automation) scaffolded**: `.github/workflows/release.yml`
+  — tag-push `v*` builds signed/notarized `.dmg` (arm64) + `.AppImage`
+  / `.deb` (x86_64), attaches to a **draft** Release. Not yet
+  validated by a real tag-push.
+- **Still pending validation**: a `v0.5.0-rc*` dry-run tag to confirm
+  the sign → notarize → draft-release pipeline end to end (S53/S54/S56
+  acceptance). S55 Linux smoke on Ubuntu 22.04/24.04 also pending.
 
 Feature branch: `feat/phase10-distributables` (create on first
 iteration if absent). Single Phase 10 PR rolls up all stories
