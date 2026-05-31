@@ -69,15 +69,22 @@ Use the F13 convention:
 <TYPE> [scope]: <description>
 ```
 
-Examples:
+Six types — pick the most specific one that fits:
 
-```text
-NF [gui]: add settings import preview
-FIX [shell]: quote generated path cleanup
-DOC [deps]: bump svelte to 5.56.0
-```
+| TYPE | Meaning | Example |
+|------|---------|---------|
+| `ADD` | New file or new piece of functionality | `ADD [repo]: Dependabot config grouping tauri JS+Rust bumps` |
+| `RM` | Removal of file / code / feature | `RM [gui]: drop unused locale stub from settings nav` |
+| `NF` | New feature (functional, user-facing) | `NF [gui]: Phase 9 — i18n (en/de/fr/es) + zoom` |
+| `BF` | Bug fix (use this for Dependabot too — dep bumps are fixes for "outdated transitive") | `BF [deps]: bump @sveltejs/kit 2.60.1 -> 2.61.0 (Dependabot #31)` |
+| `RF` | Refactor (no behavior change) | `RF [ralph]: rename per-iteration heredoc target CLAUDE.md -> LOOP_CONTEXT.md` |
+| `DOC` | Documentation, README, CHANGELOG, manifest, gitignore, comments | `DOC [docs]: append second-wave bumps to v0.4.1 CHANGELOG` |
 
-Keep the subject around 72 characters.
+Scope is lowercase: `[gui]`, `[shell]`, `[wizard]`, `[deps]`, `[ci]`,
+`[docs]`, `[repo]`, `[ralph]`, etc. — name the area touched, not the
+ticket / story number.
+
+Keep the subject ≤ 72 characters. Put detail in the body.
 
 For AI-authored commits, end the commit body with the agent identity:
 

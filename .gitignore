@@ -1,7 +1,11 @@
 generated/
 *.secret
 ralph-logs/
-CLAUDE.md
+# Per-iteration ralph loop state — written by ralph.sh into the
+# working directory at the start of each Docker run, shouldn't
+# end up tracked. See CLAUDE.md (which IS tracked) for the
+# stable entry point that points at AGENTS.md.
+LOOP_CONTEXT.md
 .claude/
 docs/BRANCH_PROTECTION.md
 
