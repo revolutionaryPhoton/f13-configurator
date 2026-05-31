@@ -9,21 +9,7 @@ name: CI
 on:
   push:
     branches: [main]
-    paths:
-      - "gui/**"
-      - "bin/**"
-      - "lib/**"
-      - "templates/**"
-      - "tests/**"
-      - ".github/workflows/**"
   pull_request:
-    paths:
-      - "gui/**"
-      - "bin/**"
-      - "lib/**"
-      - "templates/**"
-      - "tests/**"
-      - ".github/workflows/**"
 
 jobs:
   build-macos:
