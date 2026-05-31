@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for bin/f13-reset and bin/f13-stop honouring F13_GENERATED_DIR (S32)
+# Tests for bin/f13-reset and bin/f13-stop — F13_GENERATED_DIR (S32) + discovery (S52)
 
 RESET_BIN="${BATS_TEST_DIRNAME}/../bin/f13-reset"
 STOP_BIN="${BATS_TEST_DIRNAME}/../bin/f13-stop"
@@ -97,4 +97,58 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" == *'"type":"done"'* ]]
   [[ "$output" == *'"status":"ok"'* ]]
+}
+
+# ---------------------------------------------------------------------------
+# S52: bundled path discovery (macOS + Linux appLocalDataDir)
+# Rely on no generated/ dir existing at the binary's dev path
+# (/workspace/configurator_v1/generated) — verified in Docker loop.
+# ---------------------------------------------------------------------------
+
+@test "f13-reset discovers macOS bundled path when dev path absent" {
+  local macos_gen="${TMPDIR_WORK}/macos_data/generated"
+  mkdir -p "${macos_gen}"
+  touch "${macos_gen}/docker-compose.yml"
+  touch "${macos_gen}/.env"
+  run env \
+    "_F13_MACOS_DATA_DIR=${TMPDIR_WORK}/macos_data" \
+    "_F13_LINUX_DATA_DIR=${TMPDIR_WORK}/no_linux" \
+    "${RESET_BIN}"
+  [ "$status" -eq 0 ]
+  [ ! -d "${macos_gen}" ]
+}
+
+@test "f13-stop discovers macOS bundled path when dev path absent" {
+  local macos_gen="${TMPDIR_WORK}/macos_data/generated"
+  mkdir -p "${macos_gen}"
+  touch "${macos_gen}/docker-compose.yml"
+  touch "${macos_gen}/.env"
+  run env \
+    "_F13_MACOS_DATA_DIR=${TMPDIR_WORK}/macos_data" \
+    "_F13_LINUX_DATA_DIR=${TMPDIR_WORK}/no_linux" \
+    "${STOP_BIN}"
+  [ "$status" -eq 0 ]
+  [ -d "${macos_gen}" ]
+}
+
+@test "f13-reset discovers Linux bundled path when dev and macOS paths absent" {
+  local linux_gen="${TMPDIR_WORK}/linux_data/generated"
+  mkdir -p "${linux_gen}"
+  touch "${linux_gen}/docker-compose.yml"
+  touch "${linux_gen}/.env"
+  run env \
+    "_F13_MACOS_DATA_DIR=${TMPDIR_WORK}/no_macos" \
+    "_F13_LINUX_DATA_DIR=${TMPDIR_WORK}/linux_data" \
+    "${RESET_BIN}"
+  [ "$status" -eq 0 ]
+  [ ! -d "${linux_gen}" ]
+}
+
+@test "f13-reset exits 1 with helpful message when no stack found anywhere" {
+  run env \
+    "_F13_MACOS_DATA_DIR=${TMPDIR_WORK}/no_macos" \
+    "_F13_LINUX_DATA_DIR=${TMPDIR_WORK}/no_linux" \
+    "${RESET_BIN}"
+  [ "$status" -eq 1 ]
+  [[ "${output}" == *"No generated stack found"* ]]
 }

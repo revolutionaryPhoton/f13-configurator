@@ -64,7 +64,7 @@ prerequisites are done — see "Maintainer progress" below):
 | Story | Description | Status |
 |-------|-------------|--------|
 | S51 | `appLocalDataDir` for bundled installs (Rust `get_generated_dir()` + `get_bin_dir()` switch bundled branch to `app.path().app_local_data_dir().join("generated")` etc.) | **done** 3ddfa05 |
-| S52 | Discovery in `f13-stop` / `f13-reset` — auto-find generated/ across F13_GENERATED_DIR env, dev SCRIPT_DIR-relative, and bundled appLocalDataDir locations | pending |
+| S52 | Discovery in `f13-stop` / `f13-reset` — auto-find generated/ across F13_GENERATED_DIR env, dev SCRIPT_DIR-relative, and bundled appLocalDataDir locations | **done** (this commit) |
 
 S51 lands first; S52 builds on it (shell scripts learn to find the
 new path). Both ship in v0.5.0 alongside the maintainer-driven
@@ -492,6 +492,21 @@ for review before merging to `main` and tagging v0.5.0.
   failures (zinc polish UI-text mismatches) are not introduced by this commit.
   Shell: 266/266 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 250/283 ✅ (33 pre-existing) cargo check ✅.
+
+- S52 completed: `lib/discover.sh` — new `discover::generated_dir(SCRIPT_DIR)` function probes four
+  candidate paths in priority order: `F13_GENERATED_DIR` env override (returned unconditionally);
+  `SCRIPT_DIR/../generated` (dev/direct-checkout mode, only when docker-compose.yml present);
+  macOS appLocalDataDir `~/Library/Application Support/de.f13-os.configurator/generated`; Linux
+  appLocalDataDir `~/.local/share/de.f13-os.configurator/generated`. The macOS and Linux base dirs
+  are overridable for tests via `_F13_MACOS_DATA_DIR` / `_F13_LINUX_DATA_DIR` env vars.
+  `bin/f13-stop` and `bin/f13-reset` updated to source `lib/discover.sh` and use
+  `discover::generated_dir` instead of the hardcoded `${F13_GENERATED_DIR:-SCRIPT_DIR/../generated}`
+  fallback; both scripts now print a helpful "run f13-config first, or set F13_GENERATED_DIR" hint
+  when discovery fails. `tests/discover.bats`: 9 unit tests covering env-override, dev path, macOS
+  path, Linux path, priorities, and not-found. `tests/f13-reset.bats`: 4 new binary-level tests
+  for macOS, Linux, and stop-vs-reset bundled path discovery, plus not-found error message.
+  Shell: 296/296 bats ✅, shellcheck clean.
+  GUI: npm run check ✅ biome ✅ vitest 384/384 ✅ cargo check ✅.
 
 - S51 completed: `appLocalDataDir` for bundled installs — `get_generated_dir()` bundled branch
   updated from `resource_dir().parent().join("generated")` (which landed inside the signed,

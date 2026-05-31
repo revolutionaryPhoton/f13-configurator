@@ -2,10 +2,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GEN_DIR="${F13_GENERATED_DIR:-${SCRIPT_DIR}/../generated}"
 
 # shellcheck source=../lib/events.sh
 source "${SCRIPT_DIR}/../lib/events.sh"
+# shellcheck source=../lib/discover.sh
+source "${SCRIPT_DIR}/../lib/discover.sh"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -14,6 +15,13 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+if ! GEN_DIR="$(discover::generated_dir "${SCRIPT_DIR}")"; then
+  events::emit compose "action=reset" "status=error" "message=no generated stack found"
+  echo "❌  No generated stack found." >&2
+  echo "    Run f13-config first, or set F13_GENERATED_DIR." >&2
+  exit 1
+fi
 
 if [[ ! -f "${GEN_DIR}/docker-compose.yml" ]]; then
   events::emit compose "action=reset" "status=error" "message=no generated stack found"
