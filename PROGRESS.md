@@ -75,17 +75,30 @@ S53–S56.
 - **Apple blocker cleared 2026-05-31.** Developer ID Application cert
   in keychain (`6DDFRR6F7B`); all 5 GitHub repo secrets set. S53–S56
   are no longer blocked.
-- **S53 (signing config) scaffolded** on `feat/phase10-distributables`:
+- **S53 (signing config) DONE + validated** on `feat/phase10-distributables`:
   `gui/src-tauri/tauri.conf.json` → `bundle.macOS.signingIdentity` +
   `minimumSystemVersion`; maintainer doc at `gui/SIGNING.md`
   (gitignored).
-- **S56 (release automation) scaffolded**: `.github/workflows/release.yml`
-  — tag-push `v*` builds signed/notarized `.dmg` (arm64) + `.AppImage`
-  / `.deb` (x86_64), attaches to a **draft** Release. Not yet
-  validated by a real tag-push.
-- **Still pending validation**: a `v0.5.0-rc*` dry-run tag to confirm
-  the sign → notarize → draft-release pipeline end to end (S53/S54/S56
-  acceptance). S55 Linux smoke on Ubuntu 22.04/24.04 also pending.
+- **S56 (release automation) DONE + validated**:
+  `.github/workflows/release.yml` — tag-push `v*` builds signed/
+  notarized `.dmg` (arm64) + `.AppImage` / `.deb` (x86_64), attaches
+  to a **draft** Release. Notarizes + staples both the `.app` and the
+  `.dmg` wrapper.
+- **Validated end to end via two dry-run tags (2026-05-31):**
+  - `v0.5.0-rc1` proved build + sign + notarize/staple the `.app`
+    (Gatekeeper "Notarized Developer ID, accepted") + version-sync
+    from tag + Linux `.AppImage`/`.deb`. Surfaced a draft-release
+    glob bug + an unstapled `.dmg` wrapper.
+  - `v0.5.0-rc2` (after fixes) went fully green: all 3 jobs pass,
+    draft Release created with all 3 assets, and the `.dmg` wrapper
+    itself now validates as stapled + Gatekeeper-accepted. macOS job
+    ~5 min (rc1's 39 min was Apple notary queue, not the pipeline).
+  - Both rc tags + drafts cleaned up afterward.
+- **Still pending:** S54 Gatekeeper smoke on a *clean* Apple Silicon
+  Mac (no dev tools) — `spctl` accept is proven, a real clean-Mac
+  open is the final S54 check. S55 Linux smoke on Ubuntu 22.04/24.04.
+  Both happen against the real v0.5.0 artifacts once S51/S52 land and
+  the Phase 10 PR is cut.
 
 Feature branch: `feat/phase10-distributables` (create on first
 iteration if absent). Single Phase 10 PR rolls up all stories
