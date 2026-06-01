@@ -1,10 +1,13 @@
 name: Release
 
-# Tag-push (v*) builds a signed + notarized .dmg (macOS arm64) and an
-# .AppImage + .deb (Linux x86_64), then attaches them to a DRAFT GitHub
-# Release. The maintainer reviews the artifacts, edits the notes, and
-# publishes the draft manually — no auto-publish, matching the
-# manual-publish convention used since v0.3.x.
+# Tag-push (v*) builds a signed + notarized .dmg (macOS arm64) and
+# attaches it to a DRAFT GitHub Release. The maintainer reviews the
+# artifact, edits the notes, and publishes the draft manually — no
+# auto-publish, matching the manual-publish convention used since v0.3.x.
+#
+# NOTE: Linux .AppImage/.deb targets are DEFERRED to v0.5.1. The
+# build-linux job below is disabled (`if: false`); see its comment for
+# the glibc reason and the re-enable plan.
 #
 # workflow_dispatch is allowed for build-only dry runs: it builds and
 # signs/notarizes but does NOT create a Release (the draft-release job
@@ -112,8 +115,18 @@ jobs:
           path: gui/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
           if-no-files-found: error
 
+  # DISABLED for v0.5.0 — Linux targets deferred to v0.5.1.
+  #
+  # The ubuntu-latest runner builds against a newer glibc than older
+  # target distros (e.g. WSL2 Ubuntu 22.04) ship, so the binary aborts
+  # with `GLIBC_x.xx not found` there. v0.5.1 fix: build on the
+  # ubuntu-22.04 runner (older glibc → broader forward-compat), then
+  # re-enable by removing `if: false` here AND re-adding `build-linux`
+  # to the draft-release `needs:` list. The find-based attach step
+  # already handles whatever artifacts are present.
   build-linux:
     name: Build .AppImage + .deb (Linux x86_64)
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -176,7 +189,7 @@ jobs:
 
   draft-release:
     name: Create draft Release
-    needs: [build-macos, build-linux]
+    needs: [build-macos] # build-linux deferred to v0.5.1 (see above)
     runs-on: ubuntu-latest
     # Only on a real tag push — dispatch dry runs build but don't publish.
     if: startsWith(github.ref, 'refs/tags/v')
@@ -191,9 +204,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # download-artifact preserves each artifact's internal layout,
-          # so the bundles land at varying depths (e.g.
-          # linux-bundles/appimage/*.AppImage). Collect by name instead
-          # of assuming a flat tree.
+          # so bundles can land at varying depths. Collect by name
+          # instead of assuming a flat tree. (Currently only the macOS
+          # .dmg is produced; the glob still matches Linux artifacts for
+          # when build-linux is re-enabled in v0.5.1.)
           mapfile -t FILES < <(find artifacts -type f \
             \( -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \) | sort)
           if [ "${#FILES[@]}" -eq 0 ]; then
@@ -206,5 +220,5 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --draft \
             --title "${GITHUB_REF_NAME}" \
-            --notes "Automated draft for ${GITHUB_REF_NAME}. Review the attached .dmg / .AppImage / .deb, replace these notes with the CHANGELOG section, then publish manually." \
+            --notes "Automated draft for ${GITHUB_REF_NAME}. Review the attached artifact(s), replace these notes with the CHANGELOG section, then publish manually." \
             "${FILES[@]}"
