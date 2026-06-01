@@ -1,0 +1,77 @@
+name: Feature request
+description: Propose a capability as a user story with acceptance criteria.
+title: "NF: <short description>"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project is PRD-driven: features are written as **user
+        stories with acceptance criteria** (the same `S##` shape you'll
+        see in `PRD.md`). Framing your request that way makes it easy to
+        scope, accept, and — if it lands — track. Open an issue here
+        *before* a PR for anything larger than a tweak.
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User story
+      description: One sentence in the "As a … I want … so that …" form.
+      placeholder: |
+        As a first-time user setting up F13 on a fresh laptop,
+        I want the wizard to detect and offer to install Docker
+        so that I don't have to leave the app to satisfy preflight.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: |
+        How do we know it's done? List concrete, checkable outcomes —
+        Given/When/Then or a checklist. Be specific about both the
+        happy path and the obvious failure paths.
+      value: |
+        - [ ] Given …, when …, then …
+        - [ ] Given …, when …, then …
+        - [ ] Edge case: when …, the user sees …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface(s)?
+      multiple: true
+      options:
+        - Desktop GUI (gui/)
+        - Shell wizard (bin/ + lib/)
+        - Release / packaging (signing, distributables)
+        - Docs / project meta
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why / who benefits?
+      description: What problem does this solve, and for whom? Skip if the user story already makes it obvious.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you've tried, or other designs you weighed.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, links, related issues, upstream F13 constraints, etc.
+    validations:
+      required: false
