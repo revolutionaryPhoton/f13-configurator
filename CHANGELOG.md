@@ -7,6 +7,64 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-01
+
+> **Highlights:** First **signed + notarized desktop distributables.** A
+> tagged release now produces a Gatekeeper-clean `.dmg` (macOS arm64) and
+> `.AppImage` + `.deb` (Linux x86_64), attached to a draft GitHub Release
+> for manual publish. Bundled installs now write their generated config to
+> a proper per-user data directory instead of (impossibly) inside the
+> signed app bundle. Phase 10 of the PRD ships here.
+
+### Added — Signed distributables (S53 + S54 + S55 + S56)
+
+- **`.github/workflows/release.yml`** — on a `v*` tag push, builds a
+  signed + **notarized + stapled** `.dmg` for macOS arm64 and an
+  `.AppImage` + `.deb` for Linux x86_64, then attaches them to a
+  **draft** Release. The maintainer reviews and publishes manually
+  (no auto-publish). `workflow_dispatch` is available for build-only
+  dry runs. Bundle version is synced from the tag at build time.
+- **Code signing** via `tauri.conf.json` `bundle.macOS.signingIdentity`
+  (`Developer ID Application`, `minimumSystemVersion` 11.0 — the arm64
+  floor). Notarization runs through `notarytool`; both the `.app` and
+  the `.dmg` wrapper are stapled so a downloaded dmg opens cleanly
+  offline. Maintainer setup lives in `gui/SIGNING.md` (gitignored).
+- Single-architecture targets by design for v0.5.0: macOS **arm64
+  only**, Linux **x86_64 only**. Universal/other-arch builds, Homebrew,
+  and auto-update are deferred to later phases.
+
+### Fixed — Bundled-mode data paths (S51 + S52)
+
+- **`get_generated_dir()` (Rust)** — in a bundled install, the
+  `generated/` directory (docker-compose.yml, `.env`, secrets) now
+  resolves to the platform app-local-data dir instead of a path
+  *inside* the signed, read-only `.app` bundle (which was never
+  writable and would have broken the signature):
+  - macOS: `~/Library/Application Support/de.f13-os.configurator/generated`
+  - Linux: `~/.local/share/de.f13-os.configurator/generated`
+
+  Dev-mode path (`configurator_v1/generated`) is unchanged. **This is
+  what makes the signed distributable actually functional once
+  installed.**
+- **`lib/discover.sh` + `bin/f13-stop` / `bin/f13-reset`** — the
+  teardown scripts now auto-discover `generated/` across the
+  `F13_GENERATED_DIR` env override, the dev `SCRIPT_DIR/../generated`
+  layout, and the bundled app-local-data locations above, so
+  `./bin/f13-stop` works whether you're in a checkout or running a
+  bundled install. A clear "run f13-config first, or set
+  F13_GENERATED_DIR" hint is shown when no stack is found.
+
+### Tests
+
+- +6 vitest (`bootstrap.test.ts`, the bundled-path resolution) and
+  +13 bats (`discover.bats` + `f13-reset.bats` integration). Totals:
+  vitest **384/384**, bats **295** — green on macOS and Linux.
+- Pipeline validated end to end via `v0.5.0-rc1` / `rc2` dry-run tags:
+  build → sign → notarize + staple (`.app` **and** `.dmg`) →
+  Gatekeeper accept (`spctl`: "Notarized Developer ID, accepted") →
+  draft Release with all three assets. Both rc tags + drafts cleaned
+  up.
+
 ## [0.4.1] — 2026-05-22
 
 > **Highlights:** Maintenance release. CI-blocking Tauri JS/Rust version
