@@ -146,9 +146,94 @@ fn apply_linux_runtime_defaults() {
 #[cfg(not(target_os = "linux"))]
 fn apply_linux_runtime_defaults() {}
 
+// macOS GUI apps launched from Finder / Launchpad inherit a minimal
+// PATH from launchd (/usr/bin:/bin:/usr/sbin:/sbin) — NOT the user's
+// login-shell PATH. So docker (/usr/local/bin), Homebrew bash and
+// envsubst (/opt/homebrew/bin), etc. are invisible to the preflight
+// checks, which shell out through the bundled wizard (f13-script ->
+// bash -> f13-config). The result: a freshly-installed .app reports
+// docker/bash/envsubst "not found" even though they're present.
+//
+// Recover the real PATH from a login shell ($SHELL -lc re-sources
+// .zprofile, where `brew shellenv` and similar live) and adopt it
+// process-wide before the Tauri builder starts, so every subprocess
+// inherits the full toolchain. Only runs when the inherited PATH
+// looks truncated, so launching from a terminal (dev) is untouched.
+#[cfg(target_os = "macos")]
+fn apply_macos_login_path() {
+    if !macos_path_looks_truncated(&std::env::var("PATH").unwrap_or_default()) {
+        return; // already a full PATH (e.g. launched from a terminal)
+    }
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+    let Ok(output) = std::process::Command::new(&shell)
+        .args(["-lc", "command printf '%s' \"$PATH\""])
+        .output()
+    else {
+        return;
+    };
+    if !output.status.success() {
+        return;
+    }
+    let resolved = String::from_utf8_lossy(&output.stdout);
+    let resolved = resolved.trim();
+    if !resolved.is_empty() && !macos_path_looks_truncated(resolved) {
+        // SAFETY: called once at startup before any threads spawn.
+        unsafe {
+            std::env::set_var("PATH", resolved);
+        }
+    }
+}
+
+// A macOS PATH is "truncated" (GUI-launched) when it lacks the common
+// user bin dirs that hold docker / Homebrew tools. Used to decide
+// whether to recover the login-shell PATH.
+#[cfg(target_os = "macos")]
+fn macos_path_looks_truncated(path: &str) -> bool {
+    !path
+        .split(':')
+        .any(|p| p == "/opt/homebrew/bin" || p == "/usr/local/bin")
+}
+
+#[cfg(not(target_os = "macos"))]
+fn apply_macos_login_path() {}
+
+#[cfg(all(test, target_os = "macos"))]
+mod macos_path_tests {
+    use super::macos_path_looks_truncated;
+
+    #[test]
+    fn launchd_minimal_path_is_truncated() {
+        assert!(macos_path_looks_truncated("/usr/bin:/bin:/usr/sbin:/sbin"));
+    }
+
+    #[test]
+    fn empty_path_is_truncated() {
+        assert!(macos_path_looks_truncated(""));
+    }
+
+    #[test]
+    fn homebrew_path_is_not_truncated() {
+        assert!(!macos_path_looks_truncated(
+            "/opt/homebrew/bin:/usr/bin:/bin"
+        ));
+    }
+
+    #[test]
+    fn usr_local_path_is_not_truncated() {
+        assert!(!macos_path_looks_truncated("/usr/local/bin:/usr/bin:/bin"));
+    }
+
+    #[test]
+    fn substring_does_not_falsely_match() {
+        // "/usr/local/binx" must not satisfy the "/usr/local/bin" check.
+        assert!(macos_path_looks_truncated("/usr/local/binx:/usr/bin"));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     apply_linux_runtime_defaults();
+    apply_macos_login_path();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
