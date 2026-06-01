@@ -58,17 +58,47 @@ Phase 10 (signed distributables + bundled-mode data paths) is the
 next phase. Stories S53–S56 need maintainer Apple-Developer + repo
 secrets that the headless loop container doesn't have, so they are
 deliberately **not** in this table. The two pure-code stories below
-ARE loop-runnable and should be picked up while the maintainer
-finishes Apple enrollment:
+ARE loop-runnable and are ready to pick up now (the Apple-side
+prerequisites are done — see "Maintainer progress" below):
 
 | Story | Description | Status |
 |-------|-------------|--------|
-| S51 | `appLocalDataDir` for bundled installs (Rust `get_generated_dir()` + `get_bin_dir()` switch bundled branch to `app.path().app_local_data_dir().join("generated")` etc.) | pending |
-| S52 | Discovery in `f13-stop` / `f13-reset` — auto-find generated/ across F13_GENERATED_DIR env, dev SCRIPT_DIR-relative, and bundled appLocalDataDir locations | pending |
+| S51 | `appLocalDataDir` for bundled installs (Rust `get_generated_dir()` + `get_bin_dir()` switch bundled branch to `app.path().app_local_data_dir().join("generated")` etc.) | **done** 3ddfa05 |
+| S52 | Discovery in `f13-stop` / `f13-reset` — auto-find generated/ across F13_GENERATED_DIR env, dev SCRIPT_DIR-relative, and bundled appLocalDataDir locations | **done** (this commit) |
 
 S51 lands first; S52 builds on it (shell scripts learn to find the
 new path). Both ship in v0.5.0 alongside the maintainer-driven
-S53–S56 once the cert/secrets are in place.
+S53–S56.
+
+### Maintainer progress (not loop work — context only)
+
+- **Apple blocker cleared 2026-05-31.** Developer ID Application cert
+  in keychain (`6DDFRR6F7B`); all 5 GitHub repo secrets set. S53–S56
+  are no longer blocked.
+- **S53 (signing config) DONE + validated** on `feat/phase10-distributables`:
+  `gui/src-tauri/tauri.conf.json` → `bundle.macOS.signingIdentity` +
+  `minimumSystemVersion`; maintainer doc at `gui/SIGNING.md`
+  (gitignored).
+- **S56 (release automation) DONE + validated**:
+  `.github/workflows/release.yml` — tag-push `v*` builds signed/
+  notarized `.dmg` (arm64) + `.AppImage` / `.deb` (x86_64), attaches
+  to a **draft** Release. Notarizes + staples both the `.app` and the
+  `.dmg` wrapper.
+- **Validated end to end via two dry-run tags (2026-05-31):**
+  - `v0.5.0-rc1` proved build + sign + notarize/staple the `.app`
+    (Gatekeeper "Notarized Developer ID, accepted") + version-sync
+    from tag + Linux `.AppImage`/`.deb`. Surfaced a draft-release
+    glob bug + an unstapled `.dmg` wrapper.
+  - `v0.5.0-rc2` (after fixes) went fully green: all 3 jobs pass,
+    draft Release created with all 3 assets, and the `.dmg` wrapper
+    itself now validates as stapled + Gatekeeper-accepted. macOS job
+    ~5 min (rc1's 39 min was Apple notary queue, not the pipeline).
+  - Both rc tags + drafts cleaned up afterward.
+- **Still pending:** S54 Gatekeeper smoke on a *clean* Apple Silicon
+  Mac (no dev tools) — `spctl` accept is proven, a real clean-Mac
+  open is the final S54 check. S55 Linux smoke on Ubuntu 22.04/24.04.
+  Both happen against the real v0.5.0 artifacts once S51/S52 land and
+  the Phase 10 PR is cut.
 
 Feature branch: `feat/phase10-distributables` (create on first
 iteration if absent). Single Phase 10 PR rolls up all stories
@@ -462,3 +492,31 @@ for review before merging to `main` and tagging v0.5.0.
   failures (zinc polish UI-text mismatches) are not introduced by this commit.
   Shell: 266/266 bats ✅, shellcheck clean. GUI: npm run check ✅ biome ✅
   vitest 250/283 ✅ (33 pre-existing) cargo check ✅.
+
+- S52 completed: `lib/discover.sh` — new `discover::generated_dir(SCRIPT_DIR)` function probes four
+  candidate paths in priority order: `F13_GENERATED_DIR` env override (returned unconditionally);
+  `SCRIPT_DIR/../generated` (dev/direct-checkout mode, only when docker-compose.yml present);
+  macOS appLocalDataDir `~/Library/Application Support/de.f13-os.configurator/generated`; Linux
+  appLocalDataDir `~/.local/share/de.f13-os.configurator/generated`. The macOS and Linux base dirs
+  are overridable for tests via `_F13_MACOS_DATA_DIR` / `_F13_LINUX_DATA_DIR` env vars.
+  `bin/f13-stop` and `bin/f13-reset` updated to source `lib/discover.sh` and use
+  `discover::generated_dir` instead of the hardcoded `${F13_GENERATED_DIR:-SCRIPT_DIR/../generated}`
+  fallback; both scripts now print a helpful "run f13-config first, or set F13_GENERATED_DIR" hint
+  when discovery fails. `tests/discover.bats`: 9 unit tests covering env-override, dev path, macOS
+  path, Linux path, priorities, and not-found. `tests/f13-reset.bats`: 4 new binary-level tests
+  for macOS, Linux, and stop-vs-reset bundled path discovery, plus not-found error message.
+  Shell: 296/296 bats ✅, shellcheck clean.
+  GUI: npm run check ✅ biome ✅ vitest 384/384 ✅ cargo check ✅.
+
+- S51 completed: `appLocalDataDir` for bundled installs — `get_generated_dir()` bundled branch
+  updated from `resource_dir().parent().join("generated")` (which landed inside the signed,
+  read-only .app bundle and was never writable) to `app.path().app_local_data_dir().join("generated")`:
+  macOS: `~/Library/Application Support/de.f13-os.configurator/generated`;
+  Linux: `~/.local/share/de.f13-os.configurator/generated`.
+  Dev-mode path (`<configurator_v1>/generated`) is unchanged; `get_bin_dir()` bundled path
+  (`resource_dir()/bin`) is also unchanged since bin/ is a read-only bundle resource.
+  New `gui/src/lib/bootstrap.test.ts`: 6 vitest tests covering `getGeneratedDir()` initial null,
+  resolved path after bootstrap, IPC rejection fallback, idempotency, bin-path wiring, and
+  retry-after-failure. `biome.json` schema bumped 2.4.15→2.4.16.
+  Shell: 283/283 bats ✅, shellcheck clean.
+  GUI: npm run check ✅ biome ✅ vitest 384/384 ✅ cargo check ✅.

@@ -74,15 +74,18 @@ fn get_bin_dir(app: tauri::AppHandle) -> Result<String, String> {
 // Returns the absolute path to the configurator's `generated/` directory —
 // where the wizard writes docker-compose.yml, .env, secrets/, configs/.
 //
-// Mirrors the shell wizard's default GEN_DIR ($SCRIPT_DIR/../generated)
-// so a stack started from the GUI can be torn down with `./bin/f13-stop`
-// from a terminal without env-var overrides.
-//
-// Bundled mode: <resource_dir>/../generated  (sibling of bundled bin/)
 // Dev mode:    <configurator_v1>/generated
+//   Mirrors the shell wizard's default GEN_DIR ($SCRIPT_DIR/../generated)
+//   so a stack started from the GUI can be torn down with `./bin/f13-stop`
+//   from a terminal without env-var overrides.
 //
-// The directory is NOT created here — the wizard creates it on first
-// render. Only the path is computed.
+// Bundled mode: platform app-local-data dir (user-writable, persists across
+//   app bundle updates — unlike resource_dir which lives inside the signed,
+//   read-only .app bundle):
+//   macOS: ~/Library/Application Support/de.f13-os.configurator/generated
+//   Linux: ~/.local/share/de.f13-os.configurator/generated
+//
+// The directory is NOT created here — the wizard creates it on first render.
 #[tauri::command]
 fn get_generated_dir(app: tauri::AppHandle) -> Result<String, String> {
     // Dev: <configurator_v1>/generated (mirrors the shell wizard's
@@ -94,13 +97,12 @@ fn get_generated_dir(app: tauri::AppHandle) -> Result<String, String> {
             .into_owned());
     }
 
-    // Bundled: GEN_DIR is sibling to the shipped bin/, lib/, templates/.
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        if let Some(parent) = resource_dir.parent() {
-            return Ok(parent.join("generated").to_string_lossy().into_owned());
-        }
+    // Bundled: use the platform app-local-data dir so generated/ is placed
+    // in a user-writable location outside the signed, read-only app bundle.
+    if let Ok(data_dir) = app.path().app_local_data_dir() {
+        return Ok(data_dir.join("generated").to_string_lossy().into_owned());
     }
-    Err("bundled mode: could not derive generated/ from resource_dir".to_string())
+    Err("bundled mode: could not resolve app_local_data_dir()".to_string())
 }
 
 // Quiet GPU-related warnings on Linux setups without an accessible

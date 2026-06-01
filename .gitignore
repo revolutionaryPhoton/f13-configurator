@@ -8,6 +8,9 @@ ralph-logs/
 LOOP_CONTEXT.md
 .claude/
 docs/BRANCH_PROTECTION.md
+# macOS signing/notarization maintainer reference (cert name + setup,
+# no secret values). Kept local per PRD S53.
+gui/SIGNING.md
 
 # OS noise
 .DS_Store

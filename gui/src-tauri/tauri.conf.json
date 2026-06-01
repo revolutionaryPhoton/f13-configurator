@@ -40,6 +40,10 @@
     },
     "category": "DeveloperTool",
     "shortDescription": "Shell configurator for a minimal F13 deployment",
-    "longDescription": "A desktop GUI that walks you through deploying a minimal F13 instance — core API, frontend, and chat — without hand-editing YAML."
+    "longDescription": "A desktop GUI that walks you through deploying a minimal F13 instance — core API, frontend, and chat — without hand-editing YAML.",
+    "macOS": {
+      "signingIdentity": "Developer ID Application: David Moch (6DDFRR6F7B)",
+      "minimumSystemVersion": "11.0"
+    }
   }
 }
