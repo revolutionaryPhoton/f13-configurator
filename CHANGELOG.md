@@ -9,29 +9,47 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.5.0] — 2026-06-01
 
-> **Highlights:** First **signed + notarized desktop distributables.** A
-> tagged release now produces a Gatekeeper-clean `.dmg` (macOS arm64) and
-> `.AppImage` + `.deb` (Linux x86_64), attached to a draft GitHub Release
-> for manual publish. Bundled installs now write their generated config to
-> a proper per-user data directory instead of (impossibly) inside the
-> signed app bundle. Phase 10 of the PRD ships here.
+> **Highlights:** First **signed + notarized macOS distributable.** A
+> tagged release now produces a Gatekeeper-clean `.dmg` (macOS arm64),
+> attached to a draft GitHub Release for manual publish. Bundled installs
+> now write their generated config to a proper per-user data directory
+> instead of (impossibly) inside the signed app bundle. Phase 10 of the
+> PRD ships here.
+>
+> **Linux is not in this release.** The `.AppImage` / `.deb` (S55) are
+> deferred to **v0.5.1**: the `ubuntu-latest`-built binaries failed with
+> `GLIBC` version errors on older target distros (e.g. WSL2 Ubuntu 22.04),
+> so they need a rebuild on an older-glibc runner before shipping. The
+> bundled-path fixes below already cover Linux at the code level; only the
+> packaged artifacts wait for v0.5.1.
 
-### Added — Signed distributables (S53 + S54 + S55 + S56)
+### Added — Signed macOS distributable (S53 + S54 + S56)
 
 - **`.github/workflows/release.yml`** — on a `v*` tag push, builds a
-  signed + **notarized + stapled** `.dmg` for macOS arm64 and an
-  `.AppImage` + `.deb` for Linux x86_64, then attaches them to a
-  **draft** Release. The maintainer reviews and publishes manually
-  (no auto-publish). `workflow_dispatch` is available for build-only
-  dry runs. Bundle version is synced from the tag at build time.
+  signed + **notarized + stapled** `.dmg` for macOS arm64 and attaches
+  it to a **draft** Release. The maintainer reviews and publishes
+  manually (no auto-publish). `workflow_dispatch` is available for
+  build-only dry runs. Bundle version is synced from the tag at build
+  time. (A `build-linux` job exists but is disabled pending the v0.5.1
+  glibc fix.)
 - **Code signing** via `tauri.conf.json` `bundle.macOS.signingIdentity`
   (`Developer ID Application`, `minimumSystemVersion` 11.0 — the arm64
   floor). Notarization runs through `notarytool`; both the `.app` and
   the `.dmg` wrapper are stapled so a downloaded dmg opens cleanly
   offline. Maintainer setup lives in `gui/SIGNING.md` (gitignored).
-- Single-architecture targets by design for v0.5.0: macOS **arm64
-  only**, Linux **x86_64 only**. Universal/other-arch builds, Homebrew,
-  and auto-update are deferred to later phases.
+- Single-architecture by design: macOS **arm64 only**. Universal builds,
+  Homebrew, and auto-update are deferred to later phases.
+
+### Fixed — Bundled app finds the host toolchain (macOS)
+
+- **Login-shell PATH recovery** — a Finder/Launchpad-launched `.app`
+  inherits launchd's minimal PATH (`/usr/bin:/bin:/usr/sbin:/sbin`),
+  so the preflight (which shells out through the bundled wizard)
+  reported `docker`, Homebrew `bash`, and `envsubst` as "not found"
+  even when installed. The app now recovers the real PATH from a login
+  shell at startup and adopts it process-wide, so subprocess spawns see
+  the full toolchain. No-op when launched from a terminal (PATH already
+  complete).
 
 ### Fixed — Bundled-mode data paths (S51 + S52)
 
@@ -56,8 +74,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Tests
 
-- +6 vitest (`bootstrap.test.ts`, the bundled-path resolution) and
-  +13 bats (`discover.bats` + `f13-reset.bats` integration). Totals:
+- +6 vitest (`bootstrap.test.ts`, the bundled-path resolution),
+  +13 bats (`discover.bats` + `f13-reset.bats` integration), and +5
+  Rust unit tests (the macOS PATH-truncation heuristic). Totals:
   vitest **384/384**, bats **295** — green on macOS and Linux.
 - Pipeline validated end to end via `v0.5.0-rc1` / `rc2` dry-run tags:
   build → sign → notarize + staple (`.app` **and** `.dmg`) →

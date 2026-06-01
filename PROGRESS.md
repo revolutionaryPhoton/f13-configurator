@@ -94,11 +94,19 @@ S53–S56.
     itself now validates as stapled + Gatekeeper-accepted. macOS job
     ~5 min (rc1's 39 min was Apple notary queue, not the pipeline).
   - Both rc tags + drafts cleaned up afterward.
-- **Still pending:** S54 Gatekeeper smoke on a *clean* Apple Silicon
-  Mac (no dev tools) — `spctl` accept is proven, a real clean-Mac
-  open is the final S54 check. S55 Linux smoke on Ubuntu 22.04/24.04.
-  Both happen against the real v0.5.0 artifacts once S51/S52 land and
-  the Phase 10 PR is cut.
+- **v0.5.0 = macOS only (decision 2026-06-01).** During the real
+  v0.5.0 S54 smoke the installed `.dmg` reported docker/bash/envsubst
+  "not found" — macOS launchd gives Finder-launched apps a truncated
+  PATH. Fixed in `#42` (login-shell PATH recovery at startup, +5 Rust
+  tests); re-cut v0.5.0 verified running fine. **S54 done.**
+- **S55 (Linux .AppImage/.deb) deferred to v0.5.1.** The
+  `ubuntu-latest`-built binaries abort with `GLIBC` version errors on
+  older target distros (e.g. WSL2 Ubuntu 22.04). v0.5.1 fix: rebuild
+  the `build-linux` job on the `ubuntu-22.04` runner (older glibc →
+  forward-compat), then re-enable it (`release.yml` has it disabled
+  with `if: false` + the re-enable steps documented inline). The
+  S51/S52 bundled-path code already supports Linux; only the packaged
+  artifacts wait.
 
 Feature branch: `feat/phase10-distributables` (create on first
 iteration if absent). Single Phase 10 PR rolls up all stories
