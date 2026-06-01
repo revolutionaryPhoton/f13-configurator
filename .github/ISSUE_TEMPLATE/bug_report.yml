@@ -1,0 +1,103 @@
+name: Bug report
+description: Something in the configurator (shell wizard or desktop GUI) doesn't work as expected.
+title: "BF: <short description>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. A few structured fields up front save a
+        round-trip. If this is a **security** issue, please don't file
+        it here — see [SECURITY.md](../blob/main/SECURITY.md) instead.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before filing
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: I understand this is AI-generated, local-development tooling with no formal security audit (see SECURITY.md).
+          required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface?
+      description: Where did the bug occur?
+      options:
+        - Desktop GUI (installed .dmg / .deb / .AppImage)
+        - Desktop GUI (dev — npm run tauri dev)
+        - Shell wizard (bin/f13-config)
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (native)
+        - Linux (WSL2)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag or commit (e.g. v0.5.0, or `git rev-parse --short HEAD`).
+      placeholder: v0.5.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you see? Include the exact error text if any.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps from a clean state.
+      placeholder: |
+        1. Launch the app from …
+        2. On the preflight screen, …
+        3. See error …
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / output
+      description: |
+        Relevant terminal output, the GUI's run log, or the failing
+        wizard event line. Redact secrets and absolute paths.
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: docker
+    attributes:
+      label: Docker version (if relevant)
+      description: Output of `docker --version`. Many issues trace back to Docker not running / not on PATH.
+      placeholder: "Docker version 27.x"
+    validations:
+      required: false
