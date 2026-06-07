@@ -7,6 +7,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-06-07
+
+> **Highlights:** Dependency-maintenance release. GUI build/runtime deps
+> refreshed; no functional changes. **macOS only** — Linux `.AppImage` /
+> `.deb` remain deferred (the `ubuntu-latest` glibc rebuild is still
+> pending; see `release.yml` for the re-enable plan).
+
+### Changed — dependency bumps
+
+- **`vite`** 8.0.14 → 8.0.16 and **`vitest`** 4.1.7 → 4.1.8 (vite-build
+  group, #45).
+- **`svelte`** 5.56.0 → 5.56.2 (#47).
+- **`@sveltejs/kit`** 2.61.1 → 2.63.0 (#49).
+- **`svelte-check`** 4.4.8 → 4.6.0 (#48; pulls new transitive
+  `@sveltejs/load-config`).
+- **`axe-core`** 4.11.4 → 4.12.0 (#46; a11y test dep).
+
+All patch/minor, no majors. CI green on every PR (tauri build +
+shellcheck/bats + gitleaks); macOS `.dmg` builds, signs, notarizes,
+and Gatekeeper-accepts unchanged from v0.5.0.
+
 ## [0.5.0] — 2026-06-01
 
 > **Highlights:** First **signed + notarized macOS distributable.** A
