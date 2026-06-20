@@ -7,6 +7,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-06-20
+
+> **Highlights:** Security + dependency-maintenance release. Resolves two
+> `undici` advisories (one HIGH) and refreshes the GUI build/runtime deps.
+> No functional changes. **macOS only** — Linux `.AppImage` / `.deb` remain
+> deferred (the `ubuntu-latest` glibc rebuild is still pending; see
+> `release.yml` for the re-enable plan).
+
+### Security
+
+- **`undici`** 7.25.0 → 7.28.0 (#56) — resolves two Dependabot advisories
+  on the transitive `undici` dependency:
+  - **HIGH** (GHSA-vmh5-mc38-953g): TLS certificate-validation bypass via
+    dropped `requestTls` in the SOCKS5 `ProxyAgent`.
+  - **MEDIUM** (GHSA-pr7r-676h-xcf6): cross-user information disclosure via
+    a shared-cache whitespace bypass.
+
+### Changed — dependency bumps
+
+- **`@sveltejs/kit`** 2.63.0 → 2.66.0 (#53).
+- **`svelte`** 5.56.2 → 5.56.3 (#55).
+- **`@biomejs/biome`** 2.4.16 → 2.5.0 (#52); `biome.json` `$schema` URL
+  synced to match.
+- **`tailwindcss`** 4.3.0 → 4.3.1 (#54) and **`@tailwindcss/vite`** 4.3.0
+  → 4.3.1 (#57, vite-build group).
+- **`vitest`** 4.1.8 → 4.1.9 (#57, vite-build group).
+
+All patch/minor (except the security-driven undici bump). CI green on
+every PR; the macOS `.dmg` builds, signs, notarizes, and Gatekeeper-
+accepts unchanged from v0.5.1.
+
 ## [0.5.1] — 2026-06-07
 
 > **Highlights:** Dependency-maintenance release. GUI build/runtime deps
