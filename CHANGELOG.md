@@ -7,6 +7,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.3] — 2026-07-05
+
+> **Highlights:** Dependency-maintenance release. Rolls up the Tauri
+> toolchain (JS + Rust), the Vite/Tailwind build chain, and the Svelte /
+> test-lib deps accumulated since v0.5.2. No functional changes.
+> **macOS only** — Linux `.AppImage` / `.deb` remain deferred (the
+> `ubuntu-latest` glibc rebuild is still pending; see `release.yml` for
+> the re-enable plan).
+
+### Changed — dependency bumps
+
+- **Tauri (Rust)** — `tauri` → 2.11.5, `tauri-build` → 2.6.3
+  (#61, #63, tauri-rust group).
+- **Tauri (JS)** — `@tauri-apps/api` → 2.11.1, `@tauri-apps/cli` → 2.11.4
+  (#59, #62, tauri-js group). JS + Rust sides stay aligned on the 2.11 line.
+- **`@tailwindcss/vite`** + **`vite`** → 4.3.2 (#64, vite-build group);
+  pulls `tailwindcss` core to 4.3.2 transitively, so the standalone
+  bump #66 was auto-closed by Dependabot as redundant.
+- **`svelte`** 5.56.3 → 5.56.4 (#65).
+- **`@testing-library/svelte`** 5.3.1 → 5.4.2 (#67, dev dependency).
+- **`axe-core`** 4.12.0 → 4.12.1 (#60, dev dependency).
+
+All patch/minor; no security advisories this cycle. CI green on every PR;
+the macOS `.dmg` builds, signs, notarizes, and Gatekeeper-accepts
+unchanged from v0.5.2.
+
 ## [0.5.2] — 2026-06-20
 
 > **Highlights:** Security + dependency-maintenance release. Resolves two
