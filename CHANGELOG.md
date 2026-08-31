@@ -7,6 +7,67 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.4] — 2026-08-31
+
+> **Highlights:** Security release. Clears **all 9 open advisories** (2 HIGH)
+> that accumulated during a two-month maintenance gap, plus the dependency
+> refresh and repo hygiene that came with them. No functional changes.
+> **macOS only** — Linux `.AppImage` / `.deb` remain deferred (the
+> `ubuntu-latest` glibc rebuild is still pending; see `release.yml` for the
+> re-enable plan).
+
+### Security
+
+- **`undici`** 7.28.0 → 7.29.0 (#80) — resolves five advisories:
+  - **HIGH** (GHSA-4cwx-7wf7-3272): cross-user information disclosure and a
+    parse-time issue.
+  - **MEDIUM** (GHSA-m8rv-5g2x-5cg5): CRLF injection via a blob-like body
+    `type` property.
+  - **MEDIUM** (GHSA-v3r7-h72x-cjcm): cookie attribute injection via an
+    unsanitized domain.
+  - **MEDIUM** (GHSA-jr45-8vmc-qm54): cross-user information disclosure via a
+    whitespace bypass.
+  - **MEDIUM** (GHSA-8xcm-r25x-g524): downstream response desynchronization
+    via retry handling.
+- **`postcss`** 8.5.16 → 8.5.26 (#79) —
+  **HIGH** (GHSA-r28c-9q8g-f849): path traversal in previous-source-map
+  auto-loading; **MEDIUM** (GHSA-fxqj-rqcc-2cmp): incomplete fix of
+  GHSA-6g55-p6wh-862q.
+- **`@sveltejs/kit`** 2.66.0 → 2.70.3 (#78) — **MEDIUM**
+  (GHSA-866w-xmhq-wj7x): prototype pollution in the remote-form file-input
+  deletion path.
+- **`serde_with`** 3.18.0 → 3.22.0 (#74) — **MEDIUM** (GHSA-7gcf-g7xr-8hxj):
+  `KeyValueMap` serialization panics on an empty sequence or map.
+
+### Changed — dependency bumps
+
+- **`@biomejs/biome`** 2.5.0 → 2.5.11 (#72); `biome.json` `$schema` synced to
+  match the installed version.
+- **`svelte-check`** 4.6.0 → 4.7.6 (#73).
+- **vite-build group** (#75): `vite` 8.2.2, `@sveltejs/vite-plugin-svelte`
+  7.3.0, `@tailwindcss/vite` 4.3.3, `vitest` 4.1.11.
+- **`serde`** 1.0.229 (#76) and **`serde_json`** 1.0.151 (#77).
+
+### Changed — repo
+
+- **Commit trailers now name the model**, not just the harness:
+  `Co-Authored-By: <Agent>, <Model>` (e.g. `Claude Code, Opus 5`). Canonical
+  definition in `AGENTS.md`. The Ralph harness pins `claude --model`, injects
+  the model into the iteration prompt, and verifies every commit against the
+  model recorded in that iteration's stream `init` event.
+- Landed documentation fixes that had been sitting uncommitted since
+  2026-07-11 (`../PRD.md` path, the Linux-Docker → macOS lockfile note, the
+  `LOOP_CONTEXT.md` / `AGENTS.md` backpressure union), and corrected a stale
+  claim that the Ralph harness is reachable from inside the loop sandbox — it
+  is deliberately excluded.
+- **TypeScript majors held** via a `.github/dependabot.yml` ignore: no
+  `@sveltejs/kit` 2.x accepts TypeScript 7 (peer `^5.3.3 || ^6.0.0`), so the
+  bump cannot resolve at `npm ci`. Deferred, not abandoned — #70 closed with
+  the recheck command recorded beside the rule.
+
+All bumps patch/minor. CI green on every PR; the macOS `.dmg` builds, signs,
+notarizes and Gatekeeper-accepts unchanged from v0.5.3.
+
 ## [0.5.3] — 2026-07-05
 
 > **Highlights:** Dependency-maintenance release. Rolls up the Tauri
