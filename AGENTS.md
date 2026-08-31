@@ -18,8 +18,9 @@ repo.
 ## Before Changing Code
 
 - Read the relevant local context first: `README.md`, `SECURITY.md`,
-  `gui/CONTRIBUTING.md`, `PRD.md`, `PROGRESS.md`, nearby tests, and the file
-  being changed.
+  `gui/CONTRIBUTING.md`, `../PRD.md` (lives one level up in the ralph
+  harness, only present when running under ralph — skip if absent),
+  `PROGRESS.md`, nearby tests, and the file being changed.
 - Check `git status -sb` before editing.
 - Prefer existing shell helpers, GUI patterns, test structure, and naming
   conventions over new abstractions.
@@ -60,6 +61,10 @@ pre-commit run --all-files
 Do not run `npm run tauri dev` or `tauri build` inside automation loops unless
 explicitly asked; those commands require a display or platform-specific GUI
 runtime.
+
+After a Linux-Docker → macOS round-trip, `npm install` regenerates a
+Linux-flavoured `gui/package-lock.json`; revert it before committing Phase
+work unless the lockfile change is deliberate.
 
 ## Commits
 
@@ -113,4 +118,5 @@ The Ralph loop is powerful and intentionally sharp. Do not relax sandboxing,
 networking, mounted paths, or commit behavior without calling it out clearly.
 
 Do not open per-story PRs from the Ralph loop unless explicitly asked. Follow
-the current `PRD.md` and `PROGRESS.md` flow.
+the current `../PRD.md` (only present when running under ralph — skip if
+absent) and `PROGRESS.md` flow.
