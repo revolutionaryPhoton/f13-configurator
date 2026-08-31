@@ -124,5 +124,7 @@ Same as the shell scripts — F13 standard:
 ```
 <TYPE> [gui]: <description>   (max 72 chars)
 
-Co-Authored-By: Claude Code
+Co-Authored-By: Claude Code, Opus 5
 ```
+The trailer names the agent **and** the model that wrote the commit
+(`Co-Authored-By: <Agent>, <Model>`) — see [`AGENTS.md`](../AGENTS.md).

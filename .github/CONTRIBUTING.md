@@ -54,9 +54,10 @@ a state race — opening an issue is genuinely welcome and useful.
    - **scope**: lowercase area, e.g. `[gui]`, `[wizard]`, `[deps]`,
      `[ci]`, `[docs]`, `[repo]`
    - **Only if** an AI coding agent (Claude Code, etc.) actually
-     wrote or co-authored the change, end the message with:
+     wrote or co-authored the change, end the message with the agent
+     **and** the specific model that wrote it:
      ```
-     Co-Authored-By: Claude Code
+     Co-Authored-By: Claude Code, Opus 5
      ```
      Hand-written commits should omit this trailer.
 5. **Open a PR**. Link the issue if any, fill in the test plan.

@@ -91,17 +91,23 @@ ticket / story number.
 
 Keep the subject ≤ 72 characters. Put detail in the body.
 
-For AI-authored commits, end the commit body with the agent identity:
+For AI-authored commits, end the commit body with the agent identity **and
+the specific model** that wrote it — `Co-Authored-By: <Agent>, <Model>`:
 
 ```text
-Co-Authored-By: Claude Code
+Co-Authored-By: Claude Code, Opus 5
 ```
 
 or:
 
 ```text
-Co-Authored-By: Codex
+Co-Authored-By: Codex, GPT-5.1
 ```
+
+Name the model actually used — never a placeholder, never a stale model
+name. Under the Ralph loop the harness injects the model into the prompt
+and then verifies every commit against the model recorded in that
+iteration's log, so a wrong name is reported before anything is pushed.
 
 ## Pull Requests
 
