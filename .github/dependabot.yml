@@ -52,6 +52,24 @@ updates:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
 
+  # GitHub Actions. Added 2026-08-31 after the runner started warning that
+  # actions/checkout@v4 and gitleaks/gitleaks-action@v2 still target the
+  # deprecated Node 20 action runtime. Nothing was watching this ecosystem,
+  # so the pins had drifted 3-4 majors behind (checkout v4 vs v7,
+  # upload-artifact v4 vs v7, download-artifact v4 vs v8, gitleaks v2 vs v3).
+  #
+  # NOTE: deliberately UNGROUPED, unlike the npm/cargo entries above. One PR
+  # per action means each major lands with its own CI run. That matters most
+  # for upload-artifact / download-artifact: their v3 -> v4 change in how
+  # artifact directory structure is preserved is what broke asset collection
+  # during the v0.5.0 release (see the find-based attach step in release.yml).
+  # A bulk bump could re-break the release pipeline and only surface at the
+  # next tag push, so keep these isolated and reviewable.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
   # Tauri shell (cargo) — group the tauri crate + its build/plugin/runtime
   # siblings into one PR. Same scheduling as npm so the paired bumps
   # surface together.
