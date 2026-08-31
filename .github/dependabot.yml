@@ -30,6 +30,27 @@ updates:
           - "@sveltejs/vite-plugin-svelte"
           - "@tailwindcss/vite"
           - "vitest"
+    ignore:
+      # TypeScript 7 -- the native (Go) compiler rewrite -- is held back by
+      # SvelteKit, not by us. Every 2.x release up to the current 2.70.3
+      # still declares:
+      #
+      #     peerDependencies.typescript: "^5.3.3 || ^6.0.0"
+      #
+      # so a TS 7 bump ERESOLVEs at `npm ci` before CI can even start. That
+      # is exactly how PR #70 (typescript 6.0.3 -> 7.0.2) failed: the macOS
+      # tauri build died on "Conflicting peer dependency: typescript@6.0.3".
+      #
+      # Forcing it (--legacy-peer-deps or an npm override) would paper over
+      # a real signal -- the Svelte toolchain has not validated TS 7.
+      #
+      # RECHECK PERIODICALLY: once SvelteKit widens that peer range to
+      # accept ^7, delete this ignore and let the major through. Check with:
+      #   npm view @sveltejs/kit peerDependencies.typescript
+      #
+      # Minor and patch TypeScript updates are unaffected and keep flowing.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # Tauri shell (cargo) — group the tauri crate + its build/plugin/runtime
   # siblings into one PR. Same scheduling as npm so the paired bumps

@@ -18,8 +18,9 @@ repo.
 ## Before Changing Code
 
 - Read the relevant local context first: `README.md`, `SECURITY.md`,
-  `gui/CONTRIBUTING.md`, `PRD.md`, `PROGRESS.md`, nearby tests, and the file
-  being changed.
+  `gui/CONTRIBUTING.md`, `../PRD.md` (lives one level up in the ralph
+  harness, only present when running under ralph — skip if absent),
+  `PROGRESS.md`, nearby tests, and the file being changed.
 - Check `git status -sb` before editing.
 - Prefer existing shell helpers, GUI patterns, test structure, and naming
   conventions over new abstractions.
@@ -61,6 +62,10 @@ Do not run `npm run tauri dev` or `tauri build` inside automation loops unless
 explicitly asked; those commands require a display or platform-specific GUI
 runtime.
 
+After a Linux-Docker → macOS round-trip, `npm install` regenerates a
+Linux-flavoured `gui/package-lock.json`; revert it before committing Phase
+work unless the lockfile change is deliberate.
+
 ## Commits
 
 Use the F13 convention:
@@ -86,17 +91,23 @@ ticket / story number.
 
 Keep the subject ≤ 72 characters. Put detail in the body.
 
-For AI-authored commits, end the commit body with the agent identity:
+For AI-authored commits, end the commit body with the agent identity **and
+the specific model** that wrote it — `Co-Authored-By: <Agent>, <Model>`:
 
 ```text
-Co-Authored-By: Claude Code
+Co-Authored-By: Claude Code, Opus 5
 ```
 
 or:
 
 ```text
-Co-Authored-By: Codex
+Co-Authored-By: Codex, GPT-5.1
 ```
+
+Name the model actually used — never a placeholder, never a stale model
+name. Under the Ralph loop the harness injects the model into the prompt
+and then verifies every commit against the model recorded in that
+iteration's log, so a wrong name is reported before anything is pushed.
 
 ## Pull Requests
 
@@ -113,4 +124,5 @@ The Ralph loop is powerful and intentionally sharp. Do not relax sandboxing,
 networking, mounted paths, or commit behavior without calling it out clearly.
 
 Do not open per-story PRs from the Ralph loop unless explicitly asked. Follow
-the current `PRD.md` and `PROGRESS.md` flow.
+the current `../PRD.md` (only present when running under ralph — skip if
+absent) and `PROGRESS.md` flow.

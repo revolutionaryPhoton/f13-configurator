@@ -38,4 +38,4 @@ See .github/CONTRIBUTING.md for the full guide.
 - [ ] Title follows `<TYPE> [scope]: <description>` (≤ 72 chars)
 - [ ] No secrets, generated state, local env files, or build artifacts committed
 - [ ] `CHANGELOG.md` updated if this is user-facing
-- [ ] If an AI agent wrote/co-authored the work, the commit body ends with `Co-Authored-By: Claude Code` (or `Codex`) — and only then
+- [ ] If an AI agent wrote/co-authored the work, the commit body ends with `Co-Authored-By: <Agent>, <Model>` naming the model used (e.g. `Claude Code, Opus 5` / `Codex, GPT-5.1`) — and only then
