@@ -415,11 +415,13 @@ teardown() {
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
   "
-  run grep -A10 '^  feedback:$' "$out"
+  # -A20: the volumes line sits well below 'feedback:' now that the mount
+  # carries an explanatory comment. A tight window makes this assert nothing.
+  run grep -A20 '^  feedback:$' "$out"
   [ "$status" -eq 0 ]
   [[ "$output" == *"source: feedback_db.secret"* ]]
   [[ "$output" == *"target: /core/secrets/feedback_db.secret"* ]]
-  [[ "$output" == *"./configs:/feedback/configs:ro"* ]]
+  [[ "$output" == *"./configs/core:/feedback/configs:ro"* ]]
 
   run grep -A2 '^secrets:$' "$out"
   [ "$status" -eq 0 ]

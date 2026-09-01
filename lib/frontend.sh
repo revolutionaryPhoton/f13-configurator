@@ -71,6 +71,7 @@ frontend::patch_and_build() {
   frontend::get_source "${tmp_dir}"
   frontend::_patch_uistore "${tmp_dir}"
   frontend::_patch_entrypoint "${tmp_dir}"
+  frontend::_patch_nginx_tusd "${tmp_dir}"
 
   if [[ -n "${F13_SKIP_BUILD:-}" ]]; then
     ui::info "F13_SKIP_BUILD set — skipping docker build."
@@ -152,6 +153,72 @@ AWKEOF
 # Injects ENABLED_FEATURES into the generate_config_script function so it
 # is written into window.APP_CONFIG at container start.
 # ---------------------------------------------------------------------------
+# frontend::_patch_nginx_tusd WORK_DIR
+# Strips the tusd upstream + its proxy location from the frontend's nginx
+# template.
+#
+# Why: nginx resolves every `upstream` host at startup and refuses to start if
+# one is missing -- "host not found in upstream \"tusd:1080\"". tusd is
+# transcription infrastructure (s3-bucket transcription-files, hooks into
+# transcription:8000, depends_on rustfs), so a minimal stack that deliberately
+# omits transcription has no tusd, and the frontend container then crash-loops
+# before serving anything.
+#
+# Trade-off: resumable file upload is unavailable in the minimal stack. That is
+# the intended scope -- adding tusd would pull rustfs and transcription back in.
+frontend::_patch_nginx_tusd() {
+  local work_dir="${1:?}"
+  local target="${work_dir}/nginx/f13-frontend.conf.template"
+
+  if [[ ! -f "${target}" ]]; then
+    ui::warn "nginx template not found — skipping tusd patch."
+    return 0
+  fi
+
+  if ! grep -q 'tusd_server' "${target}"; then
+    ui::info "nginx template has no tusd upstream — skipping."
+    return 0
+  fi
+
+  local awk_script tmp_out
+  awk_script="$(mktemp)"
+  tmp_out="$(mktemp)"
+
+  cat > "${awk_script}" << 'AWKEOF'
+# Drop two brace-delimited blocks by counting depth from their opening line:
+#   upstream tusd_server { ... }
+#   location /transcription/tus/files/ { ... }   (contains proxy_pass tusd_server)
+skip == 0 && ($0 ~ /^[[:space:]]*upstream[[:space:]]+tusd_server[[:space:]]*\{/ ||
+              $0 ~ /^[[:space:]]*location[[:space:]]+\/transcription\/tus\/files\/[[:space:]]*\{/) {
+  skip = 1
+  depth = gsub(/\{/, "{") - gsub(/\}/, "}")
+  next
+}
+skip == 1 {
+  depth += gsub(/\{/, "{") - gsub(/\}/, "}")
+  if (depth <= 0) { skip = 0 }
+  next
+}
+{ print }
+AWKEOF
+
+  awk -f "${awk_script}" "${target}" > "${tmp_out}" || {
+    rm -f "${awk_script}" "${tmp_out}"
+    ui::warn "tusd patch failed — leaving nginx template untouched."
+    return 1
+  }
+
+  if grep -q 'tusd_server' "${tmp_out}"; then
+    rm -f "${awk_script}" "${tmp_out}"
+    ui::warn "tusd references remain after patch — leaving template untouched."
+    return 1
+  fi
+
+  mv "${tmp_out}" "${target}"
+  rm -f "${awk_script}"
+  ui::info "Patched nginx template: removed tusd upstream (no transcription in minimal stack)."
+}
+
 frontend::_patch_entrypoint() {
   local work_dir="${1:?}"
   local target=""

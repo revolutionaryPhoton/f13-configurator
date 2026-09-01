@@ -430,3 +430,53 @@ EOF
   [[ "${output}" == *"UISTORE_PATCHED"* ]]
   rm -rf "${fake_fe}"
 }
+
+@test "frontend::_patch_nginx_tusd removes the tusd upstream and its location" {
+  # nginx resolves every upstream host at startup and refuses to start when one
+  # is missing ("host not found in upstream \"tusd:1080\""). tusd is
+  # transcription infrastructure, which the minimal stack omits, so the patch
+  # must strip both the upstream block and the location that proxies to it --
+  # leaving either behind crash-loops the frontend.
+  local work
+  work="$(mktemp -d)"
+  mkdir -p "${work}/nginx"
+  cat > "${work}/nginx/f13-frontend.conf.template" <<'CONF'
+upstream api_server {
+    server ${BACKEND_HOST}:${BACKEND_PORT};
+}
+
+upstream tusd_server {
+    server tusd:1080;
+}
+
+server {
+    location /transcription/tus/files/ {
+        proxy_pass http://tusd_server;
+        client_max_body_size 0;
+    }
+
+    location /keep/ {
+        proxy_pass http://api_server;
+    }
+}
+CONF
+  run bash -c "
+    source '${LIB_DIR}/ui.sh' 2>/dev/null || true
+    ui::warn(){ :; }; ui::info(){ :; }
+    source '${LIB_DIR}/frontend.sh'
+    frontend::_patch_nginx_tusd '${work}'
+  "
+  [ "$status" -eq 0 ]
+  run grep -c 'tusd_server' "${work}/nginx/f13-frontend.conf.template"
+  [ "$output" -eq 0 ]
+  # the rest of the config must survive intact
+  run grep -q 'upstream api_server' "${work}/nginx/f13-frontend.conf.template"
+  [ "$status" -eq 0 ]
+  run grep -q 'location /keep/' "${work}/nginx/f13-frontend.conf.template"
+  [ "$status" -eq 0 ]
+  # unbalanced braces would make nginx reject the config outright
+  local o c
+  o=$(tr -cd '{' < "${work}/nginx/f13-frontend.conf.template" | wc -c)
+  c=$(tr -cd '}' < "${work}/nginx/f13-frontend.conf.template" | wc -c)
+  [ "$o" -eq "$c" ]
+}
