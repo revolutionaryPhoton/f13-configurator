@@ -264,25 +264,33 @@ _wizard_compute_vars() {
     CHAT_IMAGE="${_chat_image}"
     CHAT_BASE_URL="http://ollama-mock:11434/v1"
     CHAT_MODEL_NAME="test_model:mock"
-    CHAT_MAX_CONTEXT_TOKENS="4096"
+    CHAT_CONTEXT_LENGTH="4096"
     CHAT_MODEL_ID="test_model_mock"
     COMPOSE_PROFILES="mock"
   else
     CHAT_IMAGE="${_chat_image}"
     CHAT_BASE_URL="$(ollama::host_url_for_docker)"
     CHAT_MODEL_NAME="${OLLAMA_MODEL}"
-    CHAT_MAX_CONTEXT_TOKENS="8192"
+    CHAT_CONTEXT_LENGTH="8192"
     CHAT_MODEL_ID="local_ollama"
     COMPOSE_PROFILES=""
   fi
+
+  # v3.0.0 chat's OPA sidecar port. Not user-configurable (no host port
+  # published — chat/opa talk over the compose network by service name),
+  # but templated instead of hardcoded so the container's own --addr and
+  # chat's service_endpoints.opa URL can never drift apart. .state files
+  # written before this var existed lack OPA_PORT; state::read leaves it
+  # unset in that case, so it lands here on every run (fresh or "keep").
+  OPA_PORT="${OPA_PORT:-8181}"
 }
 
 _wizard_render() {
   mkdir -p "${GEN_DIR}/configs/core" "${GEN_DIR}/configs/chat" \
     "${GEN_DIR}/configs/apisix" "${GEN_DIR}/opa/policies" "${GEN_DIR}/secrets"
 
-  export FRONTEND_PORT CORE_PORT CHAT_BACKEND OLLAMA_MODEL FEEDBACK_DB_PASSWORD \
-    CHAT_IMAGE CHAT_BASE_URL CHAT_MODEL_NAME CHAT_MAX_CONTEXT_TOKENS \
+  export FRONTEND_PORT CORE_PORT OPA_PORT CHAT_BACKEND OLLAMA_MODEL FEEDBACK_DB_PASSWORD \
+    CHAT_IMAGE CHAT_BASE_URL CHAT_MODEL_NAME CHAT_CONTEXT_LENGTH \
     CHAT_MODEL_ID COMPOSE_PROFILES ENABLED_FEATURES FRONTEND_IMAGE
 
   render::file "${TMPL_DIR}/docker-compose.yml.tmpl" "${GEN_DIR}/docker-compose.yml"
@@ -345,11 +353,12 @@ wizard() {
   OLLAMA_MODEL="${OLLAMA_MODEL:-}"
   FRONTEND_PORT="${FRONTEND_PORT:-}"
   CORE_PORT="${CORE_PORT:-}"
+  OPA_PORT="${OPA_PORT:-}"
   FEEDBACK_DB_PASSWORD="${FEEDBACK_DB_PASSWORD:-}"
   CHAT_IMAGE=""
   CHAT_BASE_URL=""
   CHAT_MODEL_NAME=""
-  CHAT_MAX_CONTEXT_TOKENS=""
+  CHAT_CONTEXT_LENGTH=""
   CHAT_MODEL_ID=""
   COMPOSE_PROFILES=""
   # v1 preset: only chat is active; image built locally by this wizard

@@ -26,7 +26,7 @@ _render_compose() {
   local out="${TMPDIR_WORK}/compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat:v1.2.0 \
            COMPOSE_PROFILES=mock
     render::file '${TMPL_DIR}/docker-compose.yml.tmpl' '${out}'
@@ -66,6 +66,28 @@ _render_compose() {
   out="$(_render_compose)"
   run grep -- '\["CMD", "/opa", "eval", "1"\]' "$out"
   [ "$status" -eq 0 ]
+}
+
+@test "rendered docker-compose.yml.tmpl opa service listens on OPA_PORT, not a hardcoded 8181" {
+  local out
+  out="$(_render_compose)"
+  run grep -- '"--addr=:8181"' "$out"
+  [ "$status" -eq 0 ]
+
+  # S127: re-render with a different OPA_PORT and confirm the addr follows it
+  # (proves the value is templated, not a hardcoded literal).
+  local out2="${TMPDIR_WORK}/compose-altport.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=9191 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat:v1.2.0 \
+           COMPOSE_PROFILES=mock
+    render::file '${TMPL_DIR}/docker-compose.yml.tmpl' '${out2}'
+  "
+  run grep -- '"--addr=:9191"' "${out2}"
+  [ "$status" -eq 0 ]
+  run grep -- '"--addr=:8181"' "${out2}"
+  [ "$status" -eq 1 ]
 }
 
 @test "rendered docker-compose.yml.tmpl chat service depends_on opa service_healthy" {

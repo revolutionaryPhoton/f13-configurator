@@ -63,7 +63,7 @@ services:
     command:
       - "run"
       - "--server"
-      - "--addr=:8181"
+      - "--addr=:${OPA_PORT}"
       - "--watch"
       - "--set=decision_logs.console=true"
       - "/policies"

@@ -41,7 +41,7 @@ teardown() {
   local out="${TMPDIR_WORK}/compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat:v1.2.0 \
            COMPOSE_PROFILES=mock
     render::file '${TMPL_DIR}/docker-compose.yml.tmpl' '${out}'
@@ -55,7 +55,7 @@ teardown() {
   local out="${TMPDIR_WORK}/compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat:v1.2.0 \
            COMPOSE_PROFILES=mock
     render::file '${TMPL_DIR}/docker-compose.yml.tmpl' '${out}'
@@ -68,7 +68,7 @@ teardown() {
   local out="${TMPDIR_WORK}/compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat:v1.2.0 \
            COMPOSE_PROFILES=mock
     render::file '${TMPL_DIR}/docker-compose.yml.tmpl' '${out}'
@@ -81,7 +81,7 @@ teardown() {
   local out="${TMPDIR_WORK}/compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat:v1.2.0 \
            COMPOSE_PROFILES=mock
     render::file '${TMPL_DIR}/docker-compose.yml.tmpl' '${out}'
@@ -98,7 +98,7 @@ teardown() {
   local out="${TMPDIR_WORK}/compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat:v1.2.0 \
            COMPOSE_PROFILES=mock
     render::file '${TMPL_DIR}/docker-compose.yml.tmpl' '${out}'

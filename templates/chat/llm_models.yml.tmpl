@@ -4,7 +4,7 @@ chat:
     model: ${CHAT_MODEL_NAME}
     prompt_map: base_assistant
     is_remote: false
-    context_length: ${CHAT_MAX_CONTEXT_TOKENS}  # maximum context window size (covers input + output tokens)
+    context_length: ${CHAT_CONTEXT_LENGTH}  # maximum context window size (covers input + output tokens)
     api:
       url: ${CHAT_BASE_URL}
       timeout: 10

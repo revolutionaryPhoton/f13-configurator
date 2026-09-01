@@ -242,11 +242,11 @@ teardown() {
 
   run bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 CHAT_BACKEND=mock \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 CHAT_BACKEND=mock \
            OLLAMA_MODEL='' CHAT_MODEL_ID=test_model_mock FEEDBACK_DB_PASSWORD=secret123 \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            CHAT_BASE_URL=http://ollama-mock:11434/v1 CHAT_MODEL_NAME=test_model:mock \
-           CHAT_MAX_CONTEXT_TOKENS=4096 COMPOSE_PROFILES=mock
+           CHAT_CONTEXT_LENGTH=4096 COMPOSE_PROFILES=mock
     render::file '${tmpl}' '${out}'
   "
   [ "$status" -eq 0 ]
@@ -255,8 +255,34 @@ teardown() {
   [ "$status" -eq 0 ]
   run grep 'CORE_PORT=8000' "$out"
   [ "$status" -eq 0 ]
+  run grep 'OPA_PORT=8181' "$out"
+  [ "$status" -eq 0 ]
   run grep 'CHAT_BACKEND=mock' "$out"
   [ "$status" -eq 0 ]
+  run grep 'CHAT_CONTEXT_LENGTH=4096' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "render::file renders env.tmpl fixture with no CHAT_MAX_CONTEXT_TOKENS reference" {
+  local tmpl="${BATS_TEST_DIRNAME}/../templates/env.tmpl"
+  run grep -c 'CHAT_MAX_CONTEXT_TOKENS' "$tmpl"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+}
+
+@test "S127: no CHAT_MAX_CONTEXT_TOKENS= assignment/reference remains in bin/, lib/, templates/, tests/" {
+  # Matches the var used as a shell/envsubst token (CHAT_MAX_CONTEXT_TOKENS=
+  # or \${CHAT_MAX_CONTEXT_TOKENS}), not English prose mentioning the old
+  # name in a test title (like this one). docs/upstream is the vendored v3
+  # reference and legitimately never used this var name — excluded because
+  # it must survive untouched.
+  run grep -rlE --exclude=render.bats 'CHAT_MAX_CONTEXT_TOKENS[=}]' \
+    "${BATS_TEST_DIRNAME}/../bin" \
+    "${BATS_TEST_DIRNAME}/../lib" \
+    "${BATS_TEST_DIRNAME}/../templates" \
+    "${BATS_TEST_DIRNAME}"
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -271,7 +297,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=mock
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -286,7 +312,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=mock
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -301,7 +327,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -314,7 +340,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -329,7 +355,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=mock
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -344,7 +370,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -361,7 +387,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -382,7 +408,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -456,7 +482,7 @@ teardown() {
     export CHAT_MODEL_ID=local_ollama \
            CHAT_BASE_URL=http://host.docker.internal:11434/v1 \
            CHAT_MODEL_NAME=gemma4:31b-cloud \
-           CHAT_MAX_CONTEXT_TOKENS=8192
+           CHAT_CONTEXT_LENGTH=8192
     render::file '${BATS_TEST_DIRNAME}/../templates/chat/llm_models.yml.tmpl' '${out}'
   "
   run grep 'local_ollama' "$out"
@@ -474,7 +500,7 @@ teardown() {
     export CHAT_MODEL_ID=test_model_mock \
            CHAT_BASE_URL=http://ollama-mock:11434/v1 \
            CHAT_MODEL_NAME=test_model:mock \
-           CHAT_MAX_CONTEXT_TOKENS=4096
+           CHAT_CONTEXT_LENGTH=4096
     render::file '${BATS_TEST_DIRNAME}/../templates/chat/llm_models.yml.tmpl' '${out}'
   "
   run grep -c 'context_length' "$out"
@@ -489,13 +515,26 @@ teardown() {
   local out="${TMPDIR_WORK}/chat-general.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export CHAT_MODEL_ID=test_model_mock
+    export CHAT_MODEL_ID=test_model_mock OPA_PORT=8181
     render::file '${BATS_TEST_DIRNAME}/../templates/chat/general.yml.tmpl' '${out}'
   "
   run grep -A1 'service_endpoints:' "$out"
   [ "$status" -eq 0 ]
   run grep 'opa: http://opa:8181/' "$out"
   [ "$status" -eq 0 ]
+}
+
+@test "render chat/general.yml.tmpl opa endpoint follows OPA_PORT, not a hardcoded 8181" {
+  local out="${TMPDIR_WORK}/chat-general-altport.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock OPA_PORT=9191
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/general.yml.tmpl' '${out}'
+  "
+  run grep 'opa: http://opa:9191/' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'opa: http://opa:8181/' "$out"
+  [ "$status" -eq 1 ]
 }
 
 @test "render chat/agentic_chat.yml.tmpl has zero tools.<tool>.role entries" {
@@ -532,7 +571,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=mock
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -565,7 +604,7 @@ teardown() {
     export CHAT_MODEL_ID=test_model_mock \
            CHAT_BASE_URL=http://ollama-mock:11434/v1 \
            CHAT_MODEL_NAME=test_model:mock \
-           CHAT_MAX_CONTEXT_TOKENS=4096
+           CHAT_CONTEXT_LENGTH=4096
     render::file '${BATS_TEST_DIRNAME}/../templates/chat/llm_models.yml.tmpl' '${out}'
   "
   run python3 -c 'import yaml,sys; yaml.safe_load(sys.stdin)' < "$out"

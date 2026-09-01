@@ -78,7 +78,7 @@ Three changes are startup-fatal, not cosmetic: missing
 | S124 | Compose template — add `feedback` service, postgres 17 → 18, correct ollama-mock path+tag | done |
 | S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | done |
 | S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | done |
-| S127 | env + wizard surface — `CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`, drop `CORE_IMAGE`, `.state` migration | open |
+| S127 | env + wizard surface — `CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`, drop `CORE_IMAGE`, `.state` migration | done |
 | S128 | Frontend ref v2.0.0 → v3.0.1 + re-derive the S16 patches (record mismatches, do not force) | open |
 | S129 | Backpressure + regression sweep; README/docs describe the new topology | open |
 
@@ -302,8 +302,84 @@ All nine land on `feat/phase17-rebaseline` with a single PR at the end.
   Shell: 331/331 bats ✅, shellcheck clean. pre-commit not run — no
   virtualenv/binary available in this Docker sandbox, same gap as
   S52/S121–S125.
-  **Next: S127** (env + wizard surface — `CHAT_CONTEXT_LENGTH` rename,
-  drop `CORE_IMAGE`, `.state` migration).
+
+- **S127 completed:** env + wizard surface rename, plus two findings
+  from checking the PRD's assumptions against actual repo state before
+  changing anything (both documented rather than guessed at):
+  - **`CORE_IMAGE` was already gone** — grepped the full repo and git
+    history (`git log --all -p`) for `CORE_IMAGE` in
+    `templates/docker-compose.yml.tmpl`, `bin/f13-config`, `lib/`; it
+    never existed. S122 rewrote `core` into the pinned APISIX image
+    directly (`apache/apisix:3.15.0-ubuntu`) with no image-tag var to
+    begin with. No code change needed; noting it here so the PRD's
+    acceptance line isn't misread as still-open.
+  - **`FEEDBACK_PORT` was deliberately NOT added.** The PRD says "add
+    `FEEDBACK_PORT` **if exposed**" — checked the vendored
+    `docs/upstream/v3/core/apisix/apisix{-guest,}.yaml` (S121) and the
+    compose template: `feedback` has no `ports:` mapping and is only
+    reachable internally, proxied through APISIX at `feedback:8000`
+    (hardcoded in the vendored, copy-through APISIX route file per
+    S122's design call). There is no host port to name. Adding an unused
+    `FEEDBACK_PORT` var would be dead plumbing.
+  - **`CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`** renamed
+    end-to-end: `templates/env.tmpl`, `bin/f13-config`
+    (`_wizard_compute_vars`'s two backend branches, the wizard-init
+    block, and the `_wizard_render` export list), and the var reference
+    in both `templates/core/llm_models.yml.tmpl` (YAML key stays
+    `max_context_tokens` — that's core's own, separate schema key, per
+    S126) and `templates/chat/llm_models.yml.tmpl` (YAML key stays
+    `context_length`, unchanged since S125). Only the *shell* var name
+    moved; no rendered YAML key changed.
+  - **`OPA_PORT` added** (default `8181`), the one genuinely new piece
+    of wiring: previously `templates/docker-compose.yml.tmpl`'s opa
+    `--addr=:8181` and `templates/chat/general.yml.tmpl`'s
+    `service_endpoints.opa: http://opa:8181/` were two independent
+    hardcoded literals that had to be kept in sync by hand. Both now
+    read `${OPA_PORT}` from a single source. Still not published to the
+    host (chat and opa only ever talk over the compose network by
+    service name) — it's an internal wiring var, not a user-facing port
+    prompt.
+  - **`.state` migration**: checked what `.state` actually persists
+    before inventing a migration — `CHAT_MAX_CONTEXT_TOKENS`/
+    `CHAT_CONTEXT_LENGTH` was **never** in `.state` (it's derived fresh
+    from `CHAT_BACKEND` every run, same as `CHAT_IMAGE`/`CHAT_BASE_URL`/
+    `CHAT_MODEL_ID` — none of those are persisted either), so there was
+    no old key to migrate for the rename itself. `OPA_PORT` is the key
+    that actually needed a migration path, being genuinely new:
+    `lib/state.sh`'s `state::write` now persists it and `state::read`
+    restores it env-wins-over-disk (same pattern as the other HF4-era
+    fields); `.state` files written before this story simply lack the
+    `OPA_PORT=` line, `state::read` leaves the var unset in that case
+    (no error), and `bin/f13-config`'s `_wizard_compute_vars()` applies
+    the `8181` default exactly as it would on a fresh run — verified via
+    both a direct `state.sh` unit test (fixture `.state` missing the
+    key) and an end-to-end `bin/f13-config` `edit`-flow test (`keep`
+    doesn't re-render or rewrite `.state` at all, so `edit` is the flow
+    that actually exercises the migration path observably).
+  - **GUI Chat settings label**: searched `gui/src` and
+    `gui/src-tauri/src` for any context-length/token/max_context
+    surface — none exists yet (the GUI wizard shells out to
+    `bin/f13-config`; there is no client-side context-length UI to
+    relabel). Nothing to change; flagging so a future story adding such
+    a control starts from `CHAT_CONTEXT_LENGTH` instead of reintroducing
+    the old name.
+  New/extended bats: `tests/state.bats` (+4 — `OPA_PORT` write/read/
+  env-precedence/pre-S127-migration-fixture), `tests/f13-config.bats`
+  (+3 — `.state` contains `OPA_PORT`, rendered `.env` uses
+  `CHAT_CONTEXT_LENGTH` not the old name, end-to-end `edit`-flow
+  migration test against a `.state` file with the `OPA_PORT=` line
+  stripped), `tests/render.bats` (+4 — env.tmpl fixture asserts
+  `OPA_PORT`/`CHAT_CONTEXT_LENGTH`, a repo-wide grep asserting no
+  `CHAT_MAX_CONTEXT_TOKENS=`/`${CHAT_MAX_CONTEXT_TOKENS}` token survives
+  in `bin/`, `lib/`, `templates/`, `tests/`, and an opa-endpoint test
+  proving `chat/general.yml.tmpl` follows `OPA_PORT` rather than a
+  hardcoded `8181`), `tests/opa.bats` (+1 — same "follows the var, not a
+  literal" proof for the compose `--addr` flag, re-rendering with
+  `OPA_PORT=9191` and asserting `8181` is gone).
+  Shell: 342/342 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121–S126.
+  **Next: S128** (frontend pin bump to v3.0.1 + S16 patch re-derivation).
 
 ### Maintainer progress (not loop work — context only)
 
