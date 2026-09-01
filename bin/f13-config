@@ -258,7 +258,13 @@ _wizard_compute_vars() {
   # Pinned chat image — both backends use the same tagged release
   # (registry.opencode.de/.../chat:vX.Y.Z) so behavior matches what
   # F13 documentation describes for that version.
-  local _chat_image="registry.opencode.de/f13/microservices/chat:v1.2.0"
+  #
+  # S129: bumped v1.2.0 -> v3.0.0. S125 rewrote chat's config templates
+  # (opa endpoint, context_length, role-less agentic_chat.yml) for the
+  # v3.0.0 schema but left this pin untouched -- flagged there as a
+  # startup-fatal mismatch (v1.2.0 doesn't understand any of those
+  # keys) for this story's regression sweep to catch.
+  local _chat_image="registry.opencode.de/f13/microservices/chat:v3.0.0"
 
   if [[ "${CHAT_BACKEND}" == "mock" ]]; then
     CHAT_IMAGE="${_chat_image}"

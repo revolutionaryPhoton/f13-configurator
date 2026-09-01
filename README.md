@@ -159,26 +159,29 @@ Both values end up in `generated/.env` and are substituted into `docker-compose.
 
 ## Preset
 
-The only preset in v1 is **`core + frontend + chat`**:
+The only preset in v1 is **`core + frontend + chat`**, re-baselined onto
+**core v3.0.0 + chat v3.0.0** as of v0.6.0:
 
 | Service | Image | Notes |
 |---|---|---|
-| `frontend` | `f13-frontend:v2.0.0_based` (built locally) | Patched to honour `ENABLED_FEATURES`; only the Chat tab is visible |
-| `core` | `registry.opencode.de/f13/microservices/core:v2.0.0` | Guest mode enabled (`authentication.guest_mode: true`) |
-| `chat` | `registry.opencode.de/f13/microservices/chat:v1.2.0` | Configured for mock or host-Ollama |
-| `feedback-db` | `postgres:17-alpine` | Password from generated secret; user `member` |
-| `ollama-mock` | `base-images/ollama-mock-f13:1.2.0` | Only when mock inference is selected (compose profile) |
+| `frontend` | `f13-frontend:v3.0.1_based` (built locally) | Patched to honour `ENABLED_FEATURES`; only the Chat tab is visible |
+| `core` | `apache/apisix:3.15.0-ubuntu` | The v3.0.0 core deployment replaces the old F13 app image with an APISIX API gateway that routes to `chat`/`feedback`; guest mode is the only profile rendered (no Keycloak) |
+| `opa` | `registry.opencode.de/f13/devops-tools/dockerhub-images/opa:1.18.1-debug` | Mandatory sidecar — chat v3 refuses to start without `service_endpoints.opa` reachable; evaluates the tool-permission policies chat used to keep inline as `agentic_chat.yml` `role` keys |
+| `chat` | `registry.opencode.de/f13/microservices/chat:v3.0.0` | Configured for mock or host-Ollama |
+| `feedback-db` | `postgres:18-alpine` | Password from generated secret; user `member` |
+| `feedback` | `registry.opencode.de/f13/microservices/feedback:v1.0.0` | New in v3.0.0's minimal stack; reads `feedback_db.secret` |
+| `ollama-mock` | `registry.opencode.de/f13/microservices/builder-images/ollama-mock:v1.2.2` | Only when mock inference is selected (compose profile) |
 
-The F13 service images (`core`, `chat`, `ollama-mock`) are `linux/amd64`. On Apple Silicon the generated compose sets `platform: linux/amd64` so Docker Desktop runs them via Rosetta 2 emulation — no rebuild needed, first boot is slightly slower. The `frontend` image is built locally and is therefore native (`arm64` on Apple Silicon).
+`chat` and `ollama-mock` are `linux/amd64`-only images. On Apple Silicon the generated compose sets `platform: linux/amd64` on both so Docker Desktop runs them via Rosetta 2 emulation — no rebuild needed, first boot is slightly slower. `core` (APISIX) ships official multi-arch images, so it runs natively on Apple Silicon with no emulation. The `frontend` image is built locally and is therefore also native (`arm64` on Apple Silicon).
 
 ### Feature gating (frontend)
 
 The shipped F13 frontend hardcodes all features visible when Keycloak is disabled — chat, RAG, summary, transcription tabs would all show even though the configurator only runs `chat`. To fix that, the wizard:
 
-1. Obtains the frontend source by `git clone --depth 1 --branch v2.0.0` from `https://gitlab.opencode.de/f13/microservices/frontend.git` (the tag is pinned so every install produces the same build, regardless of what may sit alongside in `../frontend/`).
+1. Obtains the frontend source by `git clone --depth 1 --branch v3.0.1` from `https://gitlab.opencode.de/f13/microservices/frontend.git` (the tag is pinned so every install produces the same build, regardless of what may sit alongside in `../frontend/`).
 2. Patches `src/utils/UIStore.js` so the guest-mode default reads `window.APP_CONFIG.ENABLED_FEATURES` (a comma-separated list).
 3. Patches `scripts/docker-entrypoint.sh` to inject that field into `window.APP_CONFIG` at container start.
-4. Builds `f13-frontend:v2.0.0_based` locally.
+4. Builds `f13-frontend:v3.0.1_based` locally.
 5. Sets `ENABLED_FEATURES=chat` in the generated `.env` so only the Chat tab renders.
 
 All patching happens on a temp copy of the cloned tag. Force a rebuild after bumping `_FRONTEND_GIT_REF` in `lib/frontend.sh` with `./bin/f13-rebuild-frontend`.
@@ -244,15 +247,25 @@ generated/
 ├── .env                     # port overrides and inference vars for compose
 ├── .state                   # wizard state for idempotent re-runs (chmod 600)
 ├── configs/
+│   ├── apisix/
+│   │   ├── config-guest.yaml   # mounted as core's conf/config.yaml (guest mode)
+│   │   ├── apisix-guest.yaml   # mounted as core's conf/apisix.yaml (guest mode)
+│   │   ├── config.yaml         # Keycloak variant, vendored for reference — inert
+│   │   └── apisix.yaml         # Keycloak variant, vendored for reference — inert
 │   ├── core/
-│   │   ├── general.yml      # guest_mode, single chat endpoint, allow_origins
-│   │   └── llm_models.yml   # one model entry matching active_llms
+│   │   ├── general.yml      # guest_mode, single chat endpoint, allow_origins (not read by APISIX; kept for future presets)
+│   │   └── llm_models.yml   # one model entry matching active_llms (same)
 │   └── chat/
-│       ├── general.yml      # active_llms selection + log_level
-│       ├── llm_models.yml   # one model entry (mock or ollama)
+│       ├── general.yml      # active_llms selection, log_level, service_endpoints.opa
+│       ├── llm_models.yml   # one model entry (mock or ollama), context_length
+│       ├── agentic_chat.yml # agent recursion limit + MCP endpoint config
 │       └── prompt_maps.yml  # copied from chat/configs/ — system prompts
+├── opa/
+│   └── policies/
+│       ├── permissions.rego       # tool-permission policy the opa sidecar evaluates
+│       └── test_permissions.rego  # vendored test cases for the policy above
 └── secrets/
-    ├── feedback_db.secret        # postgres password for user 'member' (chmod 600)
+    ├── feedback_db.secret        # postgres password for user 'member' (chmod 644)
     ├── llm_api.secret            # placeholder for future cloud LLM
     ├── transcription_db.secret   # placeholder
     ├── rabbitmq.secret           # placeholder
@@ -297,7 +310,7 @@ Secrets are never committed — `generated/` is in `.gitignore`.
 ## Known limitations
 
 - **Single preset**: `core + frontend + chat` only. No RAG, summary, parser, transcription, or inference services. The corresponding tabs are hidden in the patched frontend.
-- **First-run is slower**: The frontend is built locally (~1–3 min depending on hardware and network). Subsequent runs reuse the cached `f13-frontend:v2.0.0_based` image.
+- **First-run is slower**: The frontend is built locally (~1–3 min depending on hardware and network). Subsequent runs reuse the cached `f13-frontend:v3.0.1_based` image.
 - **No real auth**: Keycloak runs in guest mode; there is no login UI.
 - **No cloud LLM**: API-key inference providers (OpenAI, Anthropic, etc.) are out of scope for v1.
 - **No GPU variants**: The compose file does not wire NVIDIA/ROCm device grants.

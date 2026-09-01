@@ -172,6 +172,15 @@ _run_mock_dry() {
   [ "$status" -eq 0 ]
 }
 
+@test ".env pins CHAT_IMAGE to chat v3.0.0, not the pre-S125 v1.2.0 (S129)" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run grep 'CHAT_IMAGE=registry.opencode.de/f13/microservices/chat:v3.0.0' \
+    "${TMPDIR_WORK}/gen/.env"
+  [ "$status" -eq 0 ]
+  run grep 'chat:v1.2.0' "${TMPDIR_WORK}/gen/.env"
+  [ "$status" -eq 1 ]
+}
+
 # ---------------------------------------------------------------------------
 # Rendered content — ollama backend
 # ---------------------------------------------------------------------------

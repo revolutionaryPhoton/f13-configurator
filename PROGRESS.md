@@ -80,7 +80,7 @@ Three changes are startup-fatal, not cosmetic: missing
 | S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | done |
 | S127 | env + wizard surface — `CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`, drop `CORE_IMAGE`, `.state` migration | done |
 | S128 | Frontend ref v2.0.0 → v3.0.1 + re-derive the S16 patches (record mismatches, do not force) | done |
-| S129 | Backpressure + regression sweep; README/docs describe the new topology | open |
+| S129 | Backpressure + regression sweep; README/docs describe the new topology | done |
 
 **S130 (does the stack actually boot) is NOT in this table on purpose.**
 The sandbox has no Docker, so the loop cannot run `docker compose up` and
@@ -427,6 +427,80 @@ All nine land on `feat/phase17-rebaseline` with a single PR at the end.
   **Next: S129** (backpressure + regression sweep; README/docs describe
   the new topology — this is also where the stale GUI/README image
   strings noted above should get synced).
+
+- **S129 completed:** ran the full backpressure suite fresh
+  (`shellcheck -S warning bin/* lib/*.sh` clean; `bats tests/` 344/344 ✅;
+  GUI `npm run check` ✅, `npm run test:unit` 384/384 ✅, `cargo check` ✅
+  — the `gui/node_modules` from the last macOS↔Linux round-trip had a
+  broken native `rolldown` binding, fixed with a clean `rm -rf
+  node_modules && npm install`, no `package-lock.json` drift) and found
+  one real regression along the way, then swept every doc surface for
+  the stale pre-Phase-17 topology.
+  - **Real bug found and fixed:** `bin/f13-config`'s `_wizard_compute_vars()`
+    still pinned `_chat_image` to `chat:v1.2.0` — S125 flagged this
+    exact mismatch in its own completion notes (v3-shaped config
+    templates: opa endpoint, `context_length`, role-less
+    `agentic_chat.yml` — paired with a v1.2.0 image that doesn't
+    understand any of those keys) but no single S121–S128 story owned
+    the image-tag line, so it survived five stories untouched. Bumped
+    to `chat:v3.0.0`. New regression test in `tests/f13-config.bats`
+    asserts the rendered `.env` carries `CHAT_IMAGE=…chat:v3.0.0` and
+    that the old `chat:v1.2.0` string is gone.
+  - **README.md**: preset table rewritten for the six-service v0.6.0
+    topology (`frontend` v3.0.1_based, `core` as
+    `apache/apisix:3.15.0-ubuntu`, new `opa` and `feedback` rows,
+    `feedback-db` on `postgres:18-alpine`, `ollama-mock`'s corrected
+    path+tag); the `platform: linux/amd64` explainer paragraph updated
+    — `core` (APISIX) ships official multi-arch images so it no longer
+    needs Rosetta emulation on Apple Silicon, only `chat` and
+    `ollama-mock` still do; frontend clone/build steps bumped
+    `v2.0.0` → `v3.0.1` in both prose and the built image tag; the
+    "What's generated" tree extended with `configs/apisix/*.yaml` and
+    `opa/policies/*.rego` (both new since S122/S123) and corrected
+    `feedback_db.secret`'s documented mode from a stale `chmod 600` to
+    the actual `chmod 644` (matches `SECURITY.md` and `lib/secrets.sh`,
+    was already wrong before Phase 17); Known Limitations' frontend
+    image-tag reference bumped to `v3.0.1_based`.
+  - **SECURITY.md**: the secrets-mode paragraph named "the `core` image"
+    as the reader of `feedback_db.secret` — no longer true post-S122/
+    S124, `core` is the APISIX gateway and never mounts secrets;
+    `feedback` does. Reworded to name `feedback` and note the
+    core-is-now-APISIX split explicitly. Image-provenance section
+    split into "most images from registry.opencode.de" vs. `core`
+    being the third-party Docker Hub `apache/apisix` image and
+    `frontend` being locally built — the old blanket "all F13 service
+    images are pulled from registry.opencode.de" claim stopped being
+    true the moment S122 landed.
+  - **GUI**: `gui/src/routes/status/+page.svelte`'s cosmetic `services`
+    display array (flagged as deferred to this story by both S122's
+    and S128's completion notes) updated: `frontend` → `v3.0.1_based`,
+    `core` → `apisix:3.15.0-ubuntu`, `chat` → `v3.0.0`, `feedback-db` →
+    `postgres:18-alpine`, plus new `opa` and `feedback` rows so the
+    status grid actually reflects all six running containers instead
+    of four. No test locks these display strings (grepped
+    `gui/tests/` — none reference the status page's service grid), so
+    no test changes were needed; the array is purely cosmetic and
+    unreachable from any assertion.
+  - **Left alone, checked and confirmed clean:** `docs/demo-transcript.txt`,
+    `gui/README.md`, `gui/CONTRIBUTING.md`, `docs/frontend-patch-notes.md`
+    (the latter's `v2.0.0` mentions are deliberate — it's a diff record
+    between v2.0.0 and v3.0.1, not a stale current-state claim) — none
+    contain any pre-Phase-17 image/version string.
+  - Every new template from S122–S128 (apisix files, opa policies,
+    `feedback` service, `agentic_chat.yml.tmpl`, `prompt_maps.yml`) already
+    has bats coverage from its own story (`tests/apisix.bats`,
+    `tests/opa.bats`, `tests/render.bats`) — verified by inspection
+    rather than re-derived, since S129's PRD text only requires "every
+    new template covered by at least one bats case," not new coverage
+    from this story specifically.
+  Final counts: shell 344/344 bats ✅ (343 + 1 new), shellcheck clean;
+  GUI `npm run check` ✅, vitest 384/384 ✅, `cargo check` ✅ (three
+  transient `crates.io` network timeouts before a clean run — sandbox
+  egress flakiness, not a real failure; no Cargo.lock/Cargo.toml
+  changes were made). pre-commit not run — no virtualenv/binary
+  available in this Docker sandbox, same gap as S52/S121–S128.
+  **Phase 17 (S121–S129) is now complete** — S130 (does the stack
+  actually boot) remains maintainer-driven; the sandbox has no Docker.
 
 ### Maintainer progress (not loop work — context only)
 
