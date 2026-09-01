@@ -51,24 +51,47 @@
 | S42 | Locale picker on welcome screen + localStorage persistence (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
 | S43 | German, French, Spanish translations (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
 | S44 | Zoom — keyboard shortcuts + Settings stepper (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
+| S51 | `appLocalDataDir` for bundled installs (Phase 10) | 3ddfa05 | loop, v0.5.0 ✅ |
+| S52 | `f13-stop` / `f13-reset` generated/ discovery (Phase 10) | 3ddfa05 | loop, v0.5.0 ✅ |
 
-## Pending Stories — Phase 10 (loop-runnable subset)
+## Pending Stories — Phase 17 (loop-runnable subset)
 
-Phase 10 (signed distributables + bundled-mode data paths) is the
-next phase. Stories S53–S56 need maintainer Apple-Developer + repo
-secrets that the headless loop container doesn't have, so they are
-deliberately **not** in this table. The two pure-code stories below
-ARE loop-runnable and are ready to pick up now (the Apple-side
-prerequisites are done — see "Maintainer progress" below):
+Phase 17 re-baselines the configurator onto **core v3.0.0 + chat v3.0.0**.
+Read the full "Phase 17" section of `/PRD.md` first — it specifies the
+target stack deliberately; do not redesign it.
+
+**Work these IN ORDER.** S121 must land first: every later story diffs
+against the upstream reference configs it fetches. Upstream repos are NOT
+mounted — clone them from `gitlab.opencode.de` (allowed by the sandbox
+egress allowlist). Never invent an upstream schema from memory.
+
+Three changes are startup-fatal, not cosmetic: missing
+`service_endpoints.opa` stops chat booting, any leftover
+`tools.<tool>.role` in `agentic_chat.yml` stops chat booting, and
+`context_length` replaces `max_context_tokens`.
 
 | Story | Description | Status |
 |-------|-------------|--------|
-| S51 | `appLocalDataDir` for bundled installs (Rust `get_generated_dir()` + `get_bin_dir()` switch bundled branch to `app.path().app_local_data_dir().join("generated")` etc.) | **done** 3ddfa05 |
-| S52 | Discovery in `f13-stop` / `f13-reset` — auto-find generated/ across F13_GENERATED_DIR env, dev SCRIPT_DIR-relative, and bundled appLocalDataDir locations | **done** (this commit) |
+| S121 | Vendor upstream v3 reference configs into `docs/upstream/` (fetch core + chat at v3.0.0) | open |
+| S122 | Compose template — `core` becomes the APISIX gateway (`apache/apisix:3.15.0-ubuntu`) + config mounts | open |
+| S123 | Compose template — add the mandatory `opa` sidecar + policy mount; chat depends on it healthy | open |
+| S124 | Compose template — add `feedback` service, postgres 17 → 18, correct ollama-mock path+tag | open |
+| S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | open |
+| S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | open |
+| S127 | env + wizard surface — `CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`, drop `CORE_IMAGE`, `.state` migration | open |
+| S128 | Frontend ref v2.0.0 → v3.0.1 + re-derive the S16 patches (record mismatches, do not force) | open |
+| S129 | Backpressure + regression sweep; README/docs describe the new topology | open |
 
-S51 lands first; S52 builds on it (shell scripts learn to find the
-new path). Both ship in v0.5.0 alongside the maintainer-driven
-S53–S56.
+**S130 (does the stack actually boot) is NOT in this table on purpose.**
+The sandbox has no Docker, so the loop cannot run `docker compose up` and
+must never claim a story is "verified working" on a running stack. S130 is
+maintainer-driven on the host.
+
+Backpressure for this phase:
+
+    shellcheck -S warning bin/* lib/*.sh && bats tests/
+
+All nine land on `feat/phase17-rebaseline` with a single PR at the end.
 
 ### Maintainer progress (not loop work — context only)
 
