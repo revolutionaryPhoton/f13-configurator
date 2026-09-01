@@ -291,6 +291,7 @@ _wizard_render() {
   render::file "${TMPL_DIR}/core/llm_models.yml.tmpl" "${GEN_DIR}/configs/core/llm_models.yml"
   render::file "${TMPL_DIR}/chat/general.yml.tmpl"   "${GEN_DIR}/configs/chat/general.yml"
   render::file "${TMPL_DIR}/chat/llm_models.yml.tmpl" "${GEN_DIR}/configs/chat/llm_models.yml"
+  render::file "${TMPL_DIR}/chat/agentic_chat.yml.tmpl" "${GEN_DIR}/configs/chat/agentic_chat.yml"
 
   # prompt_maps.yml has no template vars — copy from the bundled template.
   # Vendored at templates/chat/prompt_maps.yml so the path resolves regardless

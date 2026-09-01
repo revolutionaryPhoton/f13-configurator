@@ -92,6 +92,11 @@ _run_mock_dry() {
   [ -f "${TMPDIR_WORK}/gen/configs/chat/llm_models.yml" ]
 }
 
+@test "non-interactive dry-run produces configs/chat/agentic_chat.yml" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  [ -f "${TMPDIR_WORK}/gen/configs/chat/agentic_chat.yml" ]
+}
+
 # ---------------------------------------------------------------------------
 # Secrets
 # ---------------------------------------------------------------------------

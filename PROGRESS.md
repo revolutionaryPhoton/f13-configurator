@@ -76,7 +76,7 @@ Three changes are startup-fatal, not cosmetic: missing
 | S122 | Compose template — `core` becomes the APISIX gateway (`apache/apisix:3.15.0-ubuntu`) + config mounts | done |
 | S123 | Compose template — add the mandatory `opa` sidecar + policy mount; chat depends on it healthy | done |
 | S124 | Compose template — add `feedback` service, postgres 17 → 18, correct ollama-mock path+tag | done |
-| S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | open |
+| S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | done |
 | S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | open |
 | S127 | env + wizard surface — `CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`, drop `CORE_IMAGE`, `.state` migration | open |
 | S128 | Frontend ref v2.0.0 → v3.0.1 + re-derive the S16 patches (record mismatches, do not force) | open |
@@ -228,7 +228,50 @@ All nine land on `feat/phase17-rebaseline` with a single PR at the end.
   Shell: 323/323 bats ✅, shellcheck clean. pre-commit not run — no
   virtualenv/binary available in this Docker sandbox, same gap as
   S52/S121/S122/S123.
-  **Next: S125** (chat config templates — the startup-fatal three).
+
+- **S125 completed:** the three startup-fatal chat config fixes, all
+  diffed against the vendored `docs/upstream/v3/chat/` reference (S121).
+  `templates/chat/general.yml.tmpl`: added `service_endpoints.opa:
+  http://opa:8181/` above `active_llms` — chat v3 refuses to start
+  without it. `templates/chat/llm_models.yml.tmpl`: renamed
+  `max_context_tokens` → `context_length` (value still sourced from the
+  `CHAT_MAX_CONTEXT_TOKENS` env var — the var-name rename itself is
+  S127's job, this story only touches the rendered YAML key), comment
+  updated to note it covers input *and* output. New
+  `templates/chat/agentic_chat.yml.tmpl`: ported verbatim from the
+  vendored reference (agent recursion_limit + the websearch MCP
+  endpoint) — zero `tools.<tool>.role` entries, matching upstream;
+  wired into `bin/f13-config`'s `_wizard_render()` alongside the other
+  chat templates (no compose change needed — `./configs/chat` is
+  already mounted whole into the chat container). `templates/chat/
+  prompt_maps.yml`: re-derived from the vendored v3 reference — same
+  German default prompt text F13 already shipped, restructured from the
+  old flat `system.generate` schema into v3's `generate:` /
+  `generate_tools:` nesting (the latter carries additional tool-usage
+  guidance appended to the base prompt; `base_assistant` reuses a YAML
+  anchor since its two variants are identical there, matching upstream
+  byte-for-byte).
+  New bats in `tests/render.bats` (5 tests): opa endpoint present in
+  rendered `chat/general.yml.tmpl`; `context_length` appears exactly
+  once and `max_context_tokens` appears nowhere in rendered
+  `chat/llm_models.yml.tmpl`; rendered `agentic_chat.yml.tmpl` has zero
+  `role:` keys and includes `mcp_endpoints`; `prompt_maps.yml` has
+  exactly 3 `generate:` and 3 `generate_tools:` keys (one pair per
+  prompt map) and zero old-schema `system:` keys. Plus one new
+  `tests/f13-config.bats` dry-run test confirming
+  `configs/chat/agentic_chat.yml` renders.
+  **Left alone on purpose:** `bin/f13-config`'s `_chat_image` pin is
+  still `chat:v1.2.0` — no Phase 17 story (S122–S129) names bumping it
+  explicitly, and S125's scope per the PRD is the four `templates/
+  chat/` files only. Flagging here so S129's regression sweep (or a
+  fast-follow) catches it: pairing chat v3.0.0 config (opa endpoint,
+  `context_length`, no tool roles) with an actual `chat:v1.2.0` image
+  would be internally inconsistent, even though no single S121–S128
+  story owns the image-tag line in `_wizard_compute_vars()`.
+  Shell: 328/328 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121/S122/S123/S124.
+  **Next: S126** (core config templates — v3 schema).
 
 ### Maintainer progress (not loop work — context only)
 

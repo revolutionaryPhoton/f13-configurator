@@ -1,0 +1,12 @@
+# Full configuration reference: docs/configuration.md and src/models/agentic_chat.py
+agent:
+  recursion_limit: 7  # sets the maximum number of reasoning steps the agent may perform before stopping, preventing infinite loops or excessive node traversal.
+
+tools:
+  mcp_endpoints:
+    - namespace: websearch
+      server_url: https://RivalSearchMCP.fastmcp.app/mcp
+      transport: streamable_http
+      auth:
+        mode: none
+      include: [web_search]

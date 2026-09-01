@@ -422,6 +422,64 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
+@test "render chat/llm_models.yml.tmpl uses context_length, not max_context_tokens" {
+  local out="${TMPDIR_WORK}/chat-llm.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock \
+           CHAT_BASE_URL=http://ollama-mock:11434/v1 \
+           CHAT_MODEL_NAME=test_model:mock \
+           CHAT_MAX_CONTEXT_TOKENS=4096
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/llm_models.yml.tmpl' '${out}'
+  "
+  run grep -c 'context_length' "$out"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 1 ]
+  run grep -c 'max_context_tokens' "$out"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+}
+
+@test "render chat/general.yml.tmpl includes the mandatory opa service endpoint" {
+  local out="${TMPDIR_WORK}/chat-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/general.yml.tmpl' '${out}'
+  "
+  run grep -A1 'service_endpoints:' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'opa: http://opa:8181/' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "render chat/agentic_chat.yml.tmpl has zero tools.<tool>.role entries" {
+  local out="${TMPDIR_WORK}/agentic-chat.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/agentic_chat.yml.tmpl' '${out}'
+  "
+  [ -f "$out" ]
+  run grep -c '^\s*role:' "$out"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+  run grep 'mcp_endpoints' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "chat/prompt_maps.yml uses the v3 generate/generate_tools schema" {
+  local f="${BATS_TEST_DIRNAME}/../templates/chat/prompt_maps.yml"
+  run grep -c 'generate:' "$f"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 3 ]
+  run grep -c 'generate_tools:' "$f"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 3 ]
+  run grep -c '^    system:' "$f"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+}
+
 @test "rendered docker-compose.yml.tmpl is valid YAML" {
   if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import yaml' 2>/dev/null; then
     skip "python3 with yaml not available"
