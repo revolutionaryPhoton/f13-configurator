@@ -481,6 +481,10 @@ CONF
   [ "$o" -eq "$c" ]
   # mktemp is 0600 and mv carries that mode over; nginx runs non-root and would
   # fail with "Permission denied" reading its own template.
-  run stat -f '%Lp' "${work}/nginx/f13-frontend.conf.template"
+  # stat is not portable: GNU uses -c '%a', BSD/macOS uses -f '%Lp', and on
+  # Linux `stat -f` means filesystem status, so the BSD form silently returns
+  # something else instead of erroring. Try GNU first, fall back to BSD.
+  run bash -c "stat -c '%a' '${work}/nginx/f13-frontend.conf.template' 2>/dev/null \
+               || stat -f '%Lp' '${work}/nginx/f13-frontend.conf.template'"
   [ "$output" = "644" ]
 }
