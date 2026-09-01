@@ -29,10 +29,15 @@ services:
       APISIX_PROFILE: guest
       CORS_ALLOW_ORIGINS: "http://localhost:${FRONTEND_PORT}"
     volumes:
-      - ./configs/apisix/config-guest.yaml:/usr/local/apisix/conf/config.yaml:ro
-      - ./configs/apisix/apisix-guest.yaml:/usr/local/apisix/conf/apisix.yaml:ro
-      - ./configs/apisix/config.yaml:/usr/local/apisix/conf/config-keycloak-reference.yaml:ro
-      - ./configs/apisix/apisix.yaml:/usr/local/apisix/conf/apisix-keycloak-reference.yaml:ro
+      # Mount 1:1 under upstream's own filenames. APISIX_PROFILE=guest makes
+      # APISIX open config-guest.yaml BY NAME -- renaming config-guest.yaml to
+      # config.yaml on the way in makes it fail with
+      #   "failed to open file: /usr/local/apisix/conf/config-guest.yaml"
+      # and crash-loop. Do not "simplify" these paths.
+      - ./configs/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+      - ./configs/apisix/apisix-guest.yaml:/usr/local/apisix/conf/apisix-guest.yaml:ro
+      - ./configs/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./configs/apisix/config-guest.yaml:/usr/local/apisix/conf/config-guest.yaml:ro
     ports:
       - "${CORE_PORT}:8000"
     depends_on:
@@ -115,7 +120,12 @@ services:
       - source: feedback_db.secret
         target: /core/secrets/feedback_db.secret
     volumes:
-      - ./configs:/feedback/configs:ro
+      # Upstream's configs/ is flat so feedback and core share one general.yml.
+      # Ours is split per service, so point feedback at the core config -- that
+      # is where the feedback_db block lives. Mounting ./configs leaves feedback
+      # with no general.yml and it exits with
+      #   "Invalid path to 'general.yml': '/feedback/src/../configs/general.yml'"
+      - ./configs/core:/feedback/configs:ro
     restart: unless-stopped
 
   # v3.0.0: path AND tag corrected -- upstream's own docker-compose.yml pins
