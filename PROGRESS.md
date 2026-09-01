@@ -82,6 +82,39 @@ Three changes are startup-fatal, not cosmetic: missing
 | S128 | Frontend ref v2.0.0 → v3.0.1 + re-derive the S16 patches (record mismatches, do not force) | done |
 | S129 | Backpressure + regression sweep; README/docs describe the new topology | done |
 
+**S130 RESULT (2026-09-01): the stack boots and serves.** All seven containers
+up; verified end-to-end rather than by container state alone:
+
+    GET :9999/          -> 200, <title>F13</title>
+    GET :8000/health    -> 200   (APISIX gateway)
+    GET :8000/chat/llms -> 200   [{"label":"test_model:mock",...}]
+    GET :8000/rag/llms  -> 503   (omitted service fails cleanly at the gateway)
+
+The /chat/llms body is the meaningful one: gateway -> chat v3.0.0 -> the
+re-baselined llm_models.yml, all the way through.
+
+Six runtime defects were found that no loop story could have caught, because
+each only exists once containers actually run:
+
+1. postgres 18 moved its volume mount to /var/lib/postgresql (was .../data).
+2. APISIX opens config-guest.yaml BY NAME, so remapping the mounted filenames
+   crash-looped it. Upstream mounts all four 1:1 for this reason.
+3. feedback reads core's general.yml; our per-service configs/ layout left it
+   with none.
+4. Docker auto-creates a missing bind-mount source as a DIRECTORY, after which
+   `cp` copies INTO it and every later render latches into the broken shape --
+   and `down -v` does not clear it (host paths, not volumes).
+5. The frontend needs tusd, which is transcription infrastructure; patched out
+   of the nginx template instead of widening the stack.
+6. mktemp is 0600 and mv carries that mode, so the patched nginx template was
+   unreadable by non-root nginx.
+
+Known limitation, deliberate: no resumable file upload in the minimal stack,
+since tusd would pull in rustfs and transcription.
+
+Tooling: `configurator/smoke.sh` now does render + launch + report unattended,
+so this no longer depends on someone pasting compose output into a chat window.
+
 **S130 (does the stack actually boot) is NOT in this table on purpose.**
 The sandbox has no Docker, so the loop cannot run `docker compose up` and
 must never claim a story is "verified working" on a running stack. S130 is
