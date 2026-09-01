@@ -404,6 +404,51 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
+@test "render core/general.yml.tmpl adds llm_api_timeout: 180 (v3 schema)" {
+  local out="${TMPDIR_WORK}/core-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock FRONTEND_PORT=9999 CORE_PORT=8000
+    render::file '${BATS_TEST_DIRNAME}/../templates/core/general.yml.tmpl' '${out}'
+  "
+  run grep -c 'llm_api_timeout: 180' "$out"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 1 ]
+}
+
+@test "render core/general.yml.tmpl has no active_llms.embedding or transcription_inference (v3 minimal stack)" {
+  local out="${TMPDIR_WORK}/core-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock FRONTEND_PORT=9999 CORE_PORT=8000
+    render::file '${BATS_TEST_DIRNAME}/../templates/core/general.yml.tmpl' '${out}'
+  "
+  run grep -c 'embedding' "$out"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+  run grep -c 'transcription_inference' "$out"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+}
+
+@test "every top-level key in rendered core/general.yml exists in the vendored v3 reference" {
+  local out="${TMPDIR_WORK}/core-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock FRONTEND_PORT=9999 CORE_PORT=8000
+    render::file '${BATS_TEST_DIRNAME}/../templates/core/general.yml.tmpl' '${out}'
+  "
+  local ref="${BATS_TEST_DIRNAME}/../docs/upstream/v3/core/general.yml"
+  local rendered_keys
+  rendered_keys=$(grep -oE '^[A-Za-z_]+:' "$out" | sed 's/:$//' | sort -u)
+  local key
+  while IFS= read -r key; do
+    [ -z "$key" ] && continue
+    run grep -qE "^${key}:" "$ref"
+    [ "$status" -eq 0 ]
+  done <<< "$rendered_keys"
+}
+
 @test "render chat/llm_models.yml.tmpl substitutes backend-specific vars" {
   local out="${TMPDIR_WORK}/chat-llm.yml"
   bash -c "

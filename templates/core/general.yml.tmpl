@@ -24,6 +24,8 @@ allow_origins:
   - "http://localhost:${CORE_PORT}"
 
 log_level: INFO
+
+llm_api_timeout: 180               # timeout (in seconds) for calls to LLM-APIs
 haystack_log_level: WARNING
 debug_haystack_pipelines: False
 

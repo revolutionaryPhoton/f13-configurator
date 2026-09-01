@@ -77,7 +77,7 @@ Three changes are startup-fatal, not cosmetic: missing
 | S123 | Compose template — add the mandatory `opa` sidecar + policy mount; chat depends on it healthy | done |
 | S124 | Compose template — add `feedback` service, postgres 17 → 18, correct ollama-mock path+tag | done |
 | S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | done |
-| S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | open |
+| S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | done |
 | S127 | env + wizard surface — `CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`, drop `CORE_IMAGE`, `.state` migration | open |
 | S128 | Frontend ref v2.0.0 → v3.0.1 + re-derive the S16 patches (record mismatches, do not force) | open |
 | S129 | Backpressure + regression sweep; README/docs describe the new topology | open |
@@ -272,6 +272,38 @@ All nine land on `feat/phase17-rebaseline` with a single PR at the end.
   virtualenv/binary available in this Docker sandbox, same gap as
   S52/S121/S122/S123/S124.
   **Next: S126** (core config templates — v3 schema).
+
+- **S126 completed:** diffed `templates/core/{general.yml,llm_models.yml}.tmpl`
+  against the vendored `docs/upstream/v3/core/` reference (S121) and the
+  three facts `docs/upstream/README.md` already called out. Two of the
+  three were already true of the existing (v2-era, minimal-stack)
+  templates — `active_llms.embedding` was never present (F13's minimal
+  stack only ever configured `active_llms.chat`) and `service_endpoints`
+  only ever listed `chat` (no `transcription_inference`, and per the PRD
+  the v3 replacements `inference-adapter`/`inference` are correctly
+  omitted too — transcription stays out of scope this phase). The one
+  real gap: `general.yml.tmpl` was missing `llm_api_timeout: 180`,
+  which core v3 adds as a new top-level key; added it in the same
+  position as upstream (between `log_level` and `haystack_log_level`).
+  `llm_models.yml.tmpl` needed no changes — its `chat.<id>` schema
+  (label/model/prompt_map/is_remote/`max_context_tokens`/api/inference)
+  already matches the vendored `test_model_mock` entry key-for-key.
+  **Note for future readers:** core's `llm_models.yml` chat schema keeps
+  `max_context_tokens` in v3 — only the *chat* microservice's
+  `llm_models.yml` (S125) renamed that key to `context_length`. Core and
+  chat are separate services with separate (and here, divergent) schemas;
+  do not conflate the two when touching either template again.
+  New bats in `tests/render.bats` (3 tests): rendered `general.yml.tmpl`
+  contains `llm_api_timeout: 180` exactly once; contains neither
+  `embedding` nor `transcription_inference`; and every top-level YAML key
+  in the rendered file exists in `docs/upstream/v3/core/general.yml`
+  (the PRD's stated acceptance bar for this story, asserted
+  programmatically rather than eyeballed).
+  Shell: 331/331 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121–S125.
+  **Next: S127** (env + wizard surface — `CHAT_CONTEXT_LENGTH` rename,
+  drop `CORE_IMAGE`, `.state` migration).
 
 ### Maintainer progress (not loop work — context only)
 
