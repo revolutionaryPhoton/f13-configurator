@@ -279,7 +279,7 @@ _wizard_compute_vars() {
 
 _wizard_render() {
   mkdir -p "${GEN_DIR}/configs/core" "${GEN_DIR}/configs/chat" \
-    "${GEN_DIR}/configs/apisix" "${GEN_DIR}/secrets"
+    "${GEN_DIR}/configs/apisix" "${GEN_DIR}/opa/policies" "${GEN_DIR}/secrets"
 
   export FRONTEND_PORT CORE_PORT CHAT_BACKEND OLLAMA_MODEL FEEDBACK_DB_PASSWORD \
     CHAT_IMAGE CHAT_BASE_URL CHAT_MODEL_NAME CHAT_MAX_CONTEXT_TOKENS \
@@ -305,6 +305,13 @@ _wizard_render() {
   cp "${TMPL_DIR}/core/apisix/config-guest.yaml"  "${GEN_DIR}/configs/apisix/config-guest.yaml"
   cp "${TMPL_DIR}/core/apisix/apisix.yaml"        "${GEN_DIR}/configs/apisix/apisix.yaml"
   cp "${TMPL_DIR}/core/apisix/config.yaml"        "${GEN_DIR}/configs/apisix/config.yaml"
+
+  # OPA policy set has no template vars — vendored verbatim from the v3
+  # chat reference, same pattern as the apisix files above.
+  cp "${TMPL_DIR}/chat/opa/policies/permissions.rego" \
+    "${GEN_DIR}/opa/policies/permissions.rego"
+  cp "${TMPL_DIR}/chat/opa/policies/test_permissions.rego" \
+    "${GEN_DIR}/opa/policies/test_permissions.rego"
 }
 
 _wizard_summary_box() {

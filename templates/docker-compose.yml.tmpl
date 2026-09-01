@@ -49,6 +49,31 @@ services:
       - ./configs/chat:/chat/configs:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      opa:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # v3.0.0: chat refuses to start without service_endpoints.opa in its
+  # general.yml (KeyError: 'opa' at boot, regardless of whether agentic
+  # tools are used). Tool permissions moved out of agentic_chat.yml's
+  # `role` keys and into this policy set.
+  opa:
+    image: registry.opencode.de/f13/devops-tools/dockerhub-images/opa:1.18.1-debug
+    command:
+      - "run"
+      - "--server"
+      - "--addr=:8181"
+      - "--watch"
+      - "--set=decision_logs.console=true"
+      - "/policies"
+    volumes:
+      - ./opa/policies:/policies:ro
+    healthcheck:
+      test: ["CMD", "/opa", "eval", "1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
 
   feedback-db:

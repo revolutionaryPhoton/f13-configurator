@@ -74,7 +74,7 @@ Three changes are startup-fatal, not cosmetic: missing
 |-------|-------------|--------|
 | S121 | Vendor upstream v3 reference configs into `docs/upstream/` (fetch core + chat at v3.0.0) | done (c60bf84) |
 | S122 | Compose template — `core` becomes the APISIX gateway (`apache/apisix:3.15.0-ubuntu`) + config mounts | done |
-| S123 | Compose template — add the mandatory `opa` sidecar + policy mount; chat depends on it healthy | open |
+| S123 | Compose template — add the mandatory `opa` sidecar + policy mount; chat depends on it healthy | done |
 | S124 | Compose template — add `feedback` service, postgres 17 → 18, correct ollama-mock path+tag | open |
 | S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | open |
 | S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | open |
@@ -158,6 +158,38 @@ All nine land on `feat/phase17-rebaseline` with a single PR at the end.
   all of which flip across S123–S128, so a partial edit now would leave
   it half-consistent. S129 is the dedicated "README/docs describe the
   new topology" sweep; full update happens there.
+
+- **S123 completed:** added the mandatory `opa` service to
+  `templates/docker-compose.yml.tmpl` — image
+  `registry.opencode.de/f13/devops-tools/dockerhub-images/opa:1.18.1-debug`
+  (the full registry path from the vendored `chat/migration.md` snippet,
+  not the PRD table's shorthand `opa:1.18.1-debug`, matching how `chat`
+  and the old `core` pins are already fully-qualified registry paths),
+  `command: run --server --addr=:8181 --watch
+  --set=decision_logs.console=true /policies`, `./opa/policies:/policies:ro`
+  read-only mount, healthcheck `["CMD","/opa","eval","1"]`. `chat` gained
+  `depends_on: opa: condition: service_healthy`. Vendored both
+  `docs/upstream/v3/chat/opa/policies/*.rego` files (the actual policy
+  `permissions.rego` plus its `test_permissions.rego`) verbatim into
+  `templates/chat/opa/policies/` — shipping the test file into the
+  runtime mount too, matching S122's precedent of mounting the inert
+  Keycloak-variant apisix files alongside the guest ones; OPA loads every
+  `.rego` under `/policies` as a module regardless, so it's harmless.
+  `_wizard_render()` in `bin/f13-config` now creates
+  `generated/opa/policies/` and copies both files in on every run (no
+  template vars — same copy-through pattern as the apisix files).
+  New `tests/opa.bats` (8 tests): vendored files present/non-empty,
+  rendered compose has the pinned OPA image, the read-only policies
+  mount, the eval healthcheck, and `chat`'s `depends_on: opa:
+  condition: service_healthy` block (asserted via an `awk` window between
+  the `chat:` and `opa:` top-level service keys so it can't false-positive
+  on the top-level `opa:` service definition); stays valid YAML (skipped —
+  no python3+yaml in this sandbox, same gap as S121/S122); wizard dry-run
+  produces both `generated/opa/policies/*.rego` files and
+  `permissions.rego` matches the vendored reference byte-for-byte.
+  Shell: 319/319 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121.
   **Next: S123** (add the mandatory `opa` sidecar + policy mount).
 
 ### Maintainer progress (not loop work — context only)
