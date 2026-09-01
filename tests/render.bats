@@ -375,12 +375,35 @@ teardown() {
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
   "
-  run grep 'image: registry.opencode.de/f13/microservices/feedback:v1.0.0' "$out"
+  run grep 'image: registry.opencode.de/f13/microservices/feedback:v1.0.1' "$out"
   [ "$status" -eq 0 ]
   run grep -A5 '^  feedback:$' "$out"
   [ "$status" -eq 0 ]
   [[ "$output" == *"feedback-db"* ]]
   [[ "$output" == *"service_healthy"* ]]
+}
+
+@test "render docker-compose.yml.tmpl mounts feedback-db at the postgres 18 path" {
+  # Regression guard. postgres 18 expects a single mount at
+  # /var/lib/postgresql, not the pre-18 /var/lib/postgresql/data. Mounting the
+  # old path makes the container refuse to start ("PostgreSQL data in ...
+  # (unused mount/volume)") and every dependant then fails with "dependency
+  # failed to start". Nothing else in the suite catches this -- it only shows
+  # up when a stack is actually launched, which is how it reached S130.
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep -- '- feedback-db-data:/var/lib/postgresql$' "$out"
+  [ "$status" -eq 0 ]
+  run grep -- '- feedback-db-data:/var/lib/postgresql/data' "$out"
+  [ "$status" -ne 0 ]
+  run grep 'start_period:' "$out"
+  [ "$status" -eq 0 ]
 }
 
 @test "render docker-compose.yml.tmpl mounts feedback_db.secret and ./configs into feedback" {
