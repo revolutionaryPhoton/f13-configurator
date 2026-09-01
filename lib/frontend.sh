@@ -215,6 +215,12 @@ AWKEOF
   fi
 
   mv "${tmp_out}" "${target}"
+  # mktemp creates 0600, and mv carries that mode onto the target -- nginx then
+  # runs as a non-root user and dies with
+  #   can't open /etc/nginx/templates/f13-frontend.conf.template: Permission denied
+  # 0644 because this is a config template that only needs to be readable.
+  # Same class of trap as the 0755 on docker-entrypoint.sh below.
+  chmod 644 "${target}"
   rm -f "${awk_script}"
   ui::info "Patched nginx template: removed tusd upstream (no transcription in minimal stack)."
 }
