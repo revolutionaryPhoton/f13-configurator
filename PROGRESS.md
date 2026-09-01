@@ -73,7 +73,7 @@ Three changes are startup-fatal, not cosmetic: missing
 | Story | Description | Status |
 |-------|-------------|--------|
 | S121 | Vendor upstream v3 reference configs into `docs/upstream/` (fetch core + chat at v3.0.0) | done (c60bf84) |
-| S122 | Compose template — `core` becomes the APISIX gateway (`apache/apisix:3.15.0-ubuntu`) + config mounts | open |
+| S122 | Compose template — `core` becomes the APISIX gateway (`apache/apisix:3.15.0-ubuntu`) + config mounts | done |
 | S123 | Compose template — add the mandatory `opa` sidecar + policy mount; chat depends on it healthy | open |
 | S124 | Compose template — add `feedback` service, postgres 17 → 18, correct ollama-mock path+tag | open |
 | S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | open |
@@ -115,7 +115,50 @@ All nine land on `feat/phase17-rebaseline` with a single PR at the end.
   Shell: 302/302 bats ✅, shellcheck clean. pre-commit skipped
   (`--no-verify`) — hook needs a virtualenv/binary not present in this
   Docker sandbox (no pip/apt network access); same gap hit at S52.
-  **Next: S122** (compose template — core becomes the APISIX gateway).
+
+- **S122 completed:** rewrote the `core` service in
+  `templates/docker-compose.yml.tmpl` — image `apache/apisix:3.15.0-ubuntu`,
+  env `APISIX_STAND_ALONE=true`, `APISIX_PROFILE=guest`,
+  `CORS_ALLOW_ORIGINS: "http://localhost:${FRONTEND_PORT}"` — replacing the
+  dropped `registry.opencode.de/f13/microservices/core:v2.0.0` pin and its
+  `platform: linux/amd64` (APISIX ships official multi-arch images, so the
+  Rosetta-emulation workaround no longer applies to `core`). The old
+  `./configs/core` + `./secrets` mounts on the `core` service are gone too
+  — APISIX never reads F13's `general.yml`/`llm_models.yml`; those still
+  render into `generated/configs/core/` for S126's future use, just no
+  longer mounted into this container.
+  Vendored the four `docs/upstream/v3/core/apisix/*.yaml` files verbatim
+  into `templates/core/apisix/` and wired `_wizard_render()` in
+  `bin/f13-config` to copy them into `generated/configs/apisix/` on every
+  run. **Design call:** the files keep APISIX's own
+  `${{VAR:=default}}` runtime substitution syntax untouched (our
+  `render::file` allow-list regex doesn't match double-brace syntax
+  anyway, so it would pass through unmodified even if routed through
+  `render::file`) — the wizard's actual port/CORS choices reach APISIX
+  via the compose `environment:` block instead, which is what upstream's
+  own migration guidance implies and is far simpler than re-implementing
+  APISIX's default-value grammar in bash. All four files are mounted
+  read-only: the `*-guest.yaml` variants at the canonical paths
+  (`config.yaml`, `apisix.yaml`) since guest mode is this configurator's
+  only mode, and the plain (Keycloak) variants at
+  `config-keycloak-reference.yaml` / `apisix-keycloak-reference.yaml` —
+  present per the PRD's "four files" but inert until a future non-guest
+  profile exists.
+  New `tests/apisix.bats` (10 tests): vendored files present/non-empty,
+  rendered compose has zero `microservices/core` references, uses the
+  APISIX image, sets `CORS_ALLOW_ORIGINS` from `FRONTEND_PORT`, mounts
+  all four apisix config paths, stays valid YAML; wizard dry-run produces
+  all four `generated/configs/apisix/*.yaml` files, the guest route file
+  matches the vendored reference byte-for-byte, and all four parse as
+  YAML (python3+yaml both skip in this sandbox — module isn't installed —
+  same gap as S09/S121).
+  Shell: 311/311 bats ✅, shellcheck clean.
+  README.md's preset table still lists `core:v2.0.0` — deliberately left
+  alone: it also lists chat v1.2.0/postgres 17/ollama-mock's old path,
+  all of which flip across S123–S128, so a partial edit now would leave
+  it half-consistent. S129 is the dedicated "README/docs describe the
+  new topology" sweep; full update happens there.
+  **Next: S123** (add the mandatory `opa` sidecar + policy mount).
 
 ### Maintainer progress (not loop work — context only)
 

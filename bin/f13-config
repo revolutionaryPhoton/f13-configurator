@@ -278,7 +278,8 @@ _wizard_compute_vars() {
 }
 
 _wizard_render() {
-  mkdir -p "${GEN_DIR}/configs/core" "${GEN_DIR}/configs/chat" "${GEN_DIR}/secrets"
+  mkdir -p "${GEN_DIR}/configs/core" "${GEN_DIR}/configs/chat" \
+    "${GEN_DIR}/configs/apisix" "${GEN_DIR}/secrets"
 
   export FRONTEND_PORT CORE_PORT CHAT_BACKEND OLLAMA_MODEL FEEDBACK_DB_PASSWORD \
     CHAT_IMAGE CHAT_BASE_URL CHAT_MODEL_NAME CHAT_MAX_CONTEXT_TOKENS \
@@ -295,6 +296,15 @@ _wizard_render() {
   # Vendored at templates/chat/prompt_maps.yml so the path resolves regardless
   # of how the wizard was invoked (CLI, GUI, packaged sidecar).
   cp "${TMPL_DIR}/chat/prompt_maps.yml" "${GEN_DIR}/configs/chat/prompt_maps.yml"
+
+  # APISIX route/config files use the gateway's own ${{VAR:=default}}
+  # runtime substitution (resolved from the container's env at APISIX
+  # startup, e.g. CORS_ALLOW_ORIGINS above) — not our envsubst allow-list.
+  # Copy them through unmodified from the vendored v3 reference.
+  cp "${TMPL_DIR}/core/apisix/apisix-guest.yaml"  "${GEN_DIR}/configs/apisix/apisix-guest.yaml"
+  cp "${TMPL_DIR}/core/apisix/config-guest.yaml"  "${GEN_DIR}/configs/apisix/config-guest.yaml"
+  cp "${TMPL_DIR}/core/apisix/apisix.yaml"        "${GEN_DIR}/configs/apisix/apisix.yaml"
+  cp "${TMPL_DIR}/core/apisix/config.yaml"        "${GEN_DIR}/configs/apisix/config.yaml"
 }
 
 _wizard_summary_box() {
