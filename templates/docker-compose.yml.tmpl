@@ -77,7 +77,7 @@ services:
     restart: unless-stopped
 
   feedback-db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: feedback
       POSTGRES_USER: member
@@ -91,8 +91,27 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # v3.0.0: feedback is a new service in the minimal stack. The secrets
+  # target path (/core/secrets/...) is upstream's own path, not a typo we
+  # introduced -- ported verbatim from core v3.0.0's docker-compose.yml.
+  feedback:
+    image: registry.opencode.de/f13/microservices/feedback:v1.0.0
+    depends_on:
+      feedback-db:
+        condition: service_healthy
+    secrets:
+      - source: feedback_db.secret
+        target: /core/secrets/feedback_db.secret
+    volumes:
+      - ./configs:/feedback/configs:ro
+    restart: unless-stopped
+
+  # v3.0.0: path AND tag corrected -- upstream's own docker-compose.yml pins
+  # v1.2.1, but the F13 compatibility matrix (Stand 31.08.2026, more recent
+  # than the v3.0.0 tag cut) specifies v1.2.2 as the matrix-tested pairing
+  # for core v3.0.0 + chat v3.0.0; following the matrix per the PRD.
   ollama-mock:
-    image: registry.opencode.de/f13/microservices/base-images/ollama-mock-f13:1.2.0
+    image: registry.opencode.de/f13/microservices/builder-images/ollama-mock:v1.2.2
     platform: linux/amd64
     profiles:
       - mock
@@ -100,3 +119,7 @@ services:
 
 volumes:
   feedback-db-data:
+
+secrets:
+  feedback_db.secret:
+    file: ./secrets/feedback_db.secret

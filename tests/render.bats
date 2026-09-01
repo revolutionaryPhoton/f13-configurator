@@ -310,6 +310,74 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
+@test "render docker-compose.yml.tmpl bumps feedback-db to postgres:18-alpine" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep 'image: postgres:18-alpine' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'postgres:17-alpine' "$out"
+  [ "$status" -ne 0 ]
+}
+
+@test "render docker-compose.yml.tmpl corrects ollama-mock path and tag" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=mock
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep 'image: registry.opencode.de/f13/microservices/builder-images/ollama-mock:v1.2.2' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'base-images/ollama-mock-f13' "$out"
+  [ "$status" -ne 0 ]
+}
+
+@test "render docker-compose.yml.tmpl contains the feedback service" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep 'image: registry.opencode.de/f13/microservices/feedback:v1.0.0' "$out"
+  [ "$status" -eq 0 ]
+  run grep -A5 '^  feedback:$' "$out"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"feedback-db"* ]]
+  [[ "$output" == *"service_healthy"* ]]
+}
+
+@test "render docker-compose.yml.tmpl mounts feedback_db.secret and ./configs into feedback" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep -A10 '^  feedback:$' "$out"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"source: feedback_db.secret"* ]]
+  [[ "$output" == *"target: /core/secrets/feedback_db.secret"* ]]
+  [[ "$output" == *"./configs:/feedback/configs:ro"* ]]
+
+  run grep -A2 '^secrets:$' "$out"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"feedback_db.secret:"* ]]
+  [[ "$output" == *"file: ./secrets/feedback_db.secret"* ]]
+}
+
 @test "render docker-compose.yml.tmpl contains extra_hosts for chat" {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "

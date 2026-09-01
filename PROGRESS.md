@@ -75,7 +75,7 @@ Three changes are startup-fatal, not cosmetic: missing
 | S121 | Vendor upstream v3 reference configs into `docs/upstream/` (fetch core + chat at v3.0.0) | done (c60bf84) |
 | S122 | Compose template — `core` becomes the APISIX gateway (`apache/apisix:3.15.0-ubuntu`) + config mounts | done |
 | S123 | Compose template — add the mandatory `opa` sidecar + policy mount; chat depends on it healthy | done |
-| S124 | Compose template — add `feedback` service, postgres 17 → 18, correct ollama-mock path+tag | open |
+| S124 | Compose template — add `feedback` service, postgres 17 → 18, correct ollama-mock path+tag | done |
 | S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | open |
 | S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | open |
 | S127 | env + wizard surface — `CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`, drop `CORE_IMAGE`, `.state` migration | open |
@@ -190,7 +190,45 @@ All nine land on `feat/phase17-rebaseline` with a single PR at the end.
   Shell: 319/319 bats ✅, shellcheck clean. pre-commit not run — no
   virtualenv/binary available in this Docker sandbox, same gap as
   S52/S121.
-  **Next: S123** (add the mandatory `opa` sidecar + policy mount).
+
+- **S124 completed:** `docs/upstream/` doesn't carry a full
+  `docker-compose.yml` (S121 only vendored the config YAMLs), so this
+  story re-fetched `core` at the same pinned tag/commit
+  (`v3.0.0` / `c20cc1bb28cc91d9da56d02577da7fbeae324538`, matching
+  `docs/upstream/README.md`) into a scratch dir to read its real
+  `docker-compose.yml` rather than hand-writing the `feedback` service
+  from memory. Added `feedback` to `templates/docker-compose.yml.tmpl`:
+  image `registry.opencode.de/f13/microservices/feedback:v1.0.0`,
+  `depends_on: feedback-db: condition: service_healthy`, a new
+  top-level `secrets:` block (`feedback_db.secret: file:
+  ./secrets/feedback_db.secret` — first real use of compose secrets in
+  this template; `bin/f13-config` was already writing that file every
+  run, just not mounting it anywhere) mounted at
+  `/core/secrets/feedback_db.secret` — kept upstream's own `/core/...`
+  target path verbatim rather than "fixing" it to `/feedback/...`,
+  since this phase is a port, not a redesign, and the odd path is
+  upstream's actual, presumably-working config. Mounted `./configs` at
+  `/feedback/configs:ro`, matching upstream's own (unprefixed) mount
+  rather than inventing a `configs/feedback/` subdir this story doesn't
+  populate. Bumped `feedback-db` to `postgres:18-alpine`.
+  **Mismatch recorded, not forced:** the freshly-fetched upstream
+  `docker-compose.yml` itself still pins
+  `.../builder-images/ollama-mock:v1.2.1`, but the PRD's Phase 17 table
+  (sourced from the F13 compatibility matrix dated 31.08.2026, newer
+  than the v3.0.0 tag cut) mandates `v1.2.2` as the matrix-tested
+  pairing — followed the PRD's explicit pin over the tag's own
+  dev-compose, and documented the discrepancy in a template comment.
+  The path segment (`builder-images/ollama-mock`, not the prior
+  `base-images/ollama-mock-f13`) is confirmed straight from the fetched
+  file. New/extended bats in `tests/render.bats` (5 new tests): the
+  `feedback` service, its image, its `secrets` and `./configs` mounts,
+  the top-level `secrets:` block, `feedback-db` on `postgres:18-alpine`
+  (and `17-alpine` gone), and the corrected `ollama-mock` image
+  path+tag.
+  Shell: 323/323 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121/S122/S123.
+  **Next: S125** (chat config templates — the startup-fatal three).
 
 ### Maintainer progress (not loop work — context only)
 
