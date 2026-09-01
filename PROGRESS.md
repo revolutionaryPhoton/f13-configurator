@@ -79,7 +79,7 @@ Three changes are startup-fatal, not cosmetic: missing
 | S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | done |
 | S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | done |
 | S127 | env + wizard surface — `CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`, drop `CORE_IMAGE`, `.state` migration | done |
-| S128 | Frontend ref v2.0.0 → v3.0.1 + re-derive the S16 patches (record mismatches, do not force) | open |
+| S128 | Frontend ref v2.0.0 → v3.0.1 + re-derive the S16 patches (record mismatches, do not force) | done |
 | S129 | Backpressure + regression sweep; README/docs describe the new topology | open |
 
 **S130 (does the stack actually boot) is NOT in this table on purpose.**
@@ -380,6 +380,53 @@ All nine land on `feat/phase17-rebaseline` with a single PR at the end.
   virtualenv/binary available in this Docker sandbox, same gap as
   S52/S121–S126.
   **Next: S128** (frontend pin bump to v3.0.1 + S16 patch re-derivation).
+
+- **S128 completed:** cloned the real `frontend` repo at both `v2.0.0`
+  and `v3.0.1` (`gitlab.opencode.de/f13/microservices/frontend.git`)
+  into scratch dirs to diff the two patch targets rather than
+  hand-deriving the v3.0.1 shape from memory. `lib/frontend.sh`:
+  `_FRONTEND_GIT_REF` bumped `v2.0.0` → `v3.0.1`, so
+  `FRONTEND_IMAGE_TAG` becomes `f13-frontend:v3.0.1_based`.
+  `frontend::_patch_entrypoint` needed **no code change** — verified
+  mechanically against the real v3.0.1 `scripts/docker-entrypoint.sh`
+  (which gained several new config fields but kept both anchors the
+  patch depends on: the first `escape_js_string` assignment line, and
+  the single-line `APP_CONFIG={...};</script>` heredoc). A real
+  mismatch **was** found and fixed in `frontend::_patch_uistore`:
+  v3.0.1's `featureStore` gained a nested `tools: { onlineSearch,
+  skills }` sub-object that v2.0.0 didn't have, and `userInfo.subscribe`
+  unconditionally reads `features.tools.onlineSearch` on every update —
+  the old patch's replacement object (ported verbatim from v2.0.0)
+  dropped `tools` entirely, which would throw `TypeError: Cannot read
+  properties of undefined` at runtime with Keycloak disabled. Fixed by
+  adding `tools: { onlineSearch: enabled.includes('onlineSearch'),
+  skills: enabled.includes('skills') }` to the awk-generated replacement,
+  and adding `onlineSearch` to the fallback default list so behavior is
+  unchanged when `ENABLED_FEATURES` is unset (matches the original
+  hardcoded `onlineSearch: true, skills: false`). In practice the wizard
+  always sets `ENABLED_FEATURES="chat"` for the minimal stack, so both
+  `tools` flags render `false` either way. Verified both patches against
+  the real v3.0.1 source tree end-to-end: `node --check` passes on the
+  patched `UIStore.js`, `bash -n` passes on the patched entrypoint,
+  `export default` survives, and `docker-entrypoint.sh` keeps its 0755
+  mode. Findings recorded in new `docs/frontend-patch-notes.md`
+  (mechanical-reuse vs. re-derived, plus what's deliberately left stale:
+  the GUI's cosmetic `services` display array in
+  `gui/src/routes/status/+page.svelte` and README's preset table — both
+  already stale from S122–S124's image-pin bumps, both GUI/docs-track
+  work deferred to S129 per the same call S122 made for `core:v2.0.0`
+  in README).
+  `tests/frontend.bats`: updated the `--branch`/`FRONTEND_IMAGE_TAG`
+  assertions to `v3.0.1`/`v3.0.1_based`; updated the main UIStore fixture
+  to the real v3.0.1 shape (with `tools`); added a new regression test
+  (`preserves the v3 nested tools object`) asserting the patched output
+  both declares `tools: {` and computes both sub-keys off `enabled`.
+  Shell: 343/343 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121–S127.
+  **Next: S129** (backpressure + regression sweep; README/docs describe
+  the new topology — this is also where the stale GUI/README image
+  strings noted above should get synced).
 
 ### Maintainer progress (not loop work — context only)
 

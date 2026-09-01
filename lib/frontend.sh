@@ -9,13 +9,13 @@ readonly _FRONTEND_REPO_URL="https://gitlab.opencode.de/f13/microservices/fronte
 # Git ref (tag or branch) checked out when cloning. Pinned so an
 # unattended clone produces a known build, instead of tracking
 # whatever main happens to be on the day of install.
-readonly _FRONTEND_GIT_REF="v2.0.0"
+readonly _FRONTEND_GIT_REF="v3.0.1"
 
 # IMAGE_TAG for the locally built patched frontend image.  Derived
 # from the upstream git ref so a tag bump automatically renames the
 # built image — single source of truth.  Format: "<ref>_based" (e.g.
-# v2.0.0_based) makes it obvious in `docker images` that this is a
-# locally patched copy of upstream v2.0.0.
+# v3.0.1_based) makes it obvious in `docker images` that this is a
+# locally patched copy of upstream v3.0.1.
 readonly FRONTEND_IMAGE_TAG="f13-frontend:${_FRONTEND_GIT_REF}_based"
 
 # ---------------------------------------------------------------------------
@@ -33,7 +33,7 @@ frontend::_git_ls_remote()        { git ls-remote "$@"; }
 # pinned upstream tag.  Always clones; the previous local-monorepo
 # fast-path was removed because an arbitrary local checkout could
 # diverge from the pinned ref the patched image is supposed to be
-# based on, breaking the FRONTEND_IMAGE_TAG (v2.0.0_based) contract.
+# based on, breaking the FRONTEND_IMAGE_TAG (v3.0.1_based) contract.
 # ---------------------------------------------------------------------------
 frontend::get_source() {
   local dest_dir="${1:?frontend::get_source: DEST_DIR required}"
@@ -119,7 +119,7 @@ frontend::_patch_uistore() {
   print "      const enabled = ("
   print "        (typeof window !== 'undefined' &&"
   print "          window.APP_CONFIG &&"
-  print "          window.APP_CONFIG.ENABLED_FEATURES) || 'chat,recherche,askTheText,summary,transcription,feedback'"
+  print "          window.APP_CONFIG.ENABLED_FEATURES) || 'chat,recherche,askTheText,summary,transcription,feedback,onlineSearch'"
   print "      ).split(',').map(f => f.trim());"
   print "      return {"
   print "        chat:          enabled.includes('chat'),"
@@ -128,6 +128,10 @@ frontend::_patch_uistore() {
   print "        summary:       enabled.includes('summary'),"
   print "        transcription: enabled.includes('transcription'),"
   print "        feedback:      enabled.includes('feedback'),"
+  print "        tools: {"
+  print "          onlineSearch: enabled.includes('onlineSearch'),"
+  print "          skills:       enabled.includes('skills'),"
+  print "        },"
   print "      };"
   print "    })());"
   next
@@ -183,7 +187,7 @@ frontend::_patch_entrypoint() {
 # cause infinite recursion when generate_config_script calls escape_js_string.
 /=\$\(escape_js_string/ && !added_var {
   print
-  print "    enabled_features=$(escape_js_string \"${ENABLED_FEATURES:-chat,recherche,askTheText,summary,transcription,feedback}\")"
+  print "    enabled_features=$(escape_js_string \"${ENABLED_FEATURES:-chat,recherche,askTheText,summary,transcription,feedback,onlineSearch}\")"
   added_var=1
   next
 }

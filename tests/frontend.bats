@@ -71,7 +71,7 @@ _source_frontend() {
   rm -rf "${dest}"
 }
 
-@test "frontend::get_source pins git clone to v2.0.0 via --branch" {
+@test "frontend::get_source pins git clone to v3.0.1 via --branch" {
   local dest
   dest="$(mktemp -d)"
 
@@ -82,7 +82,7 @@ _source_frontend() {
     frontend::get_source '${dest}'
   "
   [ "$status" -eq 0 ]
-  [[ "${output}" == *"--branch v2.0.0"* ]]
+  [[ "${output}" == *"--branch v3.0.1"* ]]
   rm -rf "${dest}"
 }
 
@@ -132,7 +132,7 @@ _source_frontend() {
     frontend::image_exists
   "
   [ "$status" -eq 0 ]
-  [[ "${output}" == *"f13-frontend:v2.0.0_based"* ]]
+  [[ "${output}" == *"f13-frontend:v3.0.1_based"* ]]
 }
 
 # ---------------------------------------------------------------------------
@@ -155,7 +155,11 @@ const store = condition
       summary: true,
       transcription: true,
       feedback: true,
-    })
+      tools: {
+        onlineSearch: true,
+        skills: false,
+      },
+    });
 EOF
 
   run bash -c "
@@ -167,6 +171,55 @@ EOF
   grep -q 'ENABLED_FEATURES' "${work_dir}/src/utils/UIStore.js"
   grep -q 'features are driven by ENABLED_FEATURES' "${work_dir}/src/utils/UIStore.js"
   ! grep -q 'most features are enabled by default' "${work_dir}/src/utils/UIStore.js"
+  rm -rf "${work_dir}"
+}
+
+@test "frontend::_patch_uistore preserves the v3 nested tools object" {
+  local work_dir
+  work_dir="$(mktemp -d)"
+  mkdir -p "${work_dir}/src/utils"
+
+  cat > "${work_dir}/src/utils/UIStore.js" << 'EOF'
+const store = condition
+  ? writable({ all: true })
+  : // If Keycloak is disabled, most features are enabled by default
+    writable({
+      chat: true,
+      recherche: true,
+      askTheText: false,
+      summary: true,
+      transcription: true,
+      feedback: true,
+      tools: {
+        onlineSearch: true,
+        skills: false,
+      },
+    });
+
+userInfo.subscribe((user) => {
+  featureStore.update((features) => ({
+    tools: {
+      onlineSearch: keycloakIsDisabled
+        ? features.tools.onlineSearch
+        : roles.indexOf('chat-tools-websearch-access') !== -1,
+      skills: keycloakIsDisabled ? features.tools.skills : roles.indexOf('chat-tools-skills-access') !== -1,
+    },
+  }));
+});
+EOF
+
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/frontend.sh'
+    frontend::_patch_uistore '${work_dir}'
+  "
+  [ "$status" -eq 0 ]
+  # The v3 featureStore reads features.tools.onlineSearch on every
+  # userInfo update, so a returned object missing the `tools` key
+  # throws "Cannot read properties of undefined" at runtime.
+  grep -q "tools: {" "${work_dir}/src/utils/UIStore.js"
+  grep -q "onlineSearch: enabled.includes('onlineSearch')" "${work_dir}/src/utils/UIStore.js"
+  grep -q "skills:       enabled.includes('skills')" "${work_dir}/src/utils/UIStore.js"
   rm -rf "${work_dir}"
 }
 
