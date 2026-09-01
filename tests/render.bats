@@ -3,6 +3,19 @@
 
 LIB_DIR="${BATS_TEST_DIRNAME}/../lib"
 
+# _service_block FILE SERVICE
+# Print one compose service block, from "  <service>:" to the next top-level
+# service key. Use this instead of `grep -A<n>`: a fixed window silently stops
+# asserting anything the moment a comment is added to the template, which has
+# already produced three false failures.
+_service_block() {
+  awk -v svc="  $2:" '
+    $0 == svc { inblk = 1; print; next }
+    inblk && /^  [a-z0-9_-]+:$/ { exit }
+    inblk { print }
+  ' "$1"
+}
+
 setup() {
   TMPDIR_WORK="$(mktemp -d)"
 }
@@ -377,7 +390,7 @@ teardown() {
   "
   run grep 'image: registry.opencode.de/f13/microservices/feedback:v1.0.1' "$out"
   [ "$status" -eq 0 ]
-  run grep -A5 '^  feedback:$' "$out"
+  run _service_block "$out" feedback
   [ "$status" -eq 0 ]
   [[ "$output" == *"feedback-db"* ]]
   [[ "$output" == *"service_healthy"* ]]
@@ -415,9 +428,7 @@ teardown() {
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
   "
-  # -A20: the volumes line sits well below 'feedback:' now that the mount
-  # carries an explanatory comment. A tight window makes this assert nothing.
-  run grep -A20 '^  feedback:$' "$out"
+  run _service_block "$out" feedback
   [ "$status" -eq 0 ]
   [[ "$output" == *"source: feedback_db.secret"* ]]
   [[ "$output" == *"target: /core/secrets/feedback_db.secret"* ]]
