@@ -65,6 +65,13 @@ services:
   # `role` keys and into this policy set.
   opa:
     image: registry.opencode.de/f13/devops-tools/dockerhub-images/opa:1.18.1-debug
+    # F13 publishes this image for linux/amd64 only, so on Apple Silicon it runs
+    # under emulation. Declaring the platform explicitly does not change that --
+    # it silences Docker's "requested image's platform does not match" warning,
+    # records the emulation as a deliberate choice, and pins behaviour if a
+    # future Docker version picks a different default. The actual fix is
+    # upstream publishing multi-arch images.
+    platform: linux/amd64
     command:
       - "run"
       - "--server"
@@ -113,6 +120,13 @@ services:
   # introduced -- ported verbatim from core v3.0.0's docker-compose.yml.
   feedback:
     image: registry.opencode.de/f13/microservices/feedback:v1.0.1
+    # F13 publishes this image for linux/amd64 only, so on Apple Silicon it runs
+    # under emulation. Declaring the platform explicitly does not change that --
+    # it silences Docker's "requested image's platform does not match" warning,
+    # records the emulation as a deliberate choice, and pins behaviour if a
+    # future Docker version picks a different default. The actual fix is
+    # upstream publishing multi-arch images.
+    platform: linux/amd64
     depends_on:
       feedback-db:
         condition: service_healthy
