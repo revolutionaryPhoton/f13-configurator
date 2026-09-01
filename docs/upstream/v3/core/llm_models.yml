@@ -1,0 +1,170 @@
+# SPDX-FileCopyrightText: 2025 Land Baden-Württemberg <InnoLab@stm.bwl.de>
+#
+# SPDX-License-Identifier: MPL-2.0
+chat:
+  test_model_mock:                     # internal model id (must be unique!).
+    label: test_model:mock             # model's name presented to users.
+    model: test_model:mock             # model name which is used in API call.
+    prompt_map: base_assistant         # map to load prompts from.
+    is_remote: false                   # is this LLM hosted at an external API.
+    max_context_tokens: 6144           # total chat-history length for chat completion
+    api:
+      url: http://ollama-mock:11434/v1
+      timeout: 10
+      health_check: /models            # API endpoint for health check
+    inference:
+      temperature: 0.7
+      top_p: 0.9
+      max_new_tokens: 2048
+
+  test_reasoning_model_mock:           # internal model id (must be unique!).
+    label: test_reasoning_model:mock   # model's name presented to users.
+    model: test_reasoning_model:mock   # model name which is used in API call.
+    prompt_map: base_assistant         # map to load prompts from.
+    is_remote: false                   # is this LLM hosted at an external API.
+    max_context_tokens: 6144           # total chat-history length for chat completion
+    api:
+      url: http://ollama-mock:11434/v1
+      timeout: 10
+      health_check: /models            # API endpoint for health check
+    inference:
+      max_new_tokens: 4096
+    reasoning_config:
+      reasoning_format: inline         # Structured output or inline with content
+      reasoning_start_marker: <think>  # Start tag for extracting reasoning from content
+      reasoning_end_marker: </think>   # End tag for extracting reasoning from content
+
+  test_model_local:                    # internal model id (must be unique!).
+    label: test_model:local            # model's name presented to users.
+    model: test_model:local            # model name which is used in API call.
+    prompt_map: base_assistant         # map to load prompts from.
+    is_remote: false                   # is this LLM hosted at an external API.
+    max_context_tokens: 6144           # total chat-history length for chat completion
+    api:
+      url: http://ollama:11434/v1
+      timeout: 10
+      health_check: /models            # API endpoint for health check
+    inference:
+      temperature: 0.7
+      top_p: 0.9
+      max_new_tokens: 2048
+
+
+summary:
+# The summary needs a large llm (e.g., test_model_cloud) for lavish evaluations after changes of the prompts
+# and a local, small llm (e.g., test model mock) for quick testing like in our CI pipeline.
+
+  # Example for configurating a cloud model. Replace the placeholders for your llm.
+  test_model_cloud:                     # internal model id (must be unique!) (is referred to in general.yml).
+    label: test_model:cloud             # model's name presented to users.
+    model: test_model:cloud             # model name which is used in API call.
+    prompt_map: map_reduce_summarizer   # map to load prompts from.
+    context_length: 131072              # model's context window.
+    api:
+      url: https://some.cloud/v1
+      health_check: /models             # API endpoint for health check
+      timeout: 300                      # maximal duration in seconds waiting for a response.
+      # if needed add auth configuration here (as explained in documentation)
+    inference:
+      max_tokens: 8192                  # maximum number of tokens of the generated response.
+
+  test_model_local:                     # internal model id (must be unique!).
+    label: test_model:local             # model's name presented to users.
+    model: test_model:local             # model name which is used in API call.
+    prompt_map: map_reduce_summarizer   # map to load prompts from.
+    is_remote: false                    # is this LLM hosted at an external API.
+    context_length: 4000                # model's context window.
+    api:
+      url: http://ollama:11434/v1
+      health_check: /models             # API endpoint for health check
+      timeout: 600                      # maximal duration in seconds waiting for a response.
+    inference:
+      max_retries: 1                    # number of request retries in case of failure.
+
+  test_model_mock:                      # internal model id (must be unique!).
+    label: test_model:mock              # model's name presented to users.
+    model: test_model:mock              # model name which is used in API call.
+    prompt_map: map_reduce_summarizer   # map to load prompts from.
+    is_remote: false                    # is this LLM hosted at an external API.
+    context_length: 4000                # model's context window.
+    api:
+      url: http://ollama-mock:11434/v1
+      health_check: /models             # API endpoint for health check
+      timeout: 60                       # maximal duration in seconds waiting for a response.
+    inference:
+      max_retries: 1                    # number of request retries in case of failure.
+
+
+rag:
+  test_model_local:                         # key to select the defined model. no dots '.' allowed in the key string
+    label: test_model:local                 # model's name presented to users
+    model: test_model:local                 # model name which is used in OpenAI-API call
+    prompt_map: base_answer_generator       # prompt map name to load LLMPromptMaps from
+    is_remote: false                        # is this LLM hosted at an external API
+    api:
+      url: http://ollama:11434/v1
+      health_check: /models                 # API endpoint for health check
+    inference:                              # LLM inference parameters
+      temperature: 0.7
+      top_p: 0.9
+      max_new_tokens: 2048                  # Maximum generated answer length in tokens
+    max_chunks_to_use: 2                    # How many chunks/documents from knowledge db can be used during answer generation step
+
+  test_model_mock:                          # internal model id (must be unique!).
+    label: test_model:mock                  # model's name presented to users.
+    model: test_model:mock                  # model name which is used in API call.
+    prompt_map: base_answer_generator       # prompt map name to load LLMPromptMaps from
+    is_remote: false                        # is this LLM hosted at an external API.
+    api:
+      url: http://ollama-mock:11434/v1
+      health_check: /models                 # API endpoint for health check
+    inference:                              # LLM inference parameters
+      temperature: 0.7
+      top_p: 0.9
+      max_new_tokens: 2048                  # Maximum generated answer length in tokens
+    max_chunks_to_use: 2                    # How many chunks/documents from knowledge db can be used during answer generation step
+
+embedding:
+  test_model_local:
+    label: test_model:local                 # model's name presented to users
+    model: test_model:local                 # model name which is used in API call
+    is_remote: false                        # is this LLM hosted at an external API
+    api:
+      url: http://ollama:11434/v1
+      health_check: /models                 # API endpoint for health check
+    document_splitter_config:
+      split_length: 256                     # number of words per chunk
+      split_overlap: 32                     # number of overlapping words between consecutive chunks
+
+  test_model_mock:
+    label: test_model:mock                  # model's name presented to users
+    model: test_model:mock                  # model name which is used in API call
+    is_remote: false                        # is this LLM hosted at an external API
+    api:
+      url: http://ollama-mock:11434/v1
+      health_check: /models                 # API endpoint for health check
+    # document_splitter_config will fall back to defaults if not defined here
+
+reranking:
+  test_model_mock:
+    label: test_model:mock                    # model's name presented to users
+    model: test_model:mock                    # model name which is used in api call
+    is_remote: false                        # is this llm hosted at an external api
+    api:
+      url: http://cohere-v1-reranker-mock:7997/v1
+      health_check: /models              # api endpoint for health check
+
+
+transcription:
+  test_model_mock:                      # internal model id (must be unique!).
+    label: test_model:mock              # model's name presented to users.
+    model: test_model:mock              # model name which is used in API call.
+    prompt_map: base_translator         # map to load prompts from.
+    is_remote: false                    # is this LLM hosted at an external API.
+    api:
+      url: http://ollama-mock:11434/v1
+      health_check: /models             # API endpoint for health check
+    inference:
+      temperature: 0.7
+      top_p: 0.9
+      max_new_tokens: 2048

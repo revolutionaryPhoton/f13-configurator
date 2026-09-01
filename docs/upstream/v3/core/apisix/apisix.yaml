@@ -1,0 +1,232 @@
+# SPDX-FileCopyrightText: 2026 Land Baden-Württemberg <InnoLab@stm.bwl.de>
+#
+# SPDX-License-Identifier: MPL-2.0
+global_rules:
+  - id: global_cors
+    plugins:
+      cors:
+        allow_origins: "${{CORS_ALLOW_ORIGINS:=http://localhost:9999}}"
+        allow_methods: "*"
+        allow_headers: "*"
+  - id: global_protection
+    plugins:
+      authz-keycloak:
+        client_id: ${{KEYCLOAK_CLIENT_ID:=f13-api}}
+        discovery: "${{KEYCLOAK_URL:=http://keycloak:8080}}/realms/${{KEYCLOAK_REALM:=f13}}/.well-known/openid-configuration"
+        # Requests are allowed when there is no policy associated with a given resource.
+        policy_enforcement_mode: PERMISSIVE
+
+upstreams:
+  - id: rag
+    type: roundrobin
+    nodes:
+      "rag:8000": 1
+
+services:
+  - id: healthcheck
+    plugins:
+      response-rewrite:
+        body: '{"status":"F13-Core is running"}'
+        status_code: 200
+        headers:
+          set:
+            Content-Type: application/json
+  - id: feedback
+    upstream:
+      type: roundrobin
+      nodes:
+        "feedback:8000": 1
+    plugins:
+      proxy-rewrite:
+        # remove prefix
+        regex_uri: ["^/feedback/(.*)$", "/$1"]
+      authz-keycloak:
+        client_id: ${{KEYCLOAK_CLIENT_ID:=f13-api}}
+        discovery: "${{KEYCLOAK_URL:=http://keycloak:8080}}/realms/${{KEYCLOAK_REALM:=f13}}/.well-known/openid-configuration"
+        permissions: ["feedback"]
+
+  - id: chat
+    upstream:
+      type: roundrobin
+      nodes:
+        "chat:8000": 1
+    plugins:
+      proxy-rewrite:
+        # remove prefix
+        regex_uri: ["^/chat/(.*)$", "/$1"]
+      authz-keycloak:
+        client_id: ${{KEYCLOAK_CLIENT_ID:=f13-api}}
+        discovery: "${{KEYCLOAK_URL:=http://keycloak:8080}}/realms/${{KEYCLOAK_REALM:=f13}}/.well-known/openid-configuration"
+        permissions: ["chat"]
+
+  - id: summary
+    upstream:
+      type: roundrobin
+      nodes:
+        "summary:8000": 1
+    plugins:
+      authz-keycloak:
+        client_id: ${{KEYCLOAK_CLIENT_ID:=f13-api}}
+        discovery: "${{KEYCLOAK_URL:=http://keycloak:8080}}/realms/${{KEYCLOAK_REALM:=f13}}/.well-known/openid-configuration"
+        permissions: ["summary"]
+
+  - id: rag
+    upstream_id: rag
+    plugins:
+      proxy-rewrite:
+        # remove prefix
+        regex_uri: ["^/rag/(.*)$", "/$1"]
+  - id: rag-database
+    upstream_id: rag
+    plugins:
+      proxy-rewrite:
+        # remove prefix
+        regex_uri: ["^/rag/(.*)$", "/$1"]
+      authz-keycloak:
+        client_id: ${{KEYCLOAK_CLIENT_ID:=f13-api}}
+        discovery: "${{KEYCLOAK_URL:=http://keycloak:8080}}/realms/${{KEYCLOAK_REALM:=f13}}/.well-known/openid-configuration"
+        permissions: ["rag-database"]
+  - id: rag-file
+    upstream_id: rag
+    plugins:
+      proxy-rewrite:
+        # remove prefix
+        regex_uri: ["^/rag/(.*)$", "/$1"]
+      authz-keycloak:
+        client_id: ${{KEYCLOAK_CLIENT_ID:=f13-api}}
+        discovery: "${{KEYCLOAK_URL:=http://keycloak:8080}}/realms/${{KEYCLOAK_REALM:=f13}}/.well-known/openid-configuration"
+        permissions: ["rag-file"]
+
+  - id: transcription
+    upstream:
+      type: roundrobin
+      nodes:
+        "transcription:8000": 1
+    plugins:
+      proxy-rewrite:
+        # remove prefix
+        regex_uri: ["^/transcription/(.*)$", "/$1"]
+      authz-keycloak:
+        client_id: ${{KEYCLOAK_CLIENT_ID:=f13-api}}
+        discovery: "${{KEYCLOAK_URL:=http://keycloak:8080}}/realms/${{KEYCLOAK_REALM:=f13}}/.well-known/openid-configuration"
+        permissions: ["transcription"]
+  - id: tusd
+    upstream:
+      type: roundrobin
+      nodes:
+        "tusd:1080": 1
+    plugins:
+      authz-keycloak:
+        client_id: ${{KEYCLOAK_CLIENT_ID:=f13-api}}
+        discovery: "${{KEYCLOAK_URL:=http://keycloak:8080}}/realms/${{KEYCLOAK_REALM:=f13}}/.well-known/openid-configuration"
+        permissions: ["transcription"]
+
+# Manually list routes that should be reachable from outside
+# to avoid exposing internal endpoints.
+routes:
+  # Chat
+  - id: chat-completion
+    uri: "/chat/completion"
+    service_id: chat
+  - id: chat-completion-stream
+    uri: "/chat/completion/stream"
+    service_id: chat
+  - id: chat-v2-completion-stream
+    uri: "/chat/v2/completion/stream"
+    service_id: chat
+  - id: chat-experimental-agentic-completion-stream
+    uri: "/chat/experimental/agentic/completion/stream"
+    service_id: chat
+  - id: chat-llms
+    uri: "/chat/llms"
+    service_id: chat
+
+  # RAG
+  - id: rag-file
+    uri: "/rag/file"
+    service_id: rag-file
+  - id: rag-db-sources
+    uri: "/rag/sources"
+    service_id: rag-database
+  - id: rag-db
+    uri: "/rag/database"
+    service_id: rag-database
+  - id: rag-llms
+    uri: "/rag/llms"
+    service_id: rag
+
+  # Summary
+  - id: summary-llms
+    uri: "/summary/llms"
+    service_id: summary
+    plugins:
+      proxy-rewrite:
+        # remove prefix
+        regex_uri: ["^/summary/(.*)$", "/$1"]
+  # Summary has an additional /summary prefix for file and text,
+  # so we do not remove the prefix here
+  - id: summary-file
+    uri: "/summary/file"
+    service_id: summary
+  - id: summary-text
+    uri: "/summary/text"
+    service_id: summary
+
+  # Transcription
+  - id: transcription-uploads
+    uri: "/transcription/uploads"
+    service_id: transcription
+  - id: transcription-upload-status
+    uri: "/transcription/upload_status/*"
+    service_id: transcription
+  - id: transcription-tus-files-root
+    uri: "/transcription/tus/files/"
+    service_id: tusd
+  - id: transcription-tus-files
+    uri: "/transcription/tus/files/*"
+    service_id: tusd
+  - id: transcription-check-exists
+    uri: "/transcription/check_transcription_exists"
+    service_id: transcription
+  - id: transcription-retrieve
+    uri: "/transcription/retrieve_transcription/*"
+    service_id: transcription
+  - id: transcription-translate
+    uri: "/transcription/translate"
+    service_id: transcription
+  - id: transcription-download
+    uri: "/transcription/download"
+    service_id: transcription
+  - id: transcription-special-terms-upload
+    uri: "/transcription/special_terms/upload"
+    service_id: transcription
+  - id: transcription-audit-jobs
+    uri: "/transcription/audit/jobs/*"
+    service_id: transcription
+  - id: transcription-config
+    uri: "/transcription/config"
+    service_id: transcription
+
+  # Feedback
+  - id: feedback-general
+    uri: "/feedback/general"
+    service_id: feedback
+  - id: feedback-summary
+    uri: "/feedback/summary"
+    service_id: feedback
+  - id: feedback-rag
+    uri: "/feedback/rag"
+    service_id: feedback
+  - id: feedback-chat
+    uri: "/feedback/chat"
+    service_id: feedback
+
+  # Healthcheck
+  - id: root-healthcheck
+    uri: /
+    service_id: healthcheck
+  - id: healthcheck
+    uri: /health
+    service_id: healthcheck
+# !!! This file must contain the #END as the last line for APISIX to read it
+#END

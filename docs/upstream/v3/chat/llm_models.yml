@@ -1,0 +1,33 @@
+# Full configuration reference: docs/configuration.md and src/models/llms.py
+chat:
+  test_model_mock:                     # internal model id (must be unique!).
+    label: test_model:mock             # model's name presented to users.
+    model: test_model:mock             # model name which is used in API call.
+    prompt_map: base_assistant         # map to load prompts from.
+    is_remote: false                   # is this LLM hosted at an external API.
+    context_length: 8192               # maximum context window size
+    api:
+      url: http://ollama-mock:11434/v1
+      timeout: 10
+      health_check: /models            # API endpoint for health check
+    inference:
+      temperature: 0.7
+      top_p: 0.9
+      max_new_tokens: 2048
+
+  test_reasoning_model_mock:           # internal model id (must be unique!).
+    label: test_reasoning_model:mock   # model's name presented to users.
+    model: test_reasoning_model:mock   # model name which is used in API call.
+    prompt_map: base_assistant         # map to load prompts from.
+    is_remote: false                   # is this LLM hosted at an external API.
+    context_length: 8192               # maximum context window size
+    api:
+      url: http://ollama-mock:11434/v1
+      timeout: 10
+      health_check: /models            # API endpoint for health check
+    inference:
+      max_new_tokens: 4096
+    reasoning_config:
+      reasoning_format: inline         # Structured output or inline with content
+      reasoning_start_marker: <think>  # Start tag for extracting reasoning from content
+      reasoning_end_marker: </think>   # End tag for extracting reasoning from content
