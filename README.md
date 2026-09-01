@@ -169,7 +169,7 @@ The only preset in v1 is **`core + frontend + chat`**, re-baselined onto
 | `opa` | `registry.opencode.de/f13/devops-tools/dockerhub-images/opa:1.18.1-debug` | Mandatory sidecar — chat v3 refuses to start without `service_endpoints.opa` reachable; evaluates the tool-permission policies chat used to keep inline as `agentic_chat.yml` `role` keys |
 | `chat` | `registry.opencode.de/f13/microservices/chat:v3.0.0` | Configured for mock or host-Ollama |
 | `feedback-db` | `postgres:18-alpine` | Password from generated secret; user `member` |
-| `feedback` | `registry.opencode.de/f13/microservices/feedback:v1.0.0` | New in v3.0.0's minimal stack; reads `feedback_db.secret` |
+| `feedback` | `registry.opencode.de/f13/microservices/feedback:v1.0.1` | New in v3.0.0's minimal stack; reads `feedback_db.secret` |
 | `ollama-mock` | `registry.opencode.de/f13/microservices/builder-images/ollama-mock:v1.2.2` | Only when mock inference is selected (compose profile) |
 
 `chat` and `ollama-mock` are `linux/amd64`-only images. On Apple Silicon the generated compose sets `platform: linux/amd64` on both so Docker Desktop runs them via Rosetta 2 emulation — no rebuild needed, first boot is slightly slower. `core` (APISIX) ships official multi-arch images, so it runs natively on Apple Silicon with no emulation. The `frontend` image is built locally and is therefore also native (`arm64` on Apple Silicon).

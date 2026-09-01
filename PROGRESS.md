@@ -198,7 +198,7 @@ All nine land on `feat/phase17-rebaseline` with a single PR at the end.
   `docs/upstream/README.md`) into a scratch dir to read its real
   `docker-compose.yml` rather than hand-writing the `feedback` service
   from memory. Added `feedback` to `templates/docker-compose.yml.tmpl`:
-  image `registry.opencode.de/f13/microservices/feedback:v1.0.0`,
+  image `registry.opencode.de/f13/microservices/feedback:v1.0.1`,
   `depends_on: feedback-db: condition: service_healthy`, a new
   top-level `secrets:` block (`feedback_db.secret: file:
   ./secrets/feedback_db.secret` — first real use of compose secrets in

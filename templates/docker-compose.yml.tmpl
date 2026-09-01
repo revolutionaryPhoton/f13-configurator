@@ -83,19 +83,31 @@ services:
       POSTGRES_USER: member
       POSTGRES_PASSWORD: ${FEEDBACK_DB_PASSWORD}
     volumes:
-      - feedback-db-data:/var/lib/postgresql/data
+      # postgres 18 moved the mount point. Earlier images took the data dir
+      # directly (/var/lib/postgresql/data); 18+ expects a single mount one
+      # level up and places data in a subdirectory, so pg_upgrade --link can
+      # work without crossing a mount boundary. Mounting the old path against
+      # an 18 image makes the container refuse to start:
+      #   "There appears to be PostgreSQL data in /var/lib/postgresql/data
+      #    (unused mount/volume)"
+      # Matches core v3.0.0's own compose.
+      - feedback-db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "member"]
       interval: 10s
       timeout: 5s
       retries: 5
+      # Without a start_period the first probes race initdb and the container
+      # is marked unhealthy before it has finished bootstrapping, which fails
+      # every dependant with "dependency failed to start".
+      start_period: 15s
     restart: unless-stopped
 
   # v3.0.0: feedback is a new service in the minimal stack. The secrets
   # target path (/core/secrets/...) is upstream's own path, not a typo we
   # introduced -- ported verbatim from core v3.0.0's docker-compose.yml.
   feedback:
-    image: registry.opencode.de/f13/microservices/feedback:v1.0.0
+    image: registry.opencode.de/f13/microservices/feedback:v1.0.1
     depends_on:
       feedback-db:
         condition: service_healthy
