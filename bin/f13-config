@@ -291,6 +291,29 @@ _wizard_compute_vars() {
   OPA_PORT="${OPA_PORT:-8181}"
 }
 
+# _wizard_copy_file SRC DST
+# Copy a vendored file to an EXACT destination path.
+#
+# Plain `cp SRC DST` is unsafe here: when DST already exists as a directory, cp
+# copies INTO it, producing configs/apisix/config.yaml/config.yaml instead of
+# configs/apisix/config.yaml. That happens for real -- Docker auto-creates a
+# bind-mount source as a directory when the file is missing, so one failed
+# `compose up` leaves behind directories that silently latch every later render
+# into the wrong shape. `down -v` does not clear them either: they are host
+# paths under generated/, not volumes.
+#
+# Removing DST first makes the render idempotent, and the type check turns a
+# silent mis-copy into a loud failure.
+_wizard_copy_file() {
+  local src="${1:?}" dst="${2:?}"
+  rm -rf "${dst}"
+  cp "${src}" "${dst}"
+  if [[ ! -f "${dst}" ]]; then
+    ui::err "Failed to place ${dst} as a regular file."
+    return 1
+  fi
+}
+
 _wizard_render() {
   mkdir -p "${GEN_DIR}/configs/core" "${GEN_DIR}/configs/chat" \
     "${GEN_DIR}/configs/apisix" "${GEN_DIR}/opa/policies" "${GEN_DIR}/secrets"
@@ -310,22 +333,22 @@ _wizard_render() {
   # prompt_maps.yml has no template vars — copy from the bundled template.
   # Vendored at templates/chat/prompt_maps.yml so the path resolves regardless
   # of how the wizard was invoked (CLI, GUI, packaged sidecar).
-  cp "${TMPL_DIR}/chat/prompt_maps.yml" "${GEN_DIR}/configs/chat/prompt_maps.yml"
+  _wizard_copy_file "${TMPL_DIR}/chat/prompt_maps.yml" "${GEN_DIR}/configs/chat/prompt_maps.yml"
 
   # APISIX route/config files use the gateway's own ${{VAR:=default}}
   # runtime substitution (resolved from the container's env at APISIX
   # startup, e.g. CORS_ALLOW_ORIGINS above) — not our envsubst allow-list.
   # Copy them through unmodified from the vendored v3 reference.
-  cp "${TMPL_DIR}/core/apisix/apisix-guest.yaml"  "${GEN_DIR}/configs/apisix/apisix-guest.yaml"
-  cp "${TMPL_DIR}/core/apisix/config-guest.yaml"  "${GEN_DIR}/configs/apisix/config-guest.yaml"
-  cp "${TMPL_DIR}/core/apisix/apisix.yaml"        "${GEN_DIR}/configs/apisix/apisix.yaml"
-  cp "${TMPL_DIR}/core/apisix/config.yaml"        "${GEN_DIR}/configs/apisix/config.yaml"
+  _wizard_copy_file "${TMPL_DIR}/core/apisix/apisix-guest.yaml" "${GEN_DIR}/configs/apisix/apisix-guest.yaml"
+  _wizard_copy_file "${TMPL_DIR}/core/apisix/config-guest.yaml" "${GEN_DIR}/configs/apisix/config-guest.yaml"
+  _wizard_copy_file "${TMPL_DIR}/core/apisix/apisix.yaml" "${GEN_DIR}/configs/apisix/apisix.yaml"
+  _wizard_copy_file "${TMPL_DIR}/core/apisix/config.yaml" "${GEN_DIR}/configs/apisix/config.yaml"
 
   # OPA policy set has no template vars — vendored verbatim from the v3
   # chat reference, same pattern as the apisix files above.
-  cp "${TMPL_DIR}/chat/opa/policies/permissions.rego" \
+  _wizard_copy_file "${TMPL_DIR}/chat/opa/policies/permissions.rego" \
     "${GEN_DIR}/opa/policies/permissions.rego"
-  cp "${TMPL_DIR}/chat/opa/policies/test_permissions.rego" \
+  _wizard_copy_file "${TMPL_DIR}/chat/opa/policies/test_permissions.rego" \
     "${GEN_DIR}/opa/policies/test_permissions.rego"
 }
 

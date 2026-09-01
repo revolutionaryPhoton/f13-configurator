@@ -137,3 +137,24 @@ teardown() {
     [ "$status" -eq 0 ]
   done
 }
+
+@test "render replaces a stray directory at an apisix config path" {
+  # Docker auto-creates a bind-mount source as a DIRECTORY when the file is
+  # missing, so one failed `compose up` leaves directories behind. Plain
+  # `cp SRC DST` then copies INTO them, yielding
+  # configs/apisix/config.yaml/config.yaml and latching every later render into
+  # the broken shape -- and `down -v` does not clear it, because these are host
+  # paths under generated/, not volumes. The render must overwrite them.
+  mkdir -p "${TMPDIR_WORK}/gen/configs/apisix/config.yaml" \
+           "${TMPDIR_WORK}/gen/configs/apisix/apisix-guest.yaml"
+
+  run env "${NI_ENV[@]}" F13_SKIP_BUILD=1 F13_SKIP_COMPOSE=1 "${BIN}"
+
+  for f in apisix.yaml apisix-guest.yaml config.yaml config-guest.yaml; do
+    [ -f "${TMPDIR_WORK}/gen/configs/apisix/${f}" ]
+    [ ! -d "${TMPDIR_WORK}/gen/configs/apisix/${f}" ]
+    [ -s "${TMPDIR_WORK}/gen/configs/apisix/${f}" ]
+  done
+  # the nested form must not exist
+  [ ! -e "${TMPDIR_WORK}/gen/configs/apisix/config.yaml/config.yaml" ]
+}
