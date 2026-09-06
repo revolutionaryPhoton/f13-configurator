@@ -8,7 +8,11 @@ set -euo pipefail
 
 # ollama::_curl_tags: fetch the /api/tags response from local Ollama.
 ollama::_curl_tags() {
-  curl -fsS --max-time 2 "http://localhost:11434/api/tags"
+  # _F13_OLLAMA_URL is a test hook (same convention as _F13_MACOS_DATA_DIR in
+  # discover.sh). Tests that assert the unreachable path must be able to force
+  # it: hardcoding localhost:11434 makes them pass in CI and fail on any dev
+  # machine that happens to have Ollama running.
+  curl -fsS --max-time 2 "${_F13_OLLAMA_URL:-http://localhost:11434/api/tags}"
 }
 
 # ---------------------------------------------------------------------------
