@@ -235,7 +235,7 @@
     { name: "opa", image: "opa:1.18.1-debug" },
     { name: "chat", image: "chat:v3.0.0", extra: backend },
     { name: "feedback-db", image: "postgres:18-alpine" },
-    { name: "feedback", image: "feedback:v1.0.0" },
+    { name: "feedback", image: "feedback:v1.0.1" },
   ]);
 
   const isHealthy = $derived(healthStatus === "healthy");

@@ -91,16 +91,17 @@ out of scope for this configurator regardless.
 
 - `agentic_chat.yml` / chat-side config — out of scope for this story;
   covered by S125/S126 against `docs/upstream/v3/chat/`.
-- The GUI's cosmetic service-image list
-  (`gui/src/routes/status/+page.svelte`, `services` array) still shows
-  `f13-frontend:v2.0.0_based`, `core:v2.0.0`, `chat:v1.2.0`, and
-  `postgres:17-alpine` — display-only strings, already stale from
-  S122–S124 (which correctly left them for the GUI track). Left alone
-  here for the same reason: it's a `gui/` file requiring the GUI
-  backpressure track (`npm run check && npm run test:unit && cargo
-  check`), and Phase 17's loop-runnable stories are shell-track only.
-  S129 (regression sweep) or a follow-up GUI story should sync it.
-- README.md's preset table (`core:v2.0.0`, `chat:v1.2.0`,
-  `postgres:17-alpine`) — deliberately left for S129's dedicated
-  "README/docs describe the new topology" sweep, per the same call
-  S122 made.
+Both items below were outstanding when this note was written and have
+since been closed; kept for the record of why they were deferred.
+
+- ~~The GUI's cosmetic service-image list
+  (`gui/src/routes/status/+page.svelte`, `services` array)~~ — synced to
+  the v3 stack. It was deferred here because it is a `gui/` file needing
+  the GUI backpressure track (`npm run check && npm run test:unit &&
+  cargo check`), while Phase 17's loop-runnable stories were shell-track
+  only. Note it is display-only: the array is what the Status screen
+  *prints*, not what the stack runs, so it can drift silently from
+  `templates/docker-compose.yml.tmpl` without anything failing. It drifted
+  once already (feedback v1.0.0 vs the template's v1.0.1) and was caught
+  by eye, not by a test.
+- ~~README.md's preset table~~ — swept by S129.

@@ -646,3 +646,36 @@ teardown() {
   run python3 -c 'import yaml,sys; yaml.safe_load(sys.stdin)' < "$out"
   [ "$status" -eq 0 ]
 }
+
+@test "GUI status screen image list matches the compose template" {
+  # The Status screen's `services` array is display-only: it is what the GUI
+  # PRINTS, not what the stack runs, so it can drift from
+  # templates/docker-compose.yml.tmpl without anything failing. It drifted once
+  # during Phase 17 (feedback v1.0.0 shown while the template shipped v1.0.1)
+  # and was caught by eye rather than by a test.
+  local gui="${BATS_TEST_DIRNAME}/../gui/src/routes/status/+page.svelte"
+  local tmpl="${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl"
+  local fe_lib="${BATS_TEST_DIRNAME}/../lib/frontend.sh"
+  [ -f "$gui" ] && [ -f "$tmpl" ]
+
+  local img base
+  while read -r img; do
+    [ -n "$img" ] || continue
+    case "$img" in
+      # Two images reach compose through variables rather than literals:
+      # FRONTEND_IMAGE (built by lib/frontend.sh) and CHAT_IMAGE (chosen by the
+      # wizard per backend). Check those against their real source instead.
+      f13-frontend:*)
+        grep -q "${img#f13-frontend:}" "$fe_lib"
+        continue
+        ;;
+      chat:*)
+        grep -q "chat:${img##*:}" "${BATS_TEST_DIRNAME}/../bin/f13-config"
+        continue
+        ;;
+    esac
+    # Every other displayed image must appear verbatim in the template.
+    base="${img%%:*}"
+    grep -q "${base}:${img##*:}" "$tmpl"
+  done < <(grep -oE 'image: "[^"]+"' "$gui" | sed 's/image: "//; s/"$//')
+}
