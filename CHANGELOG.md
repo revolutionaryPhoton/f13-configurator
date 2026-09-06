@@ -7,6 +7,105 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-09-06
+
+> **Highlights:** The upstream re-baseline (**Phase 17**). The configurator now
+> generates a stack for **core v3.0.0 + chat v3.0.0**, where "core" is no longer
+> an F13 image at all but an **APISIX gateway**. Also moves CI to **Node 24 LTS**
+> and brings five GitHub Actions up from 3–4 majors behind. **macOS only** —
+> Linux `.AppImage` / `.deb` remain deferred.
+
+### Changed — upstream re-baseline (Phase 17)
+
+The headline is architectural rather than a version bump. In core v3.0.0 the
+`core` service is `apache/apisix:3.15.0-ubuntu`; the monolithic core
+application is gone from the deployment and APISIX routes to the individual
+services. `grep -c 'microservices/core'` in core v3's own compose returns 0.
+
+- **core** → `apache/apisix:3.15.0-ubuntu` plus its four mounted config files.
+- **chat** → `v3.0.0`, which **requires an OPA sidecar**: without
+  `service_endpoints.opa` the service refuses to start.
+- **opa** → `opa:1.18.1-debug`, new and mandatory, with the policy set shipped
+  into `generated/opa/policies/`.
+- **feedback** → `feedback:v1.0.1`, new in the minimal stack.
+- **feedback-db** → `postgres:18-alpine` (was 17).
+- **ollama-mock** → `builder-images/ollama-mock:v1.2.2` (both path and tag
+  changed upstream).
+- **frontend** → patched build re-derived against `v3.0.1` (was `v2.0.0`).
+- `CHAT_MAX_CONTEXT_TOKENS` → **`CHAT_CONTEXT_LENGTH`**, matching chat v3, where
+  the value now covers input *and* output.
+
+Versions follow the F13 compatibility matrix. RAG, summary, parser and
+transcription remain explicitly out of scope.
+
+### Fixed — found by launching the stack, not by tests
+
+Six defects that only exist once containers actually run. None were reachable
+from the test suite, which stayed green throughout:
+
+- **postgres 18 moved its volume mount** to `/var/lib/postgresql`; the pre-18
+  `/var/lib/postgresql/data` form makes the container refuse to start.
+- **APISIX opens `config-guest.yaml` by name**, so renaming the mounted config
+  files crash-loops the gateway. Upstream mounts all four 1:1.
+- **feedback reads core's `general.yml`** — upstream's `configs/` is flat, ours
+  is per-service, so the service started with no config at all.
+- **A missing bind-mount source is created by Docker as a DIRECTORY**, after
+  which `cp` copies into it and every later render latches into the broken
+  shape. `docker compose down -v` does not clear it: these are host paths under
+  `generated/`, not volumes.
+- **The frontend requires `tusd`** or nginx refuses to start. Patched out of the
+  nginx template rather than pulling rustfs and transcription into the stack.
+- **`mktemp` creates 0600 and `mv` carries that mode**, leaving the patched
+  nginx template unreadable by the non-root nginx user.
+
+### Added — guards against the above
+
+- `compose::validate_generated` runs as a precondition in `compose::up`, so a
+  damaged tree reports the actual host file instead of an opaque runc error
+  naming the container path.
+- The wizard's **"keep" path now re-renders when the tree is damaged** instead of
+  launching it. Keep means keep your *answers*, not keep whatever files happen
+  to be on disk.
+- `_wizard_copy_file` replaces plain `cp` for all seven vendored-file copies, so
+  a stray directory is overwritten rather than copied into.
+
+### Changed — toolchain and CI
+
+- **Node 20 → 24 LTS** across all four workflow pins, plus an explicit
+  `engines` floor in `gui/package.json`. Node 20 had begun blocking work: jsdom
+  30 requires `^22.22.2 || ^24.15.0 || >=26.0.0`.
+- **Dependabot now watches GitHub Actions**, which nothing had been doing —
+  the pins had drifted 3–4 majors. `actions/checkout` 4 → 7, `setup-node` 4 → 7,
+  `upload-artifact` 4 → 7, `download-artifact` 4 → 8, `gitleaks-action` 2 → 3.
+  Left ungrouped on purpose so each major lands with its own CI run.
+- `jsdom` 30.0.1, `@testing-library/jest-dom` 7.0.1, `svelte` 5.57.0,
+  `axe-core` 4.13.0, and the tauri JS/Rust plugin pair kept in step.
+
+### Fixed — tests that asserted the developer's machine
+
+Two tests were green in CI and red on any real dev box, which is the polarity
+that teaches you to ignore local failures:
+
+- The discovery tests required `configurator_v1/generated/` to be absent, which
+  stops being true the moment anyone runs the wizard.
+- `--list-models` required Ollama to be **unreachable**.
+
+Both now force their condition through `_F13_DEV_ROOT` and `_F13_OLLAMA_URL`
+hooks. The suite is green locally as well as in CI.
+
+### Known limitations
+
+- **No resumable file upload** in the minimal stack: the frontend's upload path
+  needs `tusd`, which would pull in rustfs and transcription.
+- **Routes to omitted services hang rather than failing fast.** APISIX ships
+  routes for rag/summary/transcription; with those services absent the request
+  stalls until the client times out (the gateway logs `499`). Not reachable in
+  normal use, since `ENABLED_FEATURES` gates them out of the UI.
+- `opa`, `feedback` and `chat` are published for `linux/amd64` only, so they run
+  emulated on Apple Silicon. The compose file now declares the platform
+  explicitly to silence the warning; making them native needs multi-arch images
+  upstream.
+
 ## [0.5.4] — 2026-08-31
 
 > **Highlights:** Security release. Clears **all 9 open advisories** (2 HIGH)
