@@ -47,12 +47,14 @@ Implications for anyone reading or running this code:
 
 - All generated secrets live in `generated/secrets/` with `chmod 644`.
   Mode 0644 (not 0600) is required so the non-root container user
-  inside the `core` image can read the secrets through a Linux Docker
-  bind-mount; macOS Docker Desktop's userspace bind-mount shim
-  papers over UID mismatches but native Linux / WSL2 doesn't, so
-  0600 caused `PermissionError` on `core` startup. Host-side gating
-  is provided by the parent `generated/` directory living inside
-  `$HOME`.
+  inside the service image that reads them (as of v0.6.0,
+  `feedback_db.secret` is mounted into the `feedback` container, not
+  `core` — `core` is now the APISIX gateway and never touches secrets)
+  can read the secrets through a Linux Docker bind-mount; macOS Docker
+  Desktop's userspace bind-mount shim papers over UID mismatches but
+  native Linux / WSL2 doesn't, so 0600 caused a `PermissionError` on
+  startup. Host-side gating is provided by the parent `generated/`
+  directory living inside `$HOME`.
 - `generated/` is listed in `.gitignore` — never commit it.
 - The `feedback_db.secret` file contains the postgres password in plain text.
   On a shared machine, ensure `generated/` is only readable by your user
@@ -84,9 +86,14 @@ Implications for anyone reading or running this code:
 
 ## 📦 Image provenance
 
-- All F13 service images are pulled from `registry.opencode.de`. Ensure you
-  trust this registry and have not substituted image names or tags with
-  unverified alternatives.
+- Most F13 service images (`chat`, `feedback`, `ollama-mock`, `opa`) are
+  pulled from `registry.opencode.de`. Ensure you trust this registry and
+  have not substituted image names or tags with unverified alternatives.
+- `core` is the third-party `apache/apisix` image from Docker Hub, not an
+  F13-published image — as of v0.6.0 (core v3.0.0) the `core` service is
+  the APISIX gateway, not an F13 app container. `frontend` is built
+  locally by this configurator (see the frontend feature-gating section
+  in `README.md`) and is never pulled from a registry.
 - Images are pinned by tag, not digest. For stronger supply-chain guarantees,
   consider pinning by SHA-256 digest in the compose template.
 

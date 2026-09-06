@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # state::write STATE_FILE — persist current wizard vars to a KEY=VALUE file
-# Reads globals: PRESET, CHAT_BACKEND, OLLAMA_MODEL, FRONTEND_PORT, CORE_PORT
+# Reads globals: PRESET, CHAT_BACKEND, OLLAMA_MODEL, FRONTEND_PORT, CORE_PORT, OPA_PORT
 state::write() {
   local state_file="$1"
   cat > "${state_file}" <<EOF
@@ -12,13 +12,14 @@ CHAT_BACKEND=${CHAT_BACKEND:-mock}
 OLLAMA_MODEL=${OLLAMA_MODEL:-}
 FRONTEND_PORT=${FRONTEND_PORT:-9999}
 CORE_PORT=${CORE_PORT:-8000}
+OPA_PORT=${OPA_PORT:-8181}
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
   chmod 600 "${state_file}"
 }
 
 # state::read STATE_FILE — load state into wizard globals
-# Sets: PRESET, CHAT_BACKEND, OLLAMA_MODEL, FRONTEND_PORT, CORE_PORT, STATE_TIMESTAMP
+# Sets: PRESET, CHAT_BACKEND, OLLAMA_MODEL, FRONTEND_PORT, CORE_PORT, OPA_PORT, STATE_TIMESTAMP
 # Returns 1 if file does not exist
 state::read() {
   local state_file="$1"
@@ -44,6 +45,13 @@ state::read() {
 
   _val="$(grep '^CORE_PORT='     "${state_file}" 2>/dev/null | cut -d= -f2- || true)"
   [[ -z "${CORE_PORT:-}"     && -n "${_val}" ]] && CORE_PORT="${_val}"
+
+  # S127: OPA_PORT postdates this file format. .state files written before
+  # it lack the key, so _val is empty and OPA_PORT is left untouched —
+  # bin/f13-config's _wizard_compute_vars() defaults it to 8181 in that
+  # case, same as a fresh run.
+  _val="$(grep '^OPA_PORT='      "${state_file}" 2>/dev/null | cut -d= -f2- || true)"
+  [[ -z "${OPA_PORT:-}"      && -n "${_val}" ]] && OPA_PORT="${_val}"
 
   _val="$(grep '^TIMESTAMP='     "${state_file}" 2>/dev/null | cut -d= -f2- || true)"
   export STATE_TIMESTAMP="${_val:-}"

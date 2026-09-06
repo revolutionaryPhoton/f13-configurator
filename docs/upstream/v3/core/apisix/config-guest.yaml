@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Land Baden-Württemberg <InnoLab@stm.bwl.de>
+#
+# SPDX-License-Identifier: MPL-2.0
+
+deployment:
+  role: data_plane
+  role_data_plane:
+    config_provider: yaml
+apisix:
+  node_listen:
+    - ${{BACKEND_PORT:=8000}}

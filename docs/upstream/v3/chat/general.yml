@@ -1,0 +1,8 @@
+# Full configuration reference: docs/configuration.md and src/models/general.py
+service_endpoints:
+  opa: http://opa:8181/
+
+active_llms:
+  chat: ["test_model_mock", "test_reasoning_model_mock"]
+
+log_level: INFO

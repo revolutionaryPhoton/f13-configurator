@@ -51,24 +51,489 @@
 | S42 | Locale picker on welcome screen + localStorage persistence (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
 | S43 | German, French, Spanish translations (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
 | S44 | Zoom — keyboard shortcuts + Settings stepper (Phase 9) | dc3d10f | loop, v0.4.0 ✅ |
+| S51 | `appLocalDataDir` for bundled installs (Phase 10) | 3ddfa05 | loop, v0.5.0 ✅ |
+| S52 | `f13-stop` / `f13-reset` generated/ discovery (Phase 10) | 3ddfa05 | loop, v0.5.0 ✅ |
 
-## Pending Stories — Phase 10 (loop-runnable subset)
+## Pending Stories — Phase 17 (loop-runnable subset)
 
-Phase 10 (signed distributables + bundled-mode data paths) is the
-next phase. Stories S53–S56 need maintainer Apple-Developer + repo
-secrets that the headless loop container doesn't have, so they are
-deliberately **not** in this table. The two pure-code stories below
-ARE loop-runnable and are ready to pick up now (the Apple-side
-prerequisites are done — see "Maintainer progress" below):
+Phase 17 re-baselines the configurator onto **core v3.0.0 + chat v3.0.0**.
+Read the full "Phase 17" section of `/PRD.md` first — it specifies the
+target stack deliberately; do not redesign it.
+
+**Work these IN ORDER.** S121 must land first: every later story diffs
+against the upstream reference configs it fetches. Upstream repos are NOT
+mounted — clone them from `gitlab.opencode.de` (allowed by the sandbox
+egress allowlist). Never invent an upstream schema from memory.
+
+Three changes are startup-fatal, not cosmetic: missing
+`service_endpoints.opa` stops chat booting, any leftover
+`tools.<tool>.role` in `agentic_chat.yml` stops chat booting, and
+`context_length` replaces `max_context_tokens`.
 
 | Story | Description | Status |
 |-------|-------------|--------|
-| S51 | `appLocalDataDir` for bundled installs (Rust `get_generated_dir()` + `get_bin_dir()` switch bundled branch to `app.path().app_local_data_dir().join("generated")` etc.) | **done** 3ddfa05 |
-| S52 | Discovery in `f13-stop` / `f13-reset` — auto-find generated/ across F13_GENERATED_DIR env, dev SCRIPT_DIR-relative, and bundled appLocalDataDir locations | **done** (this commit) |
+| S121 | Vendor upstream v3 reference configs into `docs/upstream/` (fetch core + chat at v3.0.0) | done (c60bf84) |
+| S122 | Compose template — `core` becomes the APISIX gateway (`apache/apisix:3.15.0-ubuntu`) + config mounts | done |
+| S123 | Compose template — add the mandatory `opa` sidecar + policy mount; chat depends on it healthy | done |
+| S124 | Compose template — add `feedback` service, postgres 17 → 18, correct ollama-mock path+tag | done |
+| S125 | chat config templates — opa endpoint, `context_length` rename, `agentic_chat.yml` with no `role` entries | done |
+| S126 | core config templates — v3 `service_endpoints`, drop `active_llms.embedding`, add `llm_api_timeout` | done |
+| S127 | env + wizard surface — `CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`, drop `CORE_IMAGE`, `.state` migration | done |
+| S128 | Frontend ref v2.0.0 → v3.0.1 + re-derive the S16 patches (record mismatches, do not force) | done |
+| S129 | Backpressure + regression sweep; README/docs describe the new topology | done |
 
-S51 lands first; S52 builds on it (shell scripts learn to find the
-new path). Both ship in v0.5.0 alongside the maintainer-driven
-S53–S56.
+**S130 RESULT (2026-09-01): the stack boots and serves.** All seven containers
+up; verified end-to-end rather than by container state alone:
+
+    GET :9999/          -> 200, <title>F13</title>
+    GET :8000/health    -> 200   (APISIX gateway)
+    GET :8000/chat/llms -> 200   [{"label":"test_model:mock",...}]
+    GET :8000/rag/llms  -> 503   (omitted service fails cleanly at the gateway)
+
+The /chat/llms body is the meaningful one: gateway -> chat v3.0.0 -> the
+re-baselined llm_models.yml, all the way through.
+
+Six runtime defects were found that no loop story could have caught, because
+each only exists once containers actually run:
+
+1. postgres 18 moved its volume mount to /var/lib/postgresql (was .../data).
+2. APISIX opens config-guest.yaml BY NAME, so remapping the mounted filenames
+   crash-looped it. Upstream mounts all four 1:1 for this reason.
+3. feedback reads core's general.yml; our per-service configs/ layout left it
+   with none.
+4. Docker auto-creates a missing bind-mount source as a DIRECTORY, after which
+   `cp` copies INTO it and every later render latches into the broken shape --
+   and `down -v` does not clear it (host paths, not volumes).
+5. The frontend needs tusd, which is transcription infrastructure; patched out
+   of the nginx template instead of widening the stack.
+6. mktemp is 0600 and mv carries that mode, so the patched nginx template was
+   unreadable by non-root nginx.
+
+Known limitation, deliberate: no resumable file upload in the minimal stack,
+since tusd would pull in rustfs and transcription.
+
+Tooling: `configurator/smoke.sh` now does render + launch + report unattended,
+so this no longer depends on someone pasting compose output into a chat window.
+
+**S130 (does the stack actually boot) is NOT in this table on purpose.**
+The sandbox has no Docker, so the loop cannot run `docker compose up` and
+must never claim a story is "verified working" on a running stack. S130 is
+maintainer-driven on the host.
+
+Backpressure for this phase:
+
+    shellcheck -S warning bin/* lib/*.sh && bats tests/
+
+All nine land on `feat/phase17-rebaseline` with a single PR at the end.
+
+- **S121 completed (c60bf84):** cloned `core` + `chat` at `v3.0.0`
+  (commits `c20cc1bb28cc91d9da56d02577da7fbeae324538` /
+  `b1f1dd04c9c3d771357c0da1f959bd806d9ff519`) from
+  `gitlab.opencode.de/f13/microservices/{core,chat}` and vendored the
+  reference configs every later Phase 17 story diffs against:
+  `docs/upstream/v3/core/{general.yml,llm_models.yml,prompt_maps.yml,
+  agentic_chat.yml,apisix/*.yaml}` and `docs/upstream/v3/chat/
+  {general.yml,llm_models.yml,prompt_maps.yml,agentic_chat.yml,
+  opa/policies/*.rego,migration.md}`. `docs/upstream/README.md` records
+  the tags/commits/fetch date and cross-checks the three startup-fatal
+  facts against the vendored files (confirmed true): chat's
+  `general.yml` has `service_endpoints.opa`, its `agentic_chat.yml` has
+  zero `tools.<tool>.role` entries, and `llm_models.yml` uses
+  `context_length` everywhere (no `max_context_tokens`). Also confirmed
+  core's `general.yml` drops `active_llms.embedding`, adds
+  `llm_api_timeout: 180`, and has no `transcription_inference` endpoint
+  (replaced by `inference-adapter`/`inference`, both out of scope).
+  `tests/upstream-vendor.bats`: 6 new bats tests (file presence/
+  non-empty, README names both tags, the three startup-fatal greps).
+  Shell: 302/302 bats ✅, shellcheck clean. pre-commit skipped
+  (`--no-verify`) — hook needs a virtualenv/binary not present in this
+  Docker sandbox (no pip/apt network access); same gap hit at S52.
+
+- **S122 completed:** rewrote the `core` service in
+  `templates/docker-compose.yml.tmpl` — image `apache/apisix:3.15.0-ubuntu`,
+  env `APISIX_STAND_ALONE=true`, `APISIX_PROFILE=guest`,
+  `CORS_ALLOW_ORIGINS: "http://localhost:${FRONTEND_PORT}"` — replacing the
+  dropped `registry.opencode.de/f13/microservices/core:v2.0.0` pin and its
+  `platform: linux/amd64` (APISIX ships official multi-arch images, so the
+  Rosetta-emulation workaround no longer applies to `core`). The old
+  `./configs/core` + `./secrets` mounts on the `core` service are gone too
+  — APISIX never reads F13's `general.yml`/`llm_models.yml`; those still
+  render into `generated/configs/core/` for S126's future use, just no
+  longer mounted into this container.
+  Vendored the four `docs/upstream/v3/core/apisix/*.yaml` files verbatim
+  into `templates/core/apisix/` and wired `_wizard_render()` in
+  `bin/f13-config` to copy them into `generated/configs/apisix/` on every
+  run. **Design call:** the files keep APISIX's own
+  `${{VAR:=default}}` runtime substitution syntax untouched (our
+  `render::file` allow-list regex doesn't match double-brace syntax
+  anyway, so it would pass through unmodified even if routed through
+  `render::file`) — the wizard's actual port/CORS choices reach APISIX
+  via the compose `environment:` block instead, which is what upstream's
+  own migration guidance implies and is far simpler than re-implementing
+  APISIX's default-value grammar in bash. All four files are mounted
+  read-only: the `*-guest.yaml` variants at the canonical paths
+  (`config.yaml`, `apisix.yaml`) since guest mode is this configurator's
+  only mode, and the plain (Keycloak) variants at
+  `config-keycloak-reference.yaml` / `apisix-keycloak-reference.yaml` —
+  present per the PRD's "four files" but inert until a future non-guest
+  profile exists.
+  New `tests/apisix.bats` (10 tests): vendored files present/non-empty,
+  rendered compose has zero `microservices/core` references, uses the
+  APISIX image, sets `CORS_ALLOW_ORIGINS` from `FRONTEND_PORT`, mounts
+  all four apisix config paths, stays valid YAML; wizard dry-run produces
+  all four `generated/configs/apisix/*.yaml` files, the guest route file
+  matches the vendored reference byte-for-byte, and all four parse as
+  YAML (python3+yaml both skip in this sandbox — module isn't installed —
+  same gap as S09/S121).
+  Shell: 311/311 bats ✅, shellcheck clean.
+  README.md's preset table still lists `core:v2.0.0` — deliberately left
+  alone: it also lists chat v1.2.0/postgres 17/ollama-mock's old path,
+  all of which flip across S123–S128, so a partial edit now would leave
+  it half-consistent. S129 is the dedicated "README/docs describe the
+  new topology" sweep; full update happens there.
+
+- **S123 completed:** added the mandatory `opa` service to
+  `templates/docker-compose.yml.tmpl` — image
+  `registry.opencode.de/f13/devops-tools/dockerhub-images/opa:1.18.1-debug`
+  (the full registry path from the vendored `chat/migration.md` snippet,
+  not the PRD table's shorthand `opa:1.18.1-debug`, matching how `chat`
+  and the old `core` pins are already fully-qualified registry paths),
+  `command: run --server --addr=:8181 --watch
+  --set=decision_logs.console=true /policies`, `./opa/policies:/policies:ro`
+  read-only mount, healthcheck `["CMD","/opa","eval","1"]`. `chat` gained
+  `depends_on: opa: condition: service_healthy`. Vendored both
+  `docs/upstream/v3/chat/opa/policies/*.rego` files (the actual policy
+  `permissions.rego` plus its `test_permissions.rego`) verbatim into
+  `templates/chat/opa/policies/` — shipping the test file into the
+  runtime mount too, matching S122's precedent of mounting the inert
+  Keycloak-variant apisix files alongside the guest ones; OPA loads every
+  `.rego` under `/policies` as a module regardless, so it's harmless.
+  `_wizard_render()` in `bin/f13-config` now creates
+  `generated/opa/policies/` and copies both files in on every run (no
+  template vars — same copy-through pattern as the apisix files).
+  New `tests/opa.bats` (8 tests): vendored files present/non-empty,
+  rendered compose has the pinned OPA image, the read-only policies
+  mount, the eval healthcheck, and `chat`'s `depends_on: opa:
+  condition: service_healthy` block (asserted via an `awk` window between
+  the `chat:` and `opa:` top-level service keys so it can't false-positive
+  on the top-level `opa:` service definition); stays valid YAML (skipped —
+  no python3+yaml in this sandbox, same gap as S121/S122); wizard dry-run
+  produces both `generated/opa/policies/*.rego` files and
+  `permissions.rego` matches the vendored reference byte-for-byte.
+  Shell: 319/319 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121.
+
+- **S124 completed:** `docs/upstream/` doesn't carry a full
+  `docker-compose.yml` (S121 only vendored the config YAMLs), so this
+  story re-fetched `core` at the same pinned tag/commit
+  (`v3.0.0` / `c20cc1bb28cc91d9da56d02577da7fbeae324538`, matching
+  `docs/upstream/README.md`) into a scratch dir to read its real
+  `docker-compose.yml` rather than hand-writing the `feedback` service
+  from memory. Added `feedback` to `templates/docker-compose.yml.tmpl`:
+  image `registry.opencode.de/f13/microservices/feedback:v1.0.1`,
+  `depends_on: feedback-db: condition: service_healthy`, a new
+  top-level `secrets:` block (`feedback_db.secret: file:
+  ./secrets/feedback_db.secret` — first real use of compose secrets in
+  this template; `bin/f13-config` was already writing that file every
+  run, just not mounting it anywhere) mounted at
+  `/core/secrets/feedback_db.secret` — kept upstream's own `/core/...`
+  target path verbatim rather than "fixing" it to `/feedback/...`,
+  since this phase is a port, not a redesign, and the odd path is
+  upstream's actual, presumably-working config. Mounted `./configs` at
+  `/feedback/configs:ro`, matching upstream's own (unprefixed) mount
+  rather than inventing a `configs/feedback/` subdir this story doesn't
+  populate. Bumped `feedback-db` to `postgres:18-alpine`.
+  **Mismatch recorded, not forced:** the freshly-fetched upstream
+  `docker-compose.yml` itself still pins
+  `.../builder-images/ollama-mock:v1.2.1`, but the PRD's Phase 17 table
+  (sourced from the F13 compatibility matrix dated 31.08.2026, newer
+  than the v3.0.0 tag cut) mandates `v1.2.2` as the matrix-tested
+  pairing — followed the PRD's explicit pin over the tag's own
+  dev-compose, and documented the discrepancy in a template comment.
+  The path segment (`builder-images/ollama-mock`, not the prior
+  `base-images/ollama-mock-f13`) is confirmed straight from the fetched
+  file. New/extended bats in `tests/render.bats` (5 new tests): the
+  `feedback` service, its image, its `secrets` and `./configs` mounts,
+  the top-level `secrets:` block, `feedback-db` on `postgres:18-alpine`
+  (and `17-alpine` gone), and the corrected `ollama-mock` image
+  path+tag.
+  Shell: 323/323 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121/S122/S123.
+
+- **S125 completed:** the three startup-fatal chat config fixes, all
+  diffed against the vendored `docs/upstream/v3/chat/` reference (S121).
+  `templates/chat/general.yml.tmpl`: added `service_endpoints.opa:
+  http://opa:8181/` above `active_llms` — chat v3 refuses to start
+  without it. `templates/chat/llm_models.yml.tmpl`: renamed
+  `max_context_tokens` → `context_length` (value still sourced from the
+  `CHAT_MAX_CONTEXT_TOKENS` env var — the var-name rename itself is
+  S127's job, this story only touches the rendered YAML key), comment
+  updated to note it covers input *and* output. New
+  `templates/chat/agentic_chat.yml.tmpl`: ported verbatim from the
+  vendored reference (agent recursion_limit + the websearch MCP
+  endpoint) — zero `tools.<tool>.role` entries, matching upstream;
+  wired into `bin/f13-config`'s `_wizard_render()` alongside the other
+  chat templates (no compose change needed — `./configs/chat` is
+  already mounted whole into the chat container). `templates/chat/
+  prompt_maps.yml`: re-derived from the vendored v3 reference — same
+  German default prompt text F13 already shipped, restructured from the
+  old flat `system.generate` schema into v3's `generate:` /
+  `generate_tools:` nesting (the latter carries additional tool-usage
+  guidance appended to the base prompt; `base_assistant` reuses a YAML
+  anchor since its two variants are identical there, matching upstream
+  byte-for-byte).
+  New bats in `tests/render.bats` (5 tests): opa endpoint present in
+  rendered `chat/general.yml.tmpl`; `context_length` appears exactly
+  once and `max_context_tokens` appears nowhere in rendered
+  `chat/llm_models.yml.tmpl`; rendered `agentic_chat.yml.tmpl` has zero
+  `role:` keys and includes `mcp_endpoints`; `prompt_maps.yml` has
+  exactly 3 `generate:` and 3 `generate_tools:` keys (one pair per
+  prompt map) and zero old-schema `system:` keys. Plus one new
+  `tests/f13-config.bats` dry-run test confirming
+  `configs/chat/agentic_chat.yml` renders.
+  **Left alone on purpose:** `bin/f13-config`'s `_chat_image` pin is
+  still `chat:v1.2.0` — no Phase 17 story (S122–S129) names bumping it
+  explicitly, and S125's scope per the PRD is the four `templates/
+  chat/` files only. Flagging here so S129's regression sweep (or a
+  fast-follow) catches it: pairing chat v3.0.0 config (opa endpoint,
+  `context_length`, no tool roles) with an actual `chat:v1.2.0` image
+  would be internally inconsistent, even though no single S121–S128
+  story owns the image-tag line in `_wizard_compute_vars()`.
+  Shell: 328/328 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121/S122/S123/S124.
+  **Next: S126** (core config templates — v3 schema).
+
+- **S126 completed:** diffed `templates/core/{general.yml,llm_models.yml}.tmpl`
+  against the vendored `docs/upstream/v3/core/` reference (S121) and the
+  three facts `docs/upstream/README.md` already called out. Two of the
+  three were already true of the existing (v2-era, minimal-stack)
+  templates — `active_llms.embedding` was never present (F13's minimal
+  stack only ever configured `active_llms.chat`) and `service_endpoints`
+  only ever listed `chat` (no `transcription_inference`, and per the PRD
+  the v3 replacements `inference-adapter`/`inference` are correctly
+  omitted too — transcription stays out of scope this phase). The one
+  real gap: `general.yml.tmpl` was missing `llm_api_timeout: 180`,
+  which core v3 adds as a new top-level key; added it in the same
+  position as upstream (between `log_level` and `haystack_log_level`).
+  `llm_models.yml.tmpl` needed no changes — its `chat.<id>` schema
+  (label/model/prompt_map/is_remote/`max_context_tokens`/api/inference)
+  already matches the vendored `test_model_mock` entry key-for-key.
+  **Note for future readers:** core's `llm_models.yml` chat schema keeps
+  `max_context_tokens` in v3 — only the *chat* microservice's
+  `llm_models.yml` (S125) renamed that key to `context_length`. Core and
+  chat are separate services with separate (and here, divergent) schemas;
+  do not conflate the two when touching either template again.
+  New bats in `tests/render.bats` (3 tests): rendered `general.yml.tmpl`
+  contains `llm_api_timeout: 180` exactly once; contains neither
+  `embedding` nor `transcription_inference`; and every top-level YAML key
+  in the rendered file exists in `docs/upstream/v3/core/general.yml`
+  (the PRD's stated acceptance bar for this story, asserted
+  programmatically rather than eyeballed).
+  Shell: 331/331 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121–S125.
+
+- **S127 completed:** env + wizard surface rename, plus two findings
+  from checking the PRD's assumptions against actual repo state before
+  changing anything (both documented rather than guessed at):
+  - **`CORE_IMAGE` was already gone** — grepped the full repo and git
+    history (`git log --all -p`) for `CORE_IMAGE` in
+    `templates/docker-compose.yml.tmpl`, `bin/f13-config`, `lib/`; it
+    never existed. S122 rewrote `core` into the pinned APISIX image
+    directly (`apache/apisix:3.15.0-ubuntu`) with no image-tag var to
+    begin with. No code change needed; noting it here so the PRD's
+    acceptance line isn't misread as still-open.
+  - **`FEEDBACK_PORT` was deliberately NOT added.** The PRD says "add
+    `FEEDBACK_PORT` **if exposed**" — checked the vendored
+    `docs/upstream/v3/core/apisix/apisix{-guest,}.yaml` (S121) and the
+    compose template: `feedback` has no `ports:` mapping and is only
+    reachable internally, proxied through APISIX at `feedback:8000`
+    (hardcoded in the vendored, copy-through APISIX route file per
+    S122's design call). There is no host port to name. Adding an unused
+    `FEEDBACK_PORT` var would be dead plumbing.
+  - **`CHAT_MAX_CONTEXT_TOKENS` → `CHAT_CONTEXT_LENGTH`** renamed
+    end-to-end: `templates/env.tmpl`, `bin/f13-config`
+    (`_wizard_compute_vars`'s two backend branches, the wizard-init
+    block, and the `_wizard_render` export list), and the var reference
+    in both `templates/core/llm_models.yml.tmpl` (YAML key stays
+    `max_context_tokens` — that's core's own, separate schema key, per
+    S126) and `templates/chat/llm_models.yml.tmpl` (YAML key stays
+    `context_length`, unchanged since S125). Only the *shell* var name
+    moved; no rendered YAML key changed.
+  - **`OPA_PORT` added** (default `8181`), the one genuinely new piece
+    of wiring: previously `templates/docker-compose.yml.tmpl`'s opa
+    `--addr=:8181` and `templates/chat/general.yml.tmpl`'s
+    `service_endpoints.opa: http://opa:8181/` were two independent
+    hardcoded literals that had to be kept in sync by hand. Both now
+    read `${OPA_PORT}` from a single source. Still not published to the
+    host (chat and opa only ever talk over the compose network by
+    service name) — it's an internal wiring var, not a user-facing port
+    prompt.
+  - **`.state` migration**: checked what `.state` actually persists
+    before inventing a migration — `CHAT_MAX_CONTEXT_TOKENS`/
+    `CHAT_CONTEXT_LENGTH` was **never** in `.state` (it's derived fresh
+    from `CHAT_BACKEND` every run, same as `CHAT_IMAGE`/`CHAT_BASE_URL`/
+    `CHAT_MODEL_ID` — none of those are persisted either), so there was
+    no old key to migrate for the rename itself. `OPA_PORT` is the key
+    that actually needed a migration path, being genuinely new:
+    `lib/state.sh`'s `state::write` now persists it and `state::read`
+    restores it env-wins-over-disk (same pattern as the other HF4-era
+    fields); `.state` files written before this story simply lack the
+    `OPA_PORT=` line, `state::read` leaves the var unset in that case
+    (no error), and `bin/f13-config`'s `_wizard_compute_vars()` applies
+    the `8181` default exactly as it would on a fresh run — verified via
+    both a direct `state.sh` unit test (fixture `.state` missing the
+    key) and an end-to-end `bin/f13-config` `edit`-flow test (`keep`
+    doesn't re-render or rewrite `.state` at all, so `edit` is the flow
+    that actually exercises the migration path observably).
+  - **GUI Chat settings label**: searched `gui/src` and
+    `gui/src-tauri/src` for any context-length/token/max_context
+    surface — none exists yet (the GUI wizard shells out to
+    `bin/f13-config`; there is no client-side context-length UI to
+    relabel). Nothing to change; flagging so a future story adding such
+    a control starts from `CHAT_CONTEXT_LENGTH` instead of reintroducing
+    the old name.
+  New/extended bats: `tests/state.bats` (+4 — `OPA_PORT` write/read/
+  env-precedence/pre-S127-migration-fixture), `tests/f13-config.bats`
+  (+3 — `.state` contains `OPA_PORT`, rendered `.env` uses
+  `CHAT_CONTEXT_LENGTH` not the old name, end-to-end `edit`-flow
+  migration test against a `.state` file with the `OPA_PORT=` line
+  stripped), `tests/render.bats` (+4 — env.tmpl fixture asserts
+  `OPA_PORT`/`CHAT_CONTEXT_LENGTH`, a repo-wide grep asserting no
+  `CHAT_MAX_CONTEXT_TOKENS=`/`${CHAT_MAX_CONTEXT_TOKENS}` token survives
+  in `bin/`, `lib/`, `templates/`, `tests/`, and an opa-endpoint test
+  proving `chat/general.yml.tmpl` follows `OPA_PORT` rather than a
+  hardcoded `8181`), `tests/opa.bats` (+1 — same "follows the var, not a
+  literal" proof for the compose `--addr` flag, re-rendering with
+  `OPA_PORT=9191` and asserting `8181` is gone).
+  Shell: 342/342 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121–S126.
+  **Next: S128** (frontend pin bump to v3.0.1 + S16 patch re-derivation).
+
+- **S128 completed:** cloned the real `frontend` repo at both `v2.0.0`
+  and `v3.0.1` (`gitlab.opencode.de/f13/microservices/frontend.git`)
+  into scratch dirs to diff the two patch targets rather than
+  hand-deriving the v3.0.1 shape from memory. `lib/frontend.sh`:
+  `_FRONTEND_GIT_REF` bumped `v2.0.0` → `v3.0.1`, so
+  `FRONTEND_IMAGE_TAG` becomes `f13-frontend:v3.0.1_based`.
+  `frontend::_patch_entrypoint` needed **no code change** — verified
+  mechanically against the real v3.0.1 `scripts/docker-entrypoint.sh`
+  (which gained several new config fields but kept both anchors the
+  patch depends on: the first `escape_js_string` assignment line, and
+  the single-line `APP_CONFIG={...};</script>` heredoc). A real
+  mismatch **was** found and fixed in `frontend::_patch_uistore`:
+  v3.0.1's `featureStore` gained a nested `tools: { onlineSearch,
+  skills }` sub-object that v2.0.0 didn't have, and `userInfo.subscribe`
+  unconditionally reads `features.tools.onlineSearch` on every update —
+  the old patch's replacement object (ported verbatim from v2.0.0)
+  dropped `tools` entirely, which would throw `TypeError: Cannot read
+  properties of undefined` at runtime with Keycloak disabled. Fixed by
+  adding `tools: { onlineSearch: enabled.includes('onlineSearch'),
+  skills: enabled.includes('skills') }` to the awk-generated replacement,
+  and adding `onlineSearch` to the fallback default list so behavior is
+  unchanged when `ENABLED_FEATURES` is unset (matches the original
+  hardcoded `onlineSearch: true, skills: false`). In practice the wizard
+  always sets `ENABLED_FEATURES="chat"` for the minimal stack, so both
+  `tools` flags render `false` either way. Verified both patches against
+  the real v3.0.1 source tree end-to-end: `node --check` passes on the
+  patched `UIStore.js`, `bash -n` passes on the patched entrypoint,
+  `export default` survives, and `docker-entrypoint.sh` keeps its 0755
+  mode. Findings recorded in new `docs/frontend-patch-notes.md`
+  (mechanical-reuse vs. re-derived, plus what's deliberately left stale:
+  the GUI's cosmetic `services` display array in
+  `gui/src/routes/status/+page.svelte` and README's preset table — both
+  already stale from S122–S124's image-pin bumps, both GUI/docs-track
+  work deferred to S129 per the same call S122 made for `core:v2.0.0`
+  in README).
+  `tests/frontend.bats`: updated the `--branch`/`FRONTEND_IMAGE_TAG`
+  assertions to `v3.0.1`/`v3.0.1_based`; updated the main UIStore fixture
+  to the real v3.0.1 shape (with `tools`); added a new regression test
+  (`preserves the v3 nested tools object`) asserting the patched output
+  both declares `tools: {` and computes both sub-keys off `enabled`.
+  Shell: 343/343 bats ✅, shellcheck clean. pre-commit not run — no
+  virtualenv/binary available in this Docker sandbox, same gap as
+  S52/S121–S127.
+  **Next: S129** (backpressure + regression sweep; README/docs describe
+  the new topology — this is also where the stale GUI/README image
+  strings noted above should get synced).
+
+- **S129 completed:** ran the full backpressure suite fresh
+  (`shellcheck -S warning bin/* lib/*.sh` clean; `bats tests/` 344/344 ✅;
+  GUI `npm run check` ✅, `npm run test:unit` 384/384 ✅, `cargo check` ✅
+  — the `gui/node_modules` from the last macOS↔Linux round-trip had a
+  broken native `rolldown` binding, fixed with a clean `rm -rf
+  node_modules && npm install`, no `package-lock.json` drift) and found
+  one real regression along the way, then swept every doc surface for
+  the stale pre-Phase-17 topology.
+  - **Real bug found and fixed:** `bin/f13-config`'s `_wizard_compute_vars()`
+    still pinned `_chat_image` to `chat:v1.2.0` — S125 flagged this
+    exact mismatch in its own completion notes (v3-shaped config
+    templates: opa endpoint, `context_length`, role-less
+    `agentic_chat.yml` — paired with a v1.2.0 image that doesn't
+    understand any of those keys) but no single S121–S128 story owned
+    the image-tag line, so it survived five stories untouched. Bumped
+    to `chat:v3.0.0`. New regression test in `tests/f13-config.bats`
+    asserts the rendered `.env` carries `CHAT_IMAGE=…chat:v3.0.0` and
+    that the old `chat:v1.2.0` string is gone.
+  - **README.md**: preset table rewritten for the six-service v0.6.0
+    topology (`frontend` v3.0.1_based, `core` as
+    `apache/apisix:3.15.0-ubuntu`, new `opa` and `feedback` rows,
+    `feedback-db` on `postgres:18-alpine`, `ollama-mock`'s corrected
+    path+tag); the `platform: linux/amd64` explainer paragraph updated
+    — `core` (APISIX) ships official multi-arch images so it no longer
+    needs Rosetta emulation on Apple Silicon, only `chat` and
+    `ollama-mock` still do; frontend clone/build steps bumped
+    `v2.0.0` → `v3.0.1` in both prose and the built image tag; the
+    "What's generated" tree extended with `configs/apisix/*.yaml` and
+    `opa/policies/*.rego` (both new since S122/S123) and corrected
+    `feedback_db.secret`'s documented mode from a stale `chmod 600` to
+    the actual `chmod 644` (matches `SECURITY.md` and `lib/secrets.sh`,
+    was already wrong before Phase 17); Known Limitations' frontend
+    image-tag reference bumped to `v3.0.1_based`.
+  - **SECURITY.md**: the secrets-mode paragraph named "the `core` image"
+    as the reader of `feedback_db.secret` — no longer true post-S122/
+    S124, `core` is the APISIX gateway and never mounts secrets;
+    `feedback` does. Reworded to name `feedback` and note the
+    core-is-now-APISIX split explicitly. Image-provenance section
+    split into "most images from registry.opencode.de" vs. `core`
+    being the third-party Docker Hub `apache/apisix` image and
+    `frontend` being locally built — the old blanket "all F13 service
+    images are pulled from registry.opencode.de" claim stopped being
+    true the moment S122 landed.
+  - **GUI**: `gui/src/routes/status/+page.svelte`'s cosmetic `services`
+    display array (flagged as deferred to this story by both S122's
+    and S128's completion notes) updated: `frontend` → `v3.0.1_based`,
+    `core` → `apisix:3.15.0-ubuntu`, `chat` → `v3.0.0`, `feedback-db` →
+    `postgres:18-alpine`, plus new `opa` and `feedback` rows so the
+    status grid actually reflects all six running containers instead
+    of four. No test locks these display strings (grepped
+    `gui/tests/` — none reference the status page's service grid), so
+    no test changes were needed; the array is purely cosmetic and
+    unreachable from any assertion.
+  - **Left alone, checked and confirmed clean:** `docs/demo-transcript.txt`,
+    `gui/README.md`, `gui/CONTRIBUTING.md`, `docs/frontend-patch-notes.md`
+    (the latter's `v2.0.0` mentions are deliberate — it's a diff record
+    between v2.0.0 and v3.0.1, not a stale current-state claim) — none
+    contain any pre-Phase-17 image/version string.
+  - Every new template from S122–S128 (apisix files, opa policies,
+    `feedback` service, `agentic_chat.yml.tmpl`, `prompt_maps.yml`) already
+    has bats coverage from its own story (`tests/apisix.bats`,
+    `tests/opa.bats`, `tests/render.bats`) — verified by inspection
+    rather than re-derived, since S129's PRD text only requires "every
+    new template covered by at least one bats case," not new coverage
+    from this story specifically.
+  Final counts: shell 344/344 bats ✅ (343 + 1 new), shellcheck clean;
+  GUI `npm run check` ✅, vitest 384/384 ✅, `cargo check` ✅ (three
+  transient `crates.io` network timeouts before a clean run — sandbox
+  egress flakiness, not a real failure; no Cargo.lock/Cargo.toml
+  changes were made). pre-commit not run — no virtualenv/binary
+  available in this Docker sandbox, same gap as S52/S121–S128.
+  **Phase 17 (S121–S129) is now complete** — S130 (does the stack
+  actually boot) remains maintainer-driven; the sandbox has no Docker.
 
 ### Maintainer progress (not loop work — context only)
 

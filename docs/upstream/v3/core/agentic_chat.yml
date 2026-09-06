@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2025 Land Baden-Württemberg <InnoLab@stm.bwl.de>
+#
+# SPDX-License-Identifier: MPL-2.0
+agent:
+  recursion_limit: 7 # sets the maximum number of reasoning steps the agent may perform before stopping, preventing infinite loops or excessive node traversal.
+
+tools:
+  websearch: null # websearch engine, secret path and authentication if applicable

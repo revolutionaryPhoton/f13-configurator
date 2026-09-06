@@ -92,6 +92,11 @@ _run_mock_dry() {
   [ -f "${TMPDIR_WORK}/gen/configs/chat/llm_models.yml" ]
 }
 
+@test "non-interactive dry-run produces configs/chat/agentic_chat.yml" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  [ -f "${TMPDIR_WORK}/gen/configs/chat/agentic_chat.yml" ]
+}
+
 # ---------------------------------------------------------------------------
 # Secrets
 # ---------------------------------------------------------------------------
@@ -165,6 +170,15 @@ _run_mock_dry() {
   env "${NI_ENV[@]}" "${BIN}" --dry-run
   run grep 'test_model_mock' "${TMPDIR_WORK}/gen/configs/chat/llm_models.yml"
   [ "$status" -eq 0 ]
+}
+
+@test ".env pins CHAT_IMAGE to chat v3.0.0, not the pre-S125 v1.2.0 (S129)" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run grep 'CHAT_IMAGE=registry.opencode.de/f13/microservices/chat:v3.0.0' \
+    "${TMPDIR_WORK}/gen/.env"
+  [ "$status" -eq 0 ]
+  run grep 'chat:v1.2.0' "${TMPDIR_WORK}/gen/.env"
+  [ "$status" -eq 1 ]
 }
 
 # ---------------------------------------------------------------------------
@@ -264,6 +278,37 @@ _run_mock_dry() {
 @test ".state file contains CHAT_BACKEND" {
   env "${NI_ENV[@]}" "${BIN}" --dry-run
   run grep '^CHAT_BACKEND=mock' "${TMPDIR_WORK}/gen/.state"
+  [ "$status" -eq 0 ]
+}
+
+@test ".state file contains OPA_PORT (S127)" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run grep '^OPA_PORT=8181' "${TMPDIR_WORK}/gen/.state"
+  [ "$status" -eq 0 ]
+}
+
+@test "generated .env uses CHAT_CONTEXT_LENGTH, not CHAT_MAX_CONTEXT_TOKENS (S127)" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  run grep '^CHAT_CONTEXT_LENGTH=4096' "${TMPDIR_WORK}/gen/.env"
+  [ "$status" -eq 0 ]
+  run grep -c 'CHAT_MAX_CONTEXT_TOKENS' "${TMPDIR_WORK}/gen/.env"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+}
+
+@test "S127 migration: edit re-run against a pre-S127 .state file (no OPA_PORT key) re-renders with OPA_PORT=8181" {
+  env "${NI_ENV[@]}" "${BIN}" --dry-run
+  # Simulate a .state file written before OPA_PORT existed by stripping
+  # the line a real S127-era run would have written. "edit" (not "keep")
+  # is the flow that actually re-renders and re-writes .state.
+  grep -v '^OPA_PORT=' "${TMPDIR_WORK}/gen/.state" > "${TMPDIR_WORK}/gen/.state.tmp"
+  mv "${TMPDIR_WORK}/gen/.state.tmp" "${TMPDIR_WORK}/gen/.state"
+
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=edit "${BIN}" --dry-run
+  [ "$status" -eq 0 ]
+  run grep '^OPA_PORT=8181' "${TMPDIR_WORK}/gen/.state"
+  [ "$status" -eq 0 ]
+  run grep '^OPA_PORT=8181' "${TMPDIR_WORK}/gen/.env"
   [ "$status" -eq 0 ]
 }
 

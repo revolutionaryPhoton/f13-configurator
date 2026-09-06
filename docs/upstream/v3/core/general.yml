@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: 2025 Land Baden-Württemberg <InnoLab@stm.bwl.de>
+#
+# SPDX-License-Identifier: MPL-2.0
+
+service_endpoints:
+  chat: http://chat:8000/
+  summary: http://summary:8000/
+  parser: http://parser:8000/
+  rag: http://rag:8000/
+  elasticsearch: http://elasticsearch:9200/
+  transcription: http://transcription:8000/
+  inference-adapter: http://inference-adapter:8000/
+  inference: http://transcription-inference-mock:4040
+
+active_llms:
+  chat: ["test_model_mock", "test_reasoning_model_mock", "test_model_local"]
+  summary: ["test_model_mock", "test_model_local", "test_model_cloud"]
+  rag: ["test_model_mock", "test_model_local"]
+  transcription: ["test_model_mock"]
+
+feedback_db:
+  server: "feedback-db"
+  port: 5432
+  dialect: "postgresql"
+  db_name: "feedback"
+  username: "member"
+  path_secret: "/core/secrets/feedback_db.secret"
+
+authentication:
+  # 'guest_mode' disables authentication in all endpoints in Core. Even if a token is provided in
+  # the context it will not be taken into consideration.
+  guest_mode: true
+
+  # Base URL of the Keycloak identity provider and Keycloak Realm.
+  # at the moment: make sure to use the same values as in the .env file (will be refactored later)
+  keycloak_base_url: http://keycloak:8080
+  keycloak_realm: f13
+  # The client used by core to perform UMA requests.
+  keycloak_client: f13-api
+
+  # Audience check for validating JWT access tokens.
+  # This value must match the "aud" claim included in the access tokens issued by Keycloak.
+  # In most configurations, this corresponds to the client ID of the API that the token is intended
+  # for.
+  #
+  # Set this to `null` to disable audience verification alltogether.
+  audience: f13-api
+
+# allow_origins setting for CORS. This is a list of HTTP(s) URLs. Add the URL the frontend is
+# found.
+allow_origins:
+  - "http://localhost:9999"
+  - "http://localhost:8000" # Swagger UI
+
+log_level: INFO
+
+llm_api_timeout: 180               # timeout (in seconds) for calls to LLM-APIs
+haystack_log_level: WARNING
+debug_haystack_pipelines: False
+
+inter_service_communication:
+  parser:
+    max_attempts: 2
+    timeout_in_s: 200

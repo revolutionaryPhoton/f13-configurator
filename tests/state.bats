@@ -254,6 +254,72 @@ teardown() {
 }
 
 # ---------------------------------------------------------------------------
+# S127: OPA_PORT — new key, migration for pre-S127 .state files
+# ---------------------------------------------------------------------------
+
+@test "state::write creates file with OPA_PORT" {
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/state.sh'
+    PRESET='core+frontend+chat'
+    CHAT_BACKEND='mock'
+    OLLAMA_MODEL=''
+    FRONTEND_PORT='9999'
+    CORE_PORT='8000'
+    OPA_PORT='8181'
+    state::write '${TMPDIR_TEST}/.state'
+    grep -q '^OPA_PORT=8181' '${TMPDIR_TEST}/.state'
+  "
+  [ "$status" -eq 0 ]
+}
+
+@test "state::read loads OPA_PORT" {
+  printf 'CHAT_BACKEND=mock\nFRONTEND_PORT=9999\nCORE_PORT=8000\nOPA_PORT=9191\n' \
+    > "${TMPDIR_TEST}/.state"
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/state.sh'
+    OPA_PORT=''
+    state::read '${TMPDIR_TEST}/.state'
+    printf '%s' \"\${OPA_PORT}\"
+  "
+  [ "$status" -eq 0 ]
+  [ "$output" = "9191" ]
+}
+
+@test "state::read does not clobber env-set OPA_PORT (HF4-style regression)" {
+  printf 'CHAT_BACKEND=mock\nFRONTEND_PORT=9999\nCORE_PORT=8000\nOPA_PORT=9191\n' \
+    > "${TMPDIR_TEST}/.state"
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/state.sh'
+    OPA_PORT='7171'
+    state::read '${TMPDIR_TEST}/.state'
+    printf '%s' \"\${OPA_PORT}\"
+  "
+  [ "$status" -eq 0 ]
+  [ "$output" = "7171" ]
+}
+
+@test "state::read migration: pre-S127 .state file lacking OPA_PORT leaves it unset, not broken" {
+  # Simulates a .state file written before S127 added the key — no
+  # OPA_PORT= line at all. state::read must not error and must leave
+  # OPA_PORT empty so the caller's own default (8181, in
+  # bin/f13-config's _wizard_compute_vars) applies, exactly like a fresh run.
+  printf 'PRESET=core+frontend+chat\nCHAT_BACKEND=mock\nOLLAMA_MODEL=\nFRONTEND_PORT=9999\nCORE_PORT=8000\nTIMESTAMP=2026-01-01T00:00:00Z\n' \
+    > "${TMPDIR_TEST}/.state"
+  run bash -c "
+    source '${LIB_DIR}/ui.sh'
+    source '${LIB_DIR}/state.sh'
+    OPA_PORT=''
+    state::read '${TMPDIR_TEST}/.state'
+    printf 'opa_port=[%s]' \"\${OPA_PORT}\"
+  "
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"opa_port=[]"* ]]
+}
+
+# ---------------------------------------------------------------------------
 # state::check
 # ---------------------------------------------------------------------------
 

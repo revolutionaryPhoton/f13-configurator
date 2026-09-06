@@ -258,30 +258,68 @@ _wizard_compute_vars() {
   # Pinned chat image — both backends use the same tagged release
   # (registry.opencode.de/.../chat:vX.Y.Z) so behavior matches what
   # F13 documentation describes for that version.
-  local _chat_image="registry.opencode.de/f13/microservices/chat:v1.2.0"
+  #
+  # S129: bumped v1.2.0 -> v3.0.0. S125 rewrote chat's config templates
+  # (opa endpoint, context_length, role-less agentic_chat.yml) for the
+  # v3.0.0 schema but left this pin untouched -- flagged there as a
+  # startup-fatal mismatch (v1.2.0 doesn't understand any of those
+  # keys) for this story's regression sweep to catch.
+  local _chat_image="registry.opencode.de/f13/microservices/chat:v3.0.0"
 
   if [[ "${CHAT_BACKEND}" == "mock" ]]; then
     CHAT_IMAGE="${_chat_image}"
     CHAT_BASE_URL="http://ollama-mock:11434/v1"
     CHAT_MODEL_NAME="test_model:mock"
-    CHAT_MAX_CONTEXT_TOKENS="4096"
+    CHAT_CONTEXT_LENGTH="4096"
     CHAT_MODEL_ID="test_model_mock"
     COMPOSE_PROFILES="mock"
   else
     CHAT_IMAGE="${_chat_image}"
     CHAT_BASE_URL="$(ollama::host_url_for_docker)"
     CHAT_MODEL_NAME="${OLLAMA_MODEL}"
-    CHAT_MAX_CONTEXT_TOKENS="8192"
+    CHAT_CONTEXT_LENGTH="8192"
     CHAT_MODEL_ID="local_ollama"
     COMPOSE_PROFILES=""
+  fi
+
+  # v3.0.0 chat's OPA sidecar port. Not user-configurable (no host port
+  # published — chat/opa talk over the compose network by service name),
+  # but templated instead of hardcoded so the container's own --addr and
+  # chat's service_endpoints.opa URL can never drift apart. .state files
+  # written before this var existed lack OPA_PORT; state::read leaves it
+  # unset in that case, so it lands here on every run (fresh or "keep").
+  OPA_PORT="${OPA_PORT:-8181}"
+}
+
+# _wizard_copy_file SRC DST
+# Copy a vendored file to an EXACT destination path.
+#
+# Plain `cp SRC DST` is unsafe here: when DST already exists as a directory, cp
+# copies INTO it, producing configs/apisix/config.yaml/config.yaml instead of
+# configs/apisix/config.yaml. That happens for real -- Docker auto-creates a
+# bind-mount source as a directory when the file is missing, so one failed
+# `compose up` leaves behind directories that silently latch every later render
+# into the wrong shape. `down -v` does not clear them either: they are host
+# paths under generated/, not volumes.
+#
+# Removing DST first makes the render idempotent, and the type check turns a
+# silent mis-copy into a loud failure.
+_wizard_copy_file() {
+  local src="${1:?}" dst="${2:?}"
+  rm -rf "${dst}"
+  cp "${src}" "${dst}"
+  if [[ ! -f "${dst}" ]]; then
+    ui::err "Failed to place ${dst} as a regular file."
+    return 1
   fi
 }
 
 _wizard_render() {
-  mkdir -p "${GEN_DIR}/configs/core" "${GEN_DIR}/configs/chat" "${GEN_DIR}/secrets"
+  mkdir -p "${GEN_DIR}/configs/core" "${GEN_DIR}/configs/chat" \
+    "${GEN_DIR}/configs/apisix" "${GEN_DIR}/opa/policies" "${GEN_DIR}/secrets"
 
-  export FRONTEND_PORT CORE_PORT CHAT_BACKEND OLLAMA_MODEL FEEDBACK_DB_PASSWORD \
-    CHAT_IMAGE CHAT_BASE_URL CHAT_MODEL_NAME CHAT_MAX_CONTEXT_TOKENS \
+  export FRONTEND_PORT CORE_PORT OPA_PORT CHAT_BACKEND OLLAMA_MODEL FEEDBACK_DB_PASSWORD \
+    CHAT_IMAGE CHAT_BASE_URL CHAT_MODEL_NAME CHAT_CONTEXT_LENGTH \
     CHAT_MODEL_ID COMPOSE_PROFILES ENABLED_FEATURES FRONTEND_IMAGE
 
   render::file "${TMPL_DIR}/docker-compose.yml.tmpl" "${GEN_DIR}/docker-compose.yml"
@@ -290,11 +328,28 @@ _wizard_render() {
   render::file "${TMPL_DIR}/core/llm_models.yml.tmpl" "${GEN_DIR}/configs/core/llm_models.yml"
   render::file "${TMPL_DIR}/chat/general.yml.tmpl"   "${GEN_DIR}/configs/chat/general.yml"
   render::file "${TMPL_DIR}/chat/llm_models.yml.tmpl" "${GEN_DIR}/configs/chat/llm_models.yml"
+  render::file "${TMPL_DIR}/chat/agentic_chat.yml.tmpl" "${GEN_DIR}/configs/chat/agentic_chat.yml"
 
   # prompt_maps.yml has no template vars — copy from the bundled template.
   # Vendored at templates/chat/prompt_maps.yml so the path resolves regardless
   # of how the wizard was invoked (CLI, GUI, packaged sidecar).
-  cp "${TMPL_DIR}/chat/prompt_maps.yml" "${GEN_DIR}/configs/chat/prompt_maps.yml"
+  _wizard_copy_file "${TMPL_DIR}/chat/prompt_maps.yml" "${GEN_DIR}/configs/chat/prompt_maps.yml"
+
+  # APISIX route/config files use the gateway's own ${{VAR:=default}}
+  # runtime substitution (resolved from the container's env at APISIX
+  # startup, e.g. CORS_ALLOW_ORIGINS above) — not our envsubst allow-list.
+  # Copy them through unmodified from the vendored v3 reference.
+  _wizard_copy_file "${TMPL_DIR}/core/apisix/apisix-guest.yaml" "${GEN_DIR}/configs/apisix/apisix-guest.yaml"
+  _wizard_copy_file "${TMPL_DIR}/core/apisix/config-guest.yaml" "${GEN_DIR}/configs/apisix/config-guest.yaml"
+  _wizard_copy_file "${TMPL_DIR}/core/apisix/apisix.yaml" "${GEN_DIR}/configs/apisix/apisix.yaml"
+  _wizard_copy_file "${TMPL_DIR}/core/apisix/config.yaml" "${GEN_DIR}/configs/apisix/config.yaml"
+
+  # OPA policy set has no template vars — vendored verbatim from the v3
+  # chat reference, same pattern as the apisix files above.
+  _wizard_copy_file "${TMPL_DIR}/chat/opa/policies/permissions.rego" \
+    "${GEN_DIR}/opa/policies/permissions.rego"
+  _wizard_copy_file "${TMPL_DIR}/chat/opa/policies/test_permissions.rego" \
+    "${GEN_DIR}/opa/policies/test_permissions.rego"
 }
 
 _wizard_summary_box() {
@@ -327,11 +382,12 @@ wizard() {
   OLLAMA_MODEL="${OLLAMA_MODEL:-}"
   FRONTEND_PORT="${FRONTEND_PORT:-}"
   CORE_PORT="${CORE_PORT:-}"
+  OPA_PORT="${OPA_PORT:-}"
   FEEDBACK_DB_PASSWORD="${FEEDBACK_DB_PASSWORD:-}"
   CHAT_IMAGE=""
   CHAT_BASE_URL=""
   CHAT_MODEL_NAME=""
-  CHAT_MAX_CONTEXT_TOKENS=""
+  CHAT_CONTEXT_LENGTH=""
   CHAT_MODEL_ID=""
   COMPOSE_PROFILES=""
   # v1 preset: only chat is active; image built locally by this wizard

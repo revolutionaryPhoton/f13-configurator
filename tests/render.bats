@@ -3,6 +3,19 @@
 
 LIB_DIR="${BATS_TEST_DIRNAME}/../lib"
 
+# _service_block FILE SERVICE
+# Print one compose service block, from "  <service>:" to the next top-level
+# service key. Use this instead of `grep -A<n>`: a fixed window silently stops
+# asserting anything the moment a comment is added to the template, which has
+# already produced three false failures.
+_service_block() {
+  awk -v svc="  $2:" '
+    $0 == svc { inblk = 1; print; next }
+    inblk && /^  [a-z0-9_-]+:$/ { exit }
+    inblk { print }
+  ' "$1"
+}
+
 setup() {
   TMPDIR_WORK="$(mktemp -d)"
 }
@@ -242,11 +255,11 @@ teardown() {
 
   run bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 CHAT_BACKEND=mock \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 CHAT_BACKEND=mock \
            OLLAMA_MODEL='' CHAT_MODEL_ID=test_model_mock FEEDBACK_DB_PASSWORD=secret123 \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            CHAT_BASE_URL=http://ollama-mock:11434/v1 CHAT_MODEL_NAME=test_model:mock \
-           CHAT_MAX_CONTEXT_TOKENS=4096 COMPOSE_PROFILES=mock
+           CHAT_CONTEXT_LENGTH=4096 COMPOSE_PROFILES=mock
     render::file '${tmpl}' '${out}'
   "
   [ "$status" -eq 0 ]
@@ -255,8 +268,34 @@ teardown() {
   [ "$status" -eq 0 ]
   run grep 'CORE_PORT=8000' "$out"
   [ "$status" -eq 0 ]
+  run grep 'OPA_PORT=8181' "$out"
+  [ "$status" -eq 0 ]
   run grep 'CHAT_BACKEND=mock' "$out"
   [ "$status" -eq 0 ]
+  run grep 'CHAT_CONTEXT_LENGTH=4096' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "render::file renders env.tmpl fixture with no CHAT_MAX_CONTEXT_TOKENS reference" {
+  local tmpl="${BATS_TEST_DIRNAME}/../templates/env.tmpl"
+  run grep -c 'CHAT_MAX_CONTEXT_TOKENS' "$tmpl"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+}
+
+@test "S127: no CHAT_MAX_CONTEXT_TOKENS= assignment/reference remains in bin/, lib/, templates/, tests/" {
+  # Matches the var used as a shell/envsubst token (CHAT_MAX_CONTEXT_TOKENS=
+  # or \${CHAT_MAX_CONTEXT_TOKENS}), not English prose mentioning the old
+  # name in a test title (like this one). docs/upstream is the vendored v3
+  # reference and legitimately never used this var name — excluded because
+  # it must survive untouched.
+  run grep -rlE --exclude=render.bats 'CHAT_MAX_CONTEXT_TOKENS[=}]' \
+    "${BATS_TEST_DIRNAME}/../bin" \
+    "${BATS_TEST_DIRNAME}/../lib" \
+    "${BATS_TEST_DIRNAME}/../templates" \
+    "${BATS_TEST_DIRNAME}"
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -271,7 +310,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=mock
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -286,7 +325,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=mock
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -301,7 +340,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -310,11 +349,102 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
+@test "render docker-compose.yml.tmpl bumps feedback-db to postgres:18-alpine" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep 'image: postgres:18-alpine' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'postgres:17-alpine' "$out"
+  [ "$status" -ne 0 ]
+}
+
+@test "render docker-compose.yml.tmpl corrects ollama-mock path and tag" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=mock
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep 'image: registry.opencode.de/f13/microservices/builder-images/ollama-mock:v1.2.2' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'base-images/ollama-mock-f13' "$out"
+  [ "$status" -ne 0 ]
+}
+
+@test "render docker-compose.yml.tmpl contains the feedback service" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep 'image: registry.opencode.de/f13/microservices/feedback:v1.0.1' "$out"
+  [ "$status" -eq 0 ]
+  run _service_block "$out" feedback
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"feedback-db"* ]]
+  [[ "$output" == *"service_healthy"* ]]
+}
+
+@test "render docker-compose.yml.tmpl mounts feedback-db at the postgres 18 path" {
+  # Regression guard. postgres 18 expects a single mount at
+  # /var/lib/postgresql, not the pre-18 /var/lib/postgresql/data. Mounting the
+  # old path makes the container refuse to start ("PostgreSQL data in ...
+  # (unused mount/volume)") and every dependant then fails with "dependency
+  # failed to start". Nothing else in the suite catches this -- it only shows
+  # up when a stack is actually launched, which is how it reached S130.
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run grep -- '- feedback-db-data:/var/lib/postgresql$' "$out"
+  [ "$status" -eq 0 ]
+  run grep -- '- feedback-db-data:/var/lib/postgresql/data' "$out"
+  [ "$status" -ne 0 ]
+  run grep 'start_period:' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "render docker-compose.yml.tmpl mounts feedback_db.secret and ./configs into feedback" {
+  local out="${TMPDIR_WORK}/docker-compose.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
+           CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
+           COMPOSE_PROFILES=
+    render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
+  "
+  run _service_block "$out" feedback
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"source: feedback_db.secret"* ]]
+  [[ "$output" == *"target: /core/secrets/feedback_db.secret"* ]]
+  [[ "$output" == *"./configs/core:/feedback/configs:ro"* ]]
+
+  run grep -A2 '^secrets:$' "$out"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"feedback_db.secret:"* ]]
+  [[ "$output" == *"file: ./secrets/feedback_db.secret"* ]]
+}
+
 @test "render docker-compose.yml.tmpl contains extra_hosts for chat" {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -336,6 +466,51 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
+@test "render core/general.yml.tmpl adds llm_api_timeout: 180 (v3 schema)" {
+  local out="${TMPDIR_WORK}/core-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock FRONTEND_PORT=9999 CORE_PORT=8000
+    render::file '${BATS_TEST_DIRNAME}/../templates/core/general.yml.tmpl' '${out}'
+  "
+  run grep -c 'llm_api_timeout: 180' "$out"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 1 ]
+}
+
+@test "render core/general.yml.tmpl has no active_llms.embedding or transcription_inference (v3 minimal stack)" {
+  local out="${TMPDIR_WORK}/core-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock FRONTEND_PORT=9999 CORE_PORT=8000
+    render::file '${BATS_TEST_DIRNAME}/../templates/core/general.yml.tmpl' '${out}'
+  "
+  run grep -c 'embedding' "$out"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+  run grep -c 'transcription_inference' "$out"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+}
+
+@test "every top-level key in rendered core/general.yml exists in the vendored v3 reference" {
+  local out="${TMPDIR_WORK}/core-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock FRONTEND_PORT=9999 CORE_PORT=8000
+    render::file '${BATS_TEST_DIRNAME}/../templates/core/general.yml.tmpl' '${out}'
+  "
+  local ref="${BATS_TEST_DIRNAME}/../docs/upstream/v3/core/general.yml"
+  local rendered_keys
+  rendered_keys=$(grep -oE '^[A-Za-z_]+:' "$out" | sed 's/:$//' | sort -u)
+  local key
+  while IFS= read -r key; do
+    [ -z "$key" ] && continue
+    run grep -qE "^${key}:" "$ref"
+    [ "$status" -eq 0 ]
+  done <<< "$rendered_keys"
+}
+
 @test "render chat/llm_models.yml.tmpl substitutes backend-specific vars" {
   local out="${TMPDIR_WORK}/chat-llm.yml"
   bash -c "
@@ -343,7 +518,7 @@ teardown() {
     export CHAT_MODEL_ID=local_ollama \
            CHAT_BASE_URL=http://host.docker.internal:11434/v1 \
            CHAT_MODEL_NAME=gemma4:31b-cloud \
-           CHAT_MAX_CONTEXT_TOKENS=8192
+           CHAT_CONTEXT_LENGTH=8192
     render::file '${BATS_TEST_DIRNAME}/../templates/chat/llm_models.yml.tmpl' '${out}'
   "
   run grep 'local_ollama' "$out"
@@ -354,6 +529,77 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
+@test "render chat/llm_models.yml.tmpl uses context_length, not max_context_tokens" {
+  local out="${TMPDIR_WORK}/chat-llm.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock \
+           CHAT_BASE_URL=http://ollama-mock:11434/v1 \
+           CHAT_MODEL_NAME=test_model:mock \
+           CHAT_CONTEXT_LENGTH=4096
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/llm_models.yml.tmpl' '${out}'
+  "
+  run grep -c 'context_length' "$out"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 1 ]
+  run grep -c 'max_context_tokens' "$out"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+}
+
+@test "render chat/general.yml.tmpl includes the mandatory opa service endpoint" {
+  local out="${TMPDIR_WORK}/chat-general.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock OPA_PORT=8181
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/general.yml.tmpl' '${out}'
+  "
+  run grep -A1 'service_endpoints:' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'opa: http://opa:8181/' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "render chat/general.yml.tmpl opa endpoint follows OPA_PORT, not a hardcoded 8181" {
+  local out="${TMPDIR_WORK}/chat-general-altport.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    export CHAT_MODEL_ID=test_model_mock OPA_PORT=9191
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/general.yml.tmpl' '${out}'
+  "
+  run grep 'opa: http://opa:9191/' "$out"
+  [ "$status" -eq 0 ]
+  run grep 'opa: http://opa:8181/' "$out"
+  [ "$status" -eq 1 ]
+}
+
+@test "render chat/agentic_chat.yml.tmpl has zero tools.<tool>.role entries" {
+  local out="${TMPDIR_WORK}/agentic-chat.yml"
+  bash -c "
+    source '${LIB_DIR}/render.sh'
+    render::file '${BATS_TEST_DIRNAME}/../templates/chat/agentic_chat.yml.tmpl' '${out}'
+  "
+  [ -f "$out" ]
+  run grep -c '^\s*role:' "$out"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+  run grep 'mcp_endpoints' "$out"
+  [ "$status" -eq 0 ]
+}
+
+@test "chat/prompt_maps.yml uses the v3 generate/generate_tools schema" {
+  local f="${BATS_TEST_DIRNAME}/../templates/chat/prompt_maps.yml"
+  run grep -c 'generate:' "$f"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 3 ]
+  run grep -c 'generate_tools:' "$f"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 3 ]
+  run grep -c '^    system:' "$f"
+  [ "$status" -eq 1 ]
+  [ "$output" -eq 0 ]
+}
+
 @test "rendered docker-compose.yml.tmpl is valid YAML" {
   if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import yaml' 2>/dev/null; then
     skip "python3 with yaml not available"
@@ -361,7 +607,7 @@ teardown() {
   local out="${TMPDIR_WORK}/docker-compose.yml"
   bash -c "
     source '${LIB_DIR}/render.sh'
-    export FRONTEND_PORT=9999 CORE_PORT=8000 FEEDBACK_DB_PASSWORD=pw \
+    export FRONTEND_PORT=9999 CORE_PORT=8000 OPA_PORT=8181 FEEDBACK_DB_PASSWORD=pw \
            CHAT_IMAGE=registry.opencode.de/f13/microservices/chat/main:latest \
            COMPOSE_PROFILES=mock
     render::file '${BATS_TEST_DIRNAME}/../templates/docker-compose.yml.tmpl' '${out}'
@@ -394,7 +640,7 @@ teardown() {
     export CHAT_MODEL_ID=test_model_mock \
            CHAT_BASE_URL=http://ollama-mock:11434/v1 \
            CHAT_MODEL_NAME=test_model:mock \
-           CHAT_MAX_CONTEXT_TOKENS=4096
+           CHAT_CONTEXT_LENGTH=4096
     render::file '${BATS_TEST_DIRNAME}/../templates/chat/llm_models.yml.tmpl' '${out}'
   "
   run python3 -c 'import yaml,sys; yaml.safe_load(sys.stdin)' < "$out"

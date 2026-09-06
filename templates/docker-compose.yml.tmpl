@@ -15,12 +15,29 @@ services:
       - core
     restart: unless-stopped
 
+  # v3.0.0: core is no longer an F13 app image -- it is APISIX, a
+  # file-configured API gateway that routes to the individual services.
+  # Guest mode (no Keycloak) is the only profile this configurator ever
+  # renders, so the *-guest.yaml files are mounted at the filenames the
+  # image actually reads; the plain apisix.yaml/config.yaml (Keycloak
+  # variant) are mounted too, vendored for reference / a future non-guest
+  # profile, but nothing loads them yet.
   core:
-    image: registry.opencode.de/f13/microservices/core:v2.0.0
-    platform: linux/amd64
+    image: apache/apisix:3.15.0-ubuntu
+    environment:
+      APISIX_STAND_ALONE: "true"
+      APISIX_PROFILE: guest
+      CORS_ALLOW_ORIGINS: "http://localhost:${FRONTEND_PORT}"
     volumes:
-      - ./configs/core:/core/configs:ro
-      - ./secrets:/core/secrets:ro
+      # Mount 1:1 under upstream's own filenames. APISIX_PROFILE=guest makes
+      # APISIX open config-guest.yaml BY NAME -- renaming config-guest.yaml to
+      # config.yaml on the way in makes it fail with
+      #   "failed to open file: /usr/local/apisix/conf/config-guest.yaml"
+      # and crash-loop. Do not "simplify" these paths.
+      - ./configs/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+      - ./configs/apisix/apisix-guest.yaml:/usr/local/apisix/conf/apisix-guest.yaml:ro
+      - ./configs/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./configs/apisix/config-guest.yaml:/usr/local/apisix/conf/config-guest.yaml:ro
     ports:
       - "${CORE_PORT}:8000"
     depends_on:
@@ -37,25 +54,100 @@ services:
       - ./configs/chat:/chat/configs:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      opa:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # v3.0.0: chat refuses to start without service_endpoints.opa in its
+  # general.yml (KeyError: 'opa' at boot, regardless of whether agentic
+  # tools are used). Tool permissions moved out of agentic_chat.yml's
+  # `role` keys and into this policy set.
+  opa:
+    image: registry.opencode.de/f13/devops-tools/dockerhub-images/opa:1.18.1-debug
+    # F13 publishes this image for linux/amd64 only, so on Apple Silicon it runs
+    # under emulation. Declaring the platform explicitly does not change that --
+    # it silences Docker's "requested image's platform does not match" warning,
+    # records the emulation as a deliberate choice, and pins behaviour if a
+    # future Docker version picks a different default. The actual fix is
+    # upstream publishing multi-arch images.
+    platform: linux/amd64
+    command:
+      - "run"
+      - "--server"
+      - "--addr=:${OPA_PORT}"
+      - "--watch"
+      - "--set=decision_logs.console=true"
+      - "/policies"
+    volumes:
+      - ./opa/policies:/policies:ro
+    healthcheck:
+      test: ["CMD", "/opa", "eval", "1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
 
   feedback-db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: feedback
       POSTGRES_USER: member
       POSTGRES_PASSWORD: ${FEEDBACK_DB_PASSWORD}
     volumes:
-      - feedback-db-data:/var/lib/postgresql/data
+      # postgres 18 moved the mount point. Earlier images took the data dir
+      # directly (/var/lib/postgresql/data); 18+ expects a single mount one
+      # level up and places data in a subdirectory, so pg_upgrade --link can
+      # work without crossing a mount boundary. Mounting the old path against
+      # an 18 image makes the container refuse to start:
+      #   "There appears to be PostgreSQL data in /var/lib/postgresql/data
+      #    (unused mount/volume)"
+      # Matches core v3.0.0's own compose.
+      - feedback-db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "member"]
       interval: 10s
       timeout: 5s
       retries: 5
+      # Without a start_period the first probes race initdb and the container
+      # is marked unhealthy before it has finished bootstrapping, which fails
+      # every dependant with "dependency failed to start".
+      start_period: 15s
     restart: unless-stopped
 
+  # v3.0.0: feedback is a new service in the minimal stack. The secrets
+  # target path (/core/secrets/...) is upstream's own path, not a typo we
+  # introduced -- ported verbatim from core v3.0.0's docker-compose.yml.
+  feedback:
+    image: registry.opencode.de/f13/microservices/feedback:v1.0.1
+    # F13 publishes this image for linux/amd64 only, so on Apple Silicon it runs
+    # under emulation. Declaring the platform explicitly does not change that --
+    # it silences Docker's "requested image's platform does not match" warning,
+    # records the emulation as a deliberate choice, and pins behaviour if a
+    # future Docker version picks a different default. The actual fix is
+    # upstream publishing multi-arch images.
+    platform: linux/amd64
+    depends_on:
+      feedback-db:
+        condition: service_healthy
+    secrets:
+      - source: feedback_db.secret
+        target: /core/secrets/feedback_db.secret
+    volumes:
+      # Upstream's configs/ is flat so feedback and core share one general.yml.
+      # Ours is split per service, so point feedback at the core config -- that
+      # is where the feedback_db block lives. Mounting ./configs leaves feedback
+      # with no general.yml and it exits with
+      #   "Invalid path to 'general.yml': '/feedback/src/../configs/general.yml'"
+      - ./configs/core:/feedback/configs:ro
+    restart: unless-stopped
+
+  # v3.0.0: path AND tag corrected -- upstream's own docker-compose.yml pins
+  # v1.2.1, but the F13 compatibility matrix (Stand 31.08.2026, more recent
+  # than the v3.0.0 tag cut) specifies v1.2.2 as the matrix-tested pairing
+  # for core v3.0.0 + chat v3.0.0; following the matrix per the PRD.
   ollama-mock:
-    image: registry.opencode.de/f13/microservices/base-images/ollama-mock-f13:1.2.0
+    image: registry.opencode.de/f13/microservices/builder-images/ollama-mock:v1.2.2
     platform: linux/amd64
     profiles:
       - mock
@@ -63,3 +155,7 @@ services:
 
 volumes:
   feedback-db-data:
+
+secrets:
+  feedback_db.secret:
+    file: ./secrets/feedback_db.secret
