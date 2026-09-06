@@ -409,11 +409,31 @@ wizard() {
       keep)
         state::read "${GEN_DIR}/.state"
         _wizard_compute_vars
+
+        # "keep" means keep your ANSWERS, not keep whatever files happen to be
+        # on disk. A previous failed launch can leave generated/ damaged -- most
+        # commonly Docker having created a missing bind-mount source as a
+        # directory -- and skipping the render then hands that straight to
+        # compose, which fails inside runc naming the container path. Re-render
+        # from the saved state instead; it is idempotent and reproduces the same
+        # config, so nothing the user chose is lost.
+        local _repaired=0
+        if ! compose::validate_generated "${GEN_DIR}" >/dev/null 2>&1; then
+          ui::warn "Generated files are incomplete — re-rendering from your saved settings."
+          _repaired=1
+        fi
+
         _wizard_summary_box
         printf '\n'
         # Emit synthetic done+skipped events for stages that ran in the previous wizard pass.
         events::emit_skipped secrets
-        events::emit_skipped render
+        if [[ "${_repaired}" -eq 1 ]]; then
+          events::emit step "name=render" "status=started"
+          _wizard_render
+          events::emit step "name=render" "status=done"
+        else
+          events::emit_skipped render
+        fi
         events::emit_skipped build
         if [[ "${_dry_run}" -ne 1 ]] && prompt::yesno "Start it now?" "y"; then
           ui::step "Starting F13..."
