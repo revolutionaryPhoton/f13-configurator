@@ -337,3 +337,54 @@ COMPOSE
   rm -rf "${tmp}"
   [ "$status" -eq 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# compose::validate_generated — guard against a damaged generated/ tree
+# ---------------------------------------------------------------------------
+
+# Build a minimal generated/ with one file mount and one directory mount.
+_mk_gen() {
+  local g="$1"
+  mkdir -p "${g}/configs/apisix" "${g}/configs/core"
+  printf 'x\n' > "${g}/configs/apisix/config.yaml"
+  cat > "${g}/docker-compose.yml" <<'YML'
+services:
+  core:
+    volumes:
+      - ./configs/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+  chat:
+    volumes:
+      - ./configs/core:/chat/configs:ro
+YML
+}
+
+@test "compose::validate_generated accepts a healthy tree" {
+  local g; g="$(mktemp -d)/gen"; _mk_gen "$g"
+  run bash -c "source '${LIB_DIR}/ui.sh'; source '${LIB_DIR}/compose.sh'; compose::validate_generated '$g'"
+  [ "$status" -eq 0 ]
+}
+
+@test "compose::validate_generated rejects a directory at a file mount" {
+  # This is the exact wedge Docker creates when a bind-mount source is missing:
+  # it makes a directory, and runc later fails naming the CONTAINER path, which
+  # tells you nothing about which host file is wrong.
+  local g; g="$(mktemp -d)/gen"; _mk_gen "$g"
+  rm -f "${g}/configs/apisix/config.yaml"
+  mkdir -p "${g}/configs/apisix/config.yaml"
+  run bash -c "source '${LIB_DIR}/ui.sh'; source '${LIB_DIR}/compose.sh'; compose::validate_generated '$g'"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"configs/apisix/config.yaml"* ]]
+}
+
+@test "compose::validate_generated rejects a missing directory mount" {
+  local g; g="$(mktemp -d)/gen"; _mk_gen "$g"
+  rmdir "${g}/configs/core"
+  run bash -c "source '${LIB_DIR}/ui.sh'; source '${LIB_DIR}/compose.sh'; compose::validate_generated '$g'"
+  [ "$status" -ne 0 ]
+}
+
+@test "compose::validate_generated fails when docker-compose.yml is absent" {
+  local g; g="$(mktemp -d)/gen"; mkdir -p "$g"
+  run bash -c "source '${LIB_DIR}/ui.sh'; source '${LIB_DIR}/compose.sh'; compose::validate_generated '$g'"
+  [ "$status" -ne 0 ]
+}

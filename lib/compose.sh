@@ -27,8 +27,62 @@ compose::_docker_image_inspect() {
 
 # compose::up — start detached services, then wait healthy and show summary
 # Reads globals: GEN_DIR, CORE_PORT, FRONTEND_PORT
+# compose::validate_generated GEN_DIR
+# Check every bind-mount source in the generated compose file exists with the
+# type its container target implies.
+#
+# Docker creates a missing bind-mount source as a DIRECTORY. When the target is
+# a file path the container then dies inside runc with:
+#   error mounting ".../config.yaml" to rootfs at "/usr/local/apisix/conf/config.yaml":
+#   not a directory: Are you trying to mount a directory onto a file (or vice-versa)?
+# That message names the container path, not the thing that is actually wrong,
+# and `docker compose down -v` does not clear it -- these are host paths under
+# generated/, not volumes. Failing here instead names the real file.
+#
+# Returns 0 when the tree looks launchable, 1 otherwise (printing what is wrong).
+compose::validate_generated() {
+  local gen_dir="${1:?}"
+  local compose_file="${gen_dir}/docker-compose.yml"
+  local bad=0 line src dst
+
+  if [[ ! -f "${compose_file}" ]]; then
+    ui::err "No docker-compose.yml in ${gen_dir}"
+    return 1
+  fi
+
+  while IFS= read -r line; do
+    src="${line%%:*}"
+    dst="${line#*:}"; dst="${dst%%:*}"
+    [[ -n "${src}" && -n "${dst}" ]] || continue
+    local host_path="${gen_dir}/${src#./}"
+    # A target with an extension is a file mount; anything else is a directory.
+    if [[ "${dst##*/}" == *.* ]]; then
+      if [[ ! -f "${host_path}" ]]; then
+        if [[ -d "${host_path}" ]]; then
+          ui::err "${src} is a directory but is mounted as a file (${dst})."
+        else
+          ui::err "${src} is missing but is mounted at ${dst}."
+        fi
+        bad=1
+      fi
+    elif [[ ! -d "${host_path}" ]]; then
+      ui::err "${src} is missing but is mounted as a directory at ${dst}."
+      bad=1
+    fi
+  done < <(grep -oE '^[[:space:]]+- \./[^[:space:]]+' "${compose_file}" | sed 's/^[[:space:]]*- //')
+
+  return "${bad}"
+}
+
 compose::up() {
   local gen_dir="${GEN_DIR:?GEN_DIR is required}"
+
+  # Precondition: the generated tree must be launchable. Without this a damaged
+  # generated/ surfaces as an opaque runc mount error naming the container path.
+  if ! compose::validate_generated "${gen_dir}"; then
+    ui::err "Generated stack in ${gen_dir} is incomplete — re-run the wizard and choose reset."
+    return 1
+  fi
 
   # HF3: precondition — the frontend image is built locally and never
   # pushed to a registry, so if it's missing on disk compose will try

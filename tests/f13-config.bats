@@ -484,3 +484,27 @@ STATEOF
   [[ "$output" == *'"type":"done"'* ]]
   [[ "$output" == *'"status":"ok"'* ]]
 }
+
+@test "keep path re-renders when generated/ is damaged" {
+  # "keep" means keep the user's ANSWERS, not keep whatever is on disk. A failed
+  # launch can leave a bind-mount source as a directory; skipping the render
+  # then hands that to compose, which dies inside runc naming the container
+  # path. `docker compose down -v` does not clear it either, so the stack was
+  # unrecoverable without deleting files by hand.
+  local gen; gen="$(mktemp -d)/gen"
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=reset "F13_GENERATED_DIR=${gen}" \
+    "${BIN}" --dry-run
+  [ "$status" -eq 0 ]
+  [ -f "${gen}/configs/apisix/config.yaml" ]
+
+  # wedge it exactly as Docker would
+  rm -f "${gen}/configs/apisix/config.yaml"
+  mkdir -p "${gen}/configs/apisix/config.yaml"
+
+  run env "${NI_ENV[@]}" F13_STATE_ACTION=keep "F13_GENERATED_DIR=${gen}" \
+    "${BIN}" --dry-run
+  [ "$status" -eq 0 ]
+  # repaired back to a regular file, not left as a directory
+  [ -f "${gen}/configs/apisix/config.yaml" ]
+  [ ! -d "${gen}/configs/apisix/config.yaml" ]
+}
