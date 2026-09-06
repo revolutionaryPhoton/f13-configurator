@@ -424,8 +424,11 @@ STATEOF
 }
 
 @test "--list-models emits not-running when Ollama unreachable" {
-  # In CI there is no Ollama server; ollama::is_running returns 1.
-  run "${BIN}" --non-interactive --emit-events --list-models
+  # Force the unreachable path rather than assuming the machine has no Ollama.
+  # This used to rely on CI having no server, so it went red on any dev box
+  # running Ollama locally. Port 1 is reserved and never listening.
+  run env "_F13_OLLAMA_URL=http://127.0.0.1:1/api/tags" \
+    "${BIN}" --non-interactive --emit-events --list-models
   [ "$status" -eq 0 ]
   [[ "$output" == *'"type":"models"'* ]]
   [[ "$output" == *'"status":"not-running"'* ]]

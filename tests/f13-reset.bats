@@ -101,8 +101,10 @@ teardown() {
 
 # ---------------------------------------------------------------------------
 # S52: bundled path discovery (macOS + Linux appLocalDataDir)
-# Rely on no generated/ dir existing at the binary's dev path
-# (/workspace/configurator_v1/generated) — verified in Docker loop.
+# Each test pins _F13_DEV_ROOT at an empty dir so discovery's dev branch
+# deterministically misses. These used to rely on the real checkout having no
+# generated/ dir, which made them pass or fail according to whether anyone had
+# run the wizard recently -- green in the Docker loop, red on a dev machine.
 # ---------------------------------------------------------------------------
 
 @test "f13-reset discovers macOS bundled path when dev path absent" {
@@ -111,6 +113,7 @@ teardown() {
   touch "${macos_gen}/docker-compose.yml"
   touch "${macos_gen}/.env"
   run env \
+    "_F13_DEV_ROOT=${TMPDIR_WORK}/no_dev" \
     "_F13_MACOS_DATA_DIR=${TMPDIR_WORK}/macos_data" \
     "_F13_LINUX_DATA_DIR=${TMPDIR_WORK}/no_linux" \
     "${RESET_BIN}"
@@ -124,6 +127,7 @@ teardown() {
   touch "${macos_gen}/docker-compose.yml"
   touch "${macos_gen}/.env"
   run env \
+    "_F13_DEV_ROOT=${TMPDIR_WORK}/no_dev" \
     "_F13_MACOS_DATA_DIR=${TMPDIR_WORK}/macos_data" \
     "_F13_LINUX_DATA_DIR=${TMPDIR_WORK}/no_linux" \
     "${STOP_BIN}"
@@ -137,6 +141,7 @@ teardown() {
   touch "${linux_gen}/docker-compose.yml"
   touch "${linux_gen}/.env"
   run env \
+    "_F13_DEV_ROOT=${TMPDIR_WORK}/no_dev" \
     "_F13_MACOS_DATA_DIR=${TMPDIR_WORK}/no_macos" \
     "_F13_LINUX_DATA_DIR=${TMPDIR_WORK}/linux_data" \
     "${RESET_BIN}"
@@ -146,6 +151,7 @@ teardown() {
 
 @test "f13-reset exits 1 with helpful message when no stack found anywhere" {
   run env \
+    "_F13_DEV_ROOT=${TMPDIR_WORK}/no_dev" \
     "_F13_MACOS_DATA_DIR=${TMPDIR_WORK}/no_macos" \
     "_F13_LINUX_DATA_DIR=${TMPDIR_WORK}/no_linux" \
     "${RESET_BIN}"

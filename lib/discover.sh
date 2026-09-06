@@ -12,9 +12,15 @@
 #   3. macOS appLocalDataDir:  ~/Library/Application Support/de.f13-os.configurator/generated
 #   4. Linux appLocalDataDir:  ~/.local/share/de.f13-os.configurator/generated
 #
-# Tests may override the platform data-dir root via env vars:
+# Tests may override each probed root via env vars:
+#   _F13_DEV_ROOT        (default: SCRIPT_DIR/..)
 #   _F13_MACOS_DATA_DIR  (default: ~/Library/Application Support/de.f13-os.configurator)
 #   _F13_LINUX_DATA_DIR  (default: ~/.local/share/de.f13-os.configurator)
+#
+# _F13_DEV_ROOT exists so tests of the later branches are hermetic. Without it a
+# test asserting "falls through to the macOS path" silently depends on the real
+# checkout having no generated/ dir -- which is false the moment anyone runs the
+# wizard, so the test passes or fails according to unrelated local state.
 #
 # On success: prints the resolved path and returns 0.
 # On failure: returns 1 (caller is responsible for the error message).
@@ -29,9 +35,10 @@ discover::generated_dir() {
   fi
 
   # 2. Dev / direct-checkout: bin/../generated
-  if [[ -n "${script_dir}" ]]; then
-    local dev_gen
-    dev_gen="$(cd "${script_dir}/.." 2>/dev/null && pwd)/generated"
+  if [[ -n "${script_dir}" ]] || [[ -n "${_F13_DEV_ROOT:-}" ]]; then
+    local dev_gen dev_root
+    dev_root="${_F13_DEV_ROOT:-$(cd "${script_dir}/.." 2>/dev/null && pwd)}"
+    dev_gen="${dev_root}/generated"
     if [[ -f "${dev_gen}/docker-compose.yml" ]]; then
       echo "${dev_gen}"
       return 0
